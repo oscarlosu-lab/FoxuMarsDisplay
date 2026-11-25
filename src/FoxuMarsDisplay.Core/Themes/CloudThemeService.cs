@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -52,7 +53,7 @@ public sealed class CloudThemeService
     private readonly string _thumbsDir;
 
     private static readonly Regex ApiDataRegex = new(
-        "name=[\"']api_data[\"']\\s+content=['\"]([^'\"]+)['\"]",
+        "name=[\"']api_data[\"']\\s+content=(?:'([^']+)'|\"([^\"]+)\")",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public CloudThemeService(HttpClient? httpClient = null, string? customThemesDir = null, string? customCacheDir = null)
@@ -66,9 +67,21 @@ public sealed class CloudThemeService
 
     private static HttpClient CreateDefaultHttpClient()
     {
-        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
+        var handler = new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.All
+        };
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
         client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) FoxuMarsDisplay/1.0");
         return client;
+    }
+
+    public static string? ExtractApiDataJson(string html)
+    {
+        var match = ApiDataRegex.Match(html);
+        if (!match.Success) return null;
+        string raw = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+        return HttpUtility.HtmlDecode(raw);
     }
 
     public async Task<CloudCatalogResult> FetchCatalogAsync(CloudSourceMode mode, CancellationToken ct = default)
@@ -161,11 +174,10 @@ public sealed class CloudThemeService
         long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         string homeHtml = await _http.GetStringAsync($"{SoeyiBaseUrl}/?_={ts}", ct).ConfigureAwait(false);
 
-        var match = ApiDataRegex.Match(homeHtml);
-        if (!match.Success)
+        string? decodedJson = ExtractApiDataJson(homeHtml);
+        if (string.IsNullOrWhiteSpace(decodedJson))
             throw new InvalidOperationException("No se encontró api_data en soeyiphoto.com");
 
-        string decodedJson = HttpUtility.HtmlDecode(match.Groups[1].Value);
         using var apiDoc = JsonDocument.Parse(decodedJson);
         var root = apiDoc.RootElement;
         string appid = root.GetProperty("appid").GetString() ?? "webapi";
@@ -388,6 +400,20 @@ public sealed class CloudThemeService
         }
         catch
         {
+            try
+            {
+                string fileName = Path.GetFileName(item.ThumbnailUrl);
+                if (!string.IsNullOrWhiteSpace(fileName))
+                {
+                    string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    string smtPreview = Path.Combine(docs, "SnakeMarsTheme", "resources", "Previews", fileName);
+                    if (File.Exists(smtPreview)) return smtPreview;
+
+                    string localPreview = Path.Combine(_cacheDir, "previews", fileName);
+                    if (File.Exists(localPreview)) return localPreview;
+                }
+            }
+            catch { }
             return null;
         }
     }

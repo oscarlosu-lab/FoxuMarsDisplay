@@ -671,7 +671,7 @@ public partial class MainWindow : Window
 
     private async Task LoadCloudThumbnailsAsync(List<CloudItemVm> items, CancellationToken ct)
     {
-        using var sem = new SemaphoreSlim(4);
+        using var sem = new SemaphoreSlim(6);
         var tasks = items.Select(async vm =>
         {
             await sem.WaitAsync(ct).ConfigureAwait(false);
@@ -681,13 +681,8 @@ public partial class MainWindow : Window
                 string? localThumb = await _cloudService.GetOrDownloadThumbnailAsync(vm.Model, ct).ConfigureAwait(false);
                 if (localThumb is null || ct.IsCancellationRequested) return;
 
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.UriSource = new Uri(localThumb, UriKind.Absolute);
-                bmp.DecodePixelHeight = 140;
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.EndInit();
-                bmp.Freeze();
+                BitmapImage? bmp = DecodeBitmapWithSkiaFallback(localThumb);
+                if (bmp is null) return;
 
                 _ = Dispatcher.BeginInvoke(() =>
                 {
@@ -703,6 +698,44 @@ public partial class MainWindow : Window
         });
 
         try { await Task.WhenAll(tasks).ConfigureAwait(false); } catch { }
+    }
+
+    private static BitmapImage? DecodeBitmapWithSkiaFallback(string path)
+    {
+        try
+        {
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.UriSource = new Uri(path, UriKind.Absolute);
+            bmp.DecodePixelHeight = 140;
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
+        }
+        catch
+        {
+            try
+            {
+                using var sk = SkiaSharp.SKBitmap.Decode(path);
+                if (sk is null) return null;
+                using var img = SkiaSharp.SKImage.FromBitmap(sk);
+                using var data = img.Encode(SkiaSharp.SKEncodedImageFormat.Png, 90);
+                using var ms = new MemoryStream(data.ToArray());
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.DecodePixelHeight = 140;
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.StreamSource = ms;
+                bmp.EndInit();
+                bmp.Freeze();
+                return bmp;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 
     private void ApplyCloudFilter()

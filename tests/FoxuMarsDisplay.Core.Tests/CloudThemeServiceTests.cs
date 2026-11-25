@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using FoxuMarsDisplay.Core.Themes;
 using Xunit;
 
@@ -98,5 +99,24 @@ public sealed class CloudThemeServiceTests
         {
             Directory.Delete(tempDir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void ExtractApiDataJson_ParsesSingleQuotedJsonWithInnerDoubleQuotes()
+    {
+        string html = """
+            <html><head>
+            <meta name="api_data" content='{"appid":"webapi","timestamp":"1795571128","signature":"420a7c2fec81eba51dde8add6b1f0fcc","acode":"cn"}'>
+            </head></html>
+            """;
+
+        string? json = CloudThemeService.ExtractApiDataJson(html);
+        Assert.NotNull(json);
+
+        using var doc = JsonDocument.Parse(json!);
+        Assert.Equal("webapi", doc.RootElement.GetProperty("appid").GetString());
+        Assert.Equal("1795571128", doc.RootElement.GetProperty("timestamp").GetString());
+        Assert.Equal("420a7c2fec81eba51dde8add6b1f0fcc", doc.RootElement.GetProperty("signature").GetString());
+        Assert.Equal("cn", doc.RootElement.GetProperty("acode").GetString());
     }
 }
