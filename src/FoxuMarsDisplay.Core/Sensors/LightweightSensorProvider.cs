@@ -26,6 +26,14 @@ public sealed class LightweightSensorProvider : IDisposable
     private double _diskUsagePct;
     private double _diskUsedGb;
     private double _diskFreeGb;
+    private double _diskTotalGb;
+    private double _diskCUsagePct;
+    private double _diskDUsagePct;
+    private readonly SystemStatusProvider _systemStatus = new();
+    private readonly WeatherAndNetProvider _weatherAndNet = new();
+    private readonly WasapiLoopbackFftProvider _fftProvider = new();
+    private readonly MediaArtAndLyricsProvider _mediaArtLyrics = new();
+    private readonly AiQuotaSensorProvider _aiQuota = new();
     private volatile bool _disposed;
 
     public SensorSnapshot Current => Volatile.Read(ref _current);
@@ -37,6 +45,7 @@ public sealed class LightweightSensorProvider : IDisposable
 
         InitNvml();
         InitLhm();
+        _fftProvider.Start();
         SampleNetworkDelta(out _, out _); // Prime baseline
         SampleOnce();
 
@@ -243,6 +252,21 @@ public sealed class LightweightSensorProvider : IDisposable
 
         SampleDiskInfoIfDue();
         SampleNetworkDelta(out double netUpKbps, out double netDownKbps);
+        _weatherAndNet.TriggerRefreshIfDue();
+        _aiQuota.SampleIfDue();
+        _systemStatus.Sample(
+            out double volumePct,
+            out bool isMuted,
+            out float audioPeak,
+            out bool numLockOn,
+            out bool capsLockOn,
+            out bool netConnected,
+            out string songTitle,
+            out string artist);
+        float[]? fftBands = _fftProvider.GetBandsCopy(out float fftPeak);
+        if (fftPeak > audioPeak)
+            audioPeak = fftPeak;
+        _mediaArtLyrics.UpdateAndGet(artist, songTitle, out byte[]? albumArtBytes, out string currentLyric);
 
         Volatile.Write(ref _current, new SensorSnapshot
         {
@@ -267,8 +291,35 @@ public sealed class LightweightSensorProvider : IDisposable
             DiskUsagePct = _diskUsagePct,
             DiskUsedGb = _diskUsedGb,
             DiskFreeGb = _diskFreeGb,
+            DiskTotalGb = _diskTotalGb,
+            DiskCUsagePct = _diskCUsagePct,
+            DiskDUsagePct = _diskDUsagePct,
             NetUpKbps = netUpKbps,
             NetDownKbps = netDownKbps,
+            PingMs = _weatherAndNet.PingMs,
+            HasWeather = _weatherAndNet.HasWeather,
+            WeatherTempC = _weatherAndNet.WeatherTempC,
+            WeatherFeelsLikeC = _weatherAndNet.WeatherFeelsLikeC,
+            WeatherHumidityPct = _weatherAndNet.WeatherHumidityPct,
+            WeatherHighC = _weatherAndNet.WeatherHighC,
+            WeatherLowC = _weatherAndNet.WeatherLowC,
+            WeatherDescription = _weatherAndNet.WeatherDescription,
+            WeatherCity = _weatherAndNet.WeatherCity,
+            AiClaudePct = _aiQuota.ClaudePct,
+            AiCodexPct = _aiQuota.CodexPct,
+            AiGeminiPct = _aiQuota.GeminiPct,
+            AiActiveTasks = _aiQuota.ActiveTasks,
+            VolumePct = volumePct,
+            IsMuted = isMuted,
+            AudioPeak = audioPeak,
+            AudioBands = fftBands,
+            AlbumArtBytes = albumArtBytes,
+            CurrentLyricLine = currentLyric,
+            NumLockOn = numLockOn,
+            CapsLockOn = capsLockOn,
+            NetworkConnected = netConnected,
+            SongTitle = songTitle,
+            Artist = artist,
             Now = DateTime.Now
         });
     }
@@ -307,9 +358,27 @@ public sealed class LightweightSensorProvider : IDisposable
             {
                 double totalGb = di.TotalSize / (1024.0 * 1024.0 * 1024.0);
                 double freeGb = di.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                _diskTotalGb = totalGb;
                 _diskFreeGb = freeGb;
                 _diskUsedGb = Math.Max(0, totalGb - freeGb);
                 _diskUsagePct = Math.Clamp((_diskUsedGb * 100.0) / totalGb, 0, 100);
+                _diskCUsagePct = _diskUsagePct;
+            }
+
+            var sec = DriveInfo.GetDrives().FirstOrDefault(d =>
+                d.DriveType == DriveType.Fixed &&
+                d.IsReady &&
+                d.TotalSize > 0 &&
+                !d.Name.Equals(root, StringComparison.OrdinalIgnoreCase));
+            if (sec != null)
+            {
+                double sTotal = sec.TotalSize / (1024.0 * 1024.0 * 1024.0);
+                double sFree = sec.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                _diskDUsagePct = Math.Clamp(((sTotal - sFree) * 100.0) / sTotal, 0, 100);
+            }
+            else
+            {
+                _diskDUsagePct = _diskCUsagePct;
             }
         }
         catch { }
@@ -362,6 +431,11 @@ public sealed class LightweightSensorProvider : IDisposable
 
         try { _computer?.Close(); } catch { }
         _computer = null;
+
+        try { _systemStatus.Dispose(); } catch { }
+        try { _weatherAndNet.Dispose(); } catch { }
+        try { _fftProvider.Dispose(); } catch { }
+        try { _mediaArtLyrics.Dispose(); } catch { }
 
         if (_nvmlAvailable)
         {

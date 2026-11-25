@@ -160,6 +160,24 @@ public static class MsDisplayApi
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Wrraper_MSDisplayResume")]
     public static extern int MSDisplayResume();
 
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Wrraper_MSDisplayGetBrightness")]
+    public static extern int MSDisplayGetBrightness(uint handle);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Wrraper_MSDisplaySetBrightness")]
+    public static extern int MSDisplaySetBrightness(uint handle, int brightness);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Wrraper_MSDisplayGetRotation")]
+    public static extern int MSDisplayGetRotation(uint handle);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Wrraper_MSDisplaySetRotation")]
+    public static extern int MSDisplaySetRotation(uint handle, int rotation);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Wrraper_MSDisplayReadEDID")]
+    public static extern int MSDisplayReadEDID(uint handle, IntPtr edid);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Wrraper_MSDisplayGetFirmwareVer")]
+    public static extern int MSDisplayGetFirmwareVer(uint handle, IntPtr buf);
+
     public static MSDisplayEdid CreateDefaultEdid()
     {
         var timings = new MSDisplayTiming[16];

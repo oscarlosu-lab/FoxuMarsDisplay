@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FoxuMarsDisplay.Core.Themes;
 
 namespace FoxuMarsDisplay.Core.Config;
 
@@ -21,12 +22,18 @@ public sealed class ScreenProfile
     public string? SchemeJsonPath { get; set; }
     public int Brightness { get; set; } = 100;
     public int Rotation { get; set; } = -1;
+    public ThemeScaleMode ScaleMode { get; set; } = ThemeScaleMode.Auto;
     public int? HardwareRotationOffset { get; set; }
     public int CalibrationVersion { get; set; } = 0;
     public bool IsEnabled { get; set; } = true;
     public bool SlideshowEnabled { get; set; } = false;
     public int SlideshowIntervalSec { get; set; } = 300;
     public List<string> SlideshowThemes { get; set; } = [];
+    public bool AutoSwitchOnGame { get; set; } = false;
+    public string? GameModeThemePath { get; set; }
+    public List<string> GameProcessNames { get; set; } = [];
+    public int IdleTimeoutSec { get; set; } = 0;
+    public string? IdleScreensaverThemePath { get; set; }
 }
 
 public sealed class FoxuDisplayConfigStore

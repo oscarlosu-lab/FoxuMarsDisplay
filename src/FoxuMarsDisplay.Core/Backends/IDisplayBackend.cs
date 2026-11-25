@@ -21,4 +21,7 @@ public interface IDisplayBackend : IDisposable
     bool SetResolution(uint handle, int width, int height, int refresh = 60);
     int SendBgraFrame(uint handle, SKBitmap bgraBitmap);
     void Stop();
+
+    bool TrySetHardwareBrightness(uint handle, int brightness) => false;
+    string? ReadFirmwareVersion(uint handle) => null;
 }

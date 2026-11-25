@@ -88,6 +88,49 @@ public sealed class MsDisplayBackend : IDisplayBackend
         try { MsDisplayApi.Wrraper_MSDisplayStop(); } catch { }
     }
 
+    public bool TrySetHardwareBrightness(uint handle, int brightness)
+    {
+        if (!_started) return false;
+        try
+        {
+            return MsDisplayApi.MSDisplaySetBrightness(handle, Math.Clamp(brightness, 0, 100)) == 0;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public string? ReadFirmwareVersion(uint handle)
+    {
+        if (!_started) return null;
+        try
+        {
+            unsafe
+            {
+                byte* buf = stackalloc byte[64];
+                for (int i = 0; i < 64; i++) buf[i] = 0;
+                int rc = MsDisplayApi.MSDisplayGetFirmwareVer(handle, (IntPtr)buf);
+                if (rc < 0) return null;
+                int len = 0;
+                while (len < 63 && buf[len] != 0) len++;
+                return len > 0 ? Encoding.ASCII.GetString(buf, len).Trim() : null;
+            }
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private void OnAttach(uint handle, IntPtr resPtr, int count)
     {
         try

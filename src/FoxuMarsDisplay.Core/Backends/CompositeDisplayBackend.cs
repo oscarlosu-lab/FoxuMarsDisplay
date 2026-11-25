@@ -18,7 +18,9 @@ public sealed class CompositeDisplayBackend : IDisplayBackend
 
     public CompositeDisplayBackend(params IDisplayBackend[] backends)
     {
-        _backends = backends.Length > 0 ? backends : [new MsDisplayBackend(), new AicDisplayBackend()];
+        _backends = backends.Length > 0
+            ? backends
+            : [new MsDisplayBackend(), new AicDisplayBackend(), new SerialCdcVmaxBackend(), new TurzxSerialBackend()];
         foreach (var b in _backends)
         {
             b.DeviceAttached += d => DeviceAttached?.Invoke(d);
@@ -62,6 +64,18 @@ public sealed class CompositeDisplayBackend : IDisplayBackend
         {
             try { b.Stop(); } catch { }
         }
+    }
+
+    public bool TrySetHardwareBrightness(uint handle, int brightness)
+    {
+        var owner = FindOwner(handle);
+        return owner?.TrySetHardwareBrightness(handle, brightness) ?? false;
+    }
+
+    public string? ReadFirmwareVersion(uint handle)
+    {
+        var owner = FindOwner(handle);
+        return owner?.ReadFirmwareVersion(handle);
     }
 
     private IDisplayBackend? FindOwner(uint handle) =>

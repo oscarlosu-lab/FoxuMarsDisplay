@@ -1,0 +1,184 @@
+<Window x:Class="FoxuMarsDisplay.ThemeEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FOXU // STUDIO — Editor Visual de Temas"
+        Width="1120" Height="720" MinWidth="920" MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgObsidian}"
+        Foreground="{StaticResource TextPrimary}"
+        FontFamily="Segoe UI"
+        PreviewKeyDown="OnEditorPreviewKeyDown">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="230" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="270" />
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT: Theme Setup, Add Widgets & Layers -->
+        <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource BgSurface}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="TEMA Y RESOLUCIÓN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource FoxuEmber}" Margin="0,0,0,6" />
+                    <TextBlock Text="Nombre" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                    <TextBox x:Name="TxtThemeName" Text="FoxuCustomHUD" Margin="0,2,0,8" Padding="6,4" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" TextChanged="OnThemeMetaChanged" />
+
+                    <TextBlock Text="Resolución del Lienzo" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                    <ComboBox x:Name="CmbResolution" Margin="0,2,0,8" SelectionChanged="OnResolutionChanged">
+                        <ComboBoxItem Content="360x960" IsSelected="True" />
+                        <ComboBoxItem Content="240x320" />
+                        <ComboBoxItem Content="320x240" />
+                        <ComboBoxItem Content="480x480" />
+                        <ComboBoxItem Content="480x320" />
+                        <ComboBoxItem Content="320x1480" />
+                        <ComboBoxItem Content="462x1920" />
+                        <ComboBoxItem Content="1024x600" />
+                    </ComboBox>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="🖼️ Fondo (IMG/MP4)" Height="30" Style="{StaticResource CyberButton}" Click="OnPickBackgroundClick" />
+                        <Button Grid.Column="1" Content="✕" Width="32" Height="30" Margin="6,0,0,0" ToolTip="Quitar fondo" Style="{StaticResource CyberButton}" Click="OnClearBackgroundClick" />
+                    </Grid>
+                    <Button Content="📂 Abrir Tema (.smtheme)" Height="28" Margin="0,0,0,10" Style="{StaticResource CyberButton}" Click="OnOpenSmthemeClick" />
+
+                    <TextBlock Text="AÑADIR WIDGETS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource SolarGold}" Margin="0,0,0,6" />
+                    <UniformGrid Columns="2" Margin="0,0,0,8">
+                        <Button Content="+ Texto" Margin="0,0,4,4" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddSensorTextClick" />
+                        <Button Content="+ Etiqueta" Margin="0,0,0,4" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddStaticTextClick" />
+                        <Button Content="+ Barra" Margin="0,0,4,4" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddBarClick" />
+                        <Button Content="+ Tarjeta" Margin="0,0,0,4" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddCardClick" />
+                        <Button Content="+ Anillo" Margin="0,0,4,4" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddRadialClick" />
+                        <Button Content="+ Gráfico" Margin="0,0,0,4" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddGraphClick" />
+                        <Button Content="+ Audio FFT" Margin="0,0,4,0" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddAudioClick" />
+                        <Button Content="+ Vinilo" Margin="0" Height="28" Padding="6,2" Style="{StaticResource CyberButton}" Click="OnAddAlbumArtClick" />
+                    </UniformGrid>
+
+                    <DockPanel Margin="0,4,0,4">
+                        <TextBlock Text="CAPAS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" />
+                        <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Content="Eliminar" Height="22" Padding="8,0" Style="{StaticResource CyberButton}" Click="OnDeleteWidgetClick" />
+                    </DockPanel>
+                </StackPanel>
+
+                <ListBox x:Name="LstLayers" Background="#120F1B" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" SelectionChanged="OnLayerSelected" />
+            </DockPanel>
+        </Border>
+
+        <!-- CENTER: WYSIWYG Drag-and-Drop Preview Canvas -->
+        <Border Grid.Row="0" Grid.Column="1" Margin="12,0" Background="#0A090E" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="VISTA PREVIA EN VIVO (arrastra los widgets sobre el lienzo)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                <Viewbox Grid.Row="1" Stretch="Uniform">
+                    <Image x:Name="ImgPreviewCanvas" Stretch="None" Cursor="SizeAll"
+                           MouseLeftButtonDown="OnCanvasMouseDown"
+                           MouseMove="OnCanvasMouseMove"
+                           MouseLeftButtonUp="OnCanvasMouseUp" />
+                </Viewbox>
+            </Grid>
+        </Border>
+
+        <!-- RIGHT: Widget Properties Inspector -->
+        <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource BgSurface}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="12">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="PROPIEDADES DEL WIDGET" FontSize="11" FontWeight="Bold" Foreground="{StaticResource FoxuEmber}" Margin="0,0,0,8" />
+                    <TextBlock x:Name="TxtSelectedKind" Text="Ningún widget seleccionado" FontSize="11" Foreground="{StaticResource SolarGold}" Margin="0,0,0,10" />
+
+                    <UniformGrid Columns="2" Margin="0,0,0,8">
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="X" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                            <TextBox x:Name="TxtPropX" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Y" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                            <TextBox x:Name="TxtPropY" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <UniformGrid Columns="2" Margin="0,0,0,8">
+                        <StackPanel Margin="0,0,6,0">
+                            <TextBlock Text="Ancho" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                            <TextBox x:Name="TxtPropW" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="Alto / Tamaño" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                            <TextBox x:Name="TxtPropH" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+                        </StackPanel>
+                    </UniformGrid>
+
+                    <TextBlock Text="Sensor" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                    <ComboBox x:Name="CmbPropSensor" Margin="0,2,0,8" SelectionChanged="OnPropEdited">
+                        <ComboBoxItem Content="CPUTemp" />
+                        <ComboBoxItem Content="CpuUsage" />
+                        <ComboBoxItem Content="GPUTemp" />
+                        <ComboBoxItem Content="GpuUsage" />
+                        <ComboBoxItem Content="GPUMemoryLoad" />
+                        <ComboBoxItem Content="MemoryUsage" />
+                        <ComboBoxItem Content="MemoryUsed" />
+                        <ComboBoxItem Content="DiskCUsed" />
+                        <ComboBoxItem Content="NetDown" />
+                        <ComboBoxItem Content="NetUp" />
+                        <ComboBoxItem Content="Ping" />
+                        <ComboBoxItem Content="WeatherInfo" />
+                        <ComboBoxItem Content="WEATHER_TEMP" />
+                        <ComboBoxItem Content="SongTitle" />
+                        <ComboBoxItem Content="Artist" />
+                        <ComboBoxItem Content="SongLyric" />
+                        <ComboBoxItem Content="AI_CLAUDE" />
+                        <ComboBoxItem Content="AI_CODEX" />
+                        <ComboBoxItem Content="AI_GEMINI" />
+                        <ComboBoxItem Content="Time" />
+                        <ComboBoxItem Content="CurrentDateS" />
+                        <ComboBoxItem Content="Uptime" />
+                    </ComboBox>
+
+                    <TextBlock Text="Prefijo / Texto Fijo" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                    <TextBox x:Name="TxtPropText" Margin="0,2,0,8" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+
+                    <TextBlock Text="Unidad" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                    <TextBox x:Name="TxtPropUnit" Margin="0,2,0,8" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+
+                    <TextBlock Text="Color Principal (#AARRGGBB)" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                    <Grid Margin="0,2,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="TxtPropColor" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+                        <Button Grid.Column="1" Content="Auto-Contraste" Margin="6,0,0,0" Height="26" Padding="8,0" Style="{StaticResource CyberButton}" Click="OnAutoContrastClick" />
+                    </Grid>
+
+                    <TextBlock Text="Color Fondo (#AARRGGBB)" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                    <TextBox x:Name="TxtPropBackColor" Margin="0,2,0,12" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+
+                    <Button Content="Actualizar Vista" Height="30" Style="{StaticResource CyberButton}" Click="OnRefreshPreviewClick" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- BOTTOM BAR -->
+        <Border Grid.Row="1" Grid.ColumnSpan="3" Margin="0,10,0,0" Background="{StaticResource BgSurface}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="12,8">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,0,0">
+                    <Button Content="Exportar Setting.txt" Height="32" Padding="10,4" Margin="0,0,6,0" Style="{StaticResource CyberButton}" Click="OnExportSettingTxtClick" />
+                    <Button Content="Exportar .smtheme" Height="32" Padding="10,4" Margin="0,0,10,0" Style="{StaticResource CyberButton}" Click="OnExportSmthemeClick" />
+                    <TextBlock Text="Pantalla:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0" />
+                    <ComboBox x:Name="CmbTargetScreen" MinWidth="210" MaxWidth="280" Height="32" Margin="0,0,8,0" VerticalContentAlignment="Center" SelectionChanged="OnTargetScreenChanged" />
+                    <Button Content="⚡ Aplicar en Pantalla" Height="32" Padding="12,4" Style="{StaticResource AccentButton}" Click="OnApplyToScreenClick" />
+                </StackPanel>
+                <TextBlock x:Name="TxtEditorStatus" Text="Listo. Arrastra widgets, flechas mover, Supr borrar, Ctrl+D duplicar." Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

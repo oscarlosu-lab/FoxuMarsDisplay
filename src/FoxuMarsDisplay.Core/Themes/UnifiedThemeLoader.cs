@@ -31,7 +31,7 @@ public static class UnifiedThemeLoader
                 return LoadDirectory(Path.GetDirectoryName(path)!, schemeJsonPath);
             if (ext == ".json")
                 return LoadFromSchemeJson(path);
-            if (ext is ".gif" or ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp")
+            if (ext is ".gif" or ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp" or ".mp4" or ".avi" or ".mov" or ".wmv" or ".webm")
                 return LoadSingleImageOrGif(path);
         }
 
@@ -41,19 +41,29 @@ public static class UnifiedThemeLoader
         throw new FileNotFoundException($"Theme path not found: {path}");
     }
 
+    private static bool IsVideoExtension(string path) =>
+        path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(".avi", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(".mov", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(".wmv", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith(".webm", StringComparison.OrdinalIgnoreCase);
+
     private static DisplayTheme LoadSingleImageOrGif(string filePath)
     {
         int w = 360, h = 960;
-        try
+        if (!IsVideoExtension(filePath))
         {
-            using var codec = SKCodec.Create(filePath);
-            if (codec != null && codec.Info.Width > 0 && codec.Info.Height > 0)
+            try
             {
-                w = codec.Info.Width;
-                h = codec.Info.Height;
+                using var codec = SKCodec.Create(filePath);
+                if (codec != null && codec.Info.Width > 0 && codec.Info.Height > 0)
+                {
+                    w = codec.Info.Width;
+                    h = codec.Info.Height;
+                }
             }
+            catch { }
         }
-        catch { }
 
         var theme = new DisplayTheme
         {
@@ -137,7 +147,8 @@ public static class UnifiedThemeLoader
                 extractDir = Path.GetDirectoryName(nestedSetting)!;
             else
             {
-                var nestedBg = Directory.GetFiles(extractDir, "*.png", SearchOption.AllDirectories)
+                var nestedBg = Directory.GetFiles(extractDir, "*.mp4", SearchOption.AllDirectories)
+                    .Concat(Directory.GetFiles(extractDir, "*.png", SearchOption.AllDirectories))
                     .Concat(Directory.GetFiles(extractDir, "*.gif", SearchOption.AllDirectories))
                     .FirstOrDefault();
                 if (nestedBg != null)
@@ -159,6 +170,9 @@ public static class UnifiedThemeLoader
         var barWidgets = new List<BarWidgetSpec>();
         var radialWidgets = new List<RadialWidgetSpec>();
         var graphWidgets = new List<GraphWidgetSpec>();
+        var statusIcons = new List<StatusIconSpec>();
+        var audioVisualizers = new List<AudioVisualizerSpec>();
+        var albumArts = new List<AlbumArtSpec>();
 
         string? jsonPath = schemeJsonPath;
         if (string.IsNullOrEmpty(jsonPath) || !File.Exists(jsonPath))
@@ -179,6 +193,13 @@ public static class UnifiedThemeLoader
                     canvasH = jh;
                 if (root.TryGetProperty("DisplayDirection", out var dEl) && dEl.TryGetInt32(out var jd))
                     direction = jd;
+
+                if (FindSettingFile(dir) == null &&
+                    !File.Exists(Path.Combine(dir, "theme.yaml")) &&
+                    (root.TryGetProperty("widgets", out _) || root.TryGetProperty("elements", out _)))
+                {
+                    ParseFoxuJsonTheme(root, dir, canvasW, canvasH, imageLayers, textWidgets, barWidgets, radialWidgets, graphWidgets, audioVisualizers, albumArts);
+                }
             }
             catch
             {
@@ -214,7 +235,9 @@ public static class UnifiedThemeLoader
         string? settingPath = FindSettingFile(dir);
         if (settingPath != null)
         {
-            ParseSettingTxt(settingPath, dir, ref name, ref canvasW, ref canvasH, ref direction, imageLayers, textWidgets, barWidgets);
+            ParseSettingTxt(
+                settingPath, dir, ref name, ref canvasW, ref canvasH, ref direction,
+                imageLayers, textWidgets, barWidgets, radialWidgets, statusIcons, audioVisualizers, albumArts);
         }
         else
         {
@@ -231,18 +254,39 @@ public static class UnifiedThemeLoader
             }
         }
 
-        bool hasBackground = imageLayers.Any(l => l.IsBackground ||
+        bool hasBackground = imageLayers.Any(l => l.IsBackground || l.IsVideo ||
             Path.GetFileName(l.FilePath).Equals("back.png", StringComparison.OrdinalIgnoreCase) ||
-            Path.GetFileName(l.FilePath).Equals("background.png", StringComparison.OrdinalIgnoreCase));
+            Path.GetFileName(l.FilePath).Equals("background.png", StringComparison.OrdinalIgnoreCase) ||
+            Path.GetFileName(l.FilePath).Equals("back.mp4", StringComparison.OrdinalIgnoreCase) ||
+            Path.GetFileName(l.FilePath).Equals("video.mp4", StringComparison.OrdinalIgnoreCase) ||
+            Path.GetFileName(l.FilePath).Equals("default.mp4", StringComparison.OrdinalIgnoreCase));
 
         if (!hasBackground)
         {
-            string? bgFile = new[] { "background.png", "back.png", "default.gif" }
+            string? bgFile = new[] { "back.mp4", "video.mp4", "default.mp4" }
                 .Select(f => Path.Combine(dir, f))
-                .FirstOrDefault(File.Exists);
+                .FirstOrDefault(File.Exists)
+                ?? Directory.GetFiles(dir, "*.mp4", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                ?? new[] { "background.png", "back.png", "default.gif" }
+                    .Select(f => Path.Combine(dir, f))
+                    .FirstOrDefault(File.Exists);
 
             if (bgFile != null)
             {
+                if (!IsVideoExtension(bgFile) && Math.Abs(canvasW - 360f) < 1f && Math.Abs(canvasH - 960f) < 1f)
+                {
+                    try
+                    {
+                        using var codec = SKCodec.Create(bgFile);
+                        if (codec != null && codec.Info.Width > 0 && codec.Info.Height > 0)
+                        {
+                            canvasW = codec.Info.Width;
+                            canvasH = codec.Info.Height;
+                        }
+                    }
+                    catch { }
+                }
+
                 imageLayers.Add(new ImageLayerSpec
                 {
                     FilePath = bgFile,
@@ -270,12 +314,15 @@ public static class UnifiedThemeLoader
         theme.BarWidgets.AddRange(barWidgets.OrderBy(b => b.ZIndex));
         theme.RadialWidgets.AddRange(radialWidgets.OrderBy(r => r.ZIndex));
         theme.GraphWidgets.AddRange(graphWidgets.OrderBy(g => g.ZIndex));
+        theme.StatusIcons.AddRange(statusIcons.OrderBy(i => i.ZIndex));
+        theme.AudioVisualizers.AddRange(audioVisualizers.OrderBy(a => a.ZIndex));
+        theme.AlbumArts.AddRange(albumArts.OrderBy(a => a.ZIndex));
 
         foreach (var fFolder in new[] { "font", "fonts" })
         {
             var fontDir = Path.Combine(dir, fFolder);
             if (!Directory.Exists(fontDir)) continue;
-            theme.FontFiles.AddRange(Directory.GetFiles(fontDir, "*.*", SearchOption.TopDirectoryOnly)
+            theme.FontFiles.AddRange(Directory.GetFiles(fontDir, "*.*", SearchOption.AllDirectories)
                 .Where(f => f.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) ||
                             f.EndsWith(".otf", StringComparison.OrdinalIgnoreCase) ||
                             f.EndsWith(".ttc", StringComparison.OrdinalIgnoreCase)));
@@ -322,6 +369,12 @@ public static class UnifiedThemeLoader
                     if (!string.IsNullOrWhiteSpace(bgStr))
                     {
                         var resolved = ResolveAssetPath(dir, Path.GetFileName(bgStr));
+                        if (resolved == null && propName == "BackgroundVideoFile")
+                        {
+                            resolved = ResolveAssetPath(dir, "back.mp4")
+                                ?? ResolveAssetPath(dir, "video.mp4")
+                                ?? Directory.GetFiles(dir, "*.mp4", SearchOption.TopDirectoryOnly).FirstOrDefault();
+                        }
                         if (resolved != null)
                         {
                             imageLayers.Add(new ImageLayerSpec
@@ -419,6 +472,141 @@ public static class UnifiedThemeLoader
         }
     }
 
+    private static void ParseFoxuJsonTheme(
+        JsonElement root,
+        string dir,
+        float canvasW,
+        float canvasH,
+        List<ImageLayerSpec> images,
+        List<TextWidgetSpec> texts,
+        List<BarWidgetSpec> bars,
+        List<RadialWidgetSpec> radials,
+        List<GraphWidgetSpec> graphs,
+        List<AudioVisualizerSpec> audioVisualizers,
+        List<AlbumArtSpec> albumArts)
+    {
+        if (!root.TryGetProperty("widgets", out var arr) || arr.ValueKind != JsonValueKind.Array)
+        {
+            if (!root.TryGetProperty("elements", out arr) || arr.ValueKind != JsonValueKind.Array)
+                return;
+        }
+
+        foreach (var item in arr.EnumerateArray())
+        {
+            string kind = item.TryGetProperty("type", out var tEl) && tEl.ValueKind == JsonValueKind.String
+                ? (tEl.GetString() ?? string.Empty).Trim().ToLowerInvariant()
+                : string.Empty;
+            float x = item.TryGetProperty("x", out var xEl) && xEl.TryGetSingle(out var xv) ? xv : 0f;
+            float y = item.TryGetProperty("y", out var yEl) && yEl.TryGetSingle(out var yv) ? yv : 0f;
+            int z = item.TryGetProperty("z", out var zEl) && zEl.TryGetInt32(out var zv) ? zv : 1;
+            float w = item.TryGetProperty("width", out var wEl) && wEl.TryGetSingle(out var wv) ? wv : 160f;
+            float h = item.TryGetProperty("height", out var hEl) && hEl.TryGetSingle(out var hv) ? hv : 24f;
+            string sensor = item.TryGetProperty("sensor", out var sEl) && sEl.ValueKind == JsonValueKind.String ? (sEl.GetString() ?? "") : "";
+            string colorHex = item.TryGetProperty("color", out var cEl) && cEl.ValueKind == JsonValueKind.String ? (cEl.GetString() ?? "#FFFFFF") : "#FFFFFF";
+            string backHex = item.TryGetProperty("backColor", out var bcEl) && bcEl.ValueKind == JsonValueKind.String ? (bcEl.GetString() ?? "") : "";
+
+            switch (kind)
+            {
+                case "text":
+                    string? content = item.TryGetProperty("text", out var txtEl) && txtEl.ValueKind == JsonValueKind.String ? txtEl.GetString() : null;
+                    bool isStatic = string.IsNullOrWhiteSpace(sensor) && !string.IsNullOrWhiteSpace(content);
+                    texts.Add(new TextWidgetSpec
+                    {
+                        X = x,
+                        Y = y,
+                        ZIndex = z,
+                        FontSize = item.TryGetProperty("fontSize", out var fsEl) && fsEl.TryGetSingle(out var fsv) ? fsv : 22f,
+                        FontFamily = item.TryGetProperty("fontFamily", out var ffEl) && ffEl.ValueKind == JsonValueKind.String ? (ffEl.GetString() ?? "") : "",
+                        Color = ParseColor(colorHex, SKColors.White),
+                        SensorKey = sensor,
+                        Prefix = item.TryGetProperty("prefix", out var pEl) && pEl.ValueKind == JsonValueKind.String ? (pEl.GetString() ?? "") : "",
+                        Unit = item.TryGetProperty("unit", out var uEl) && uEl.ValueKind == JsonValueKind.String ? (uEl.GetString() ?? "") : "",
+                        IsStaticText = isStatic,
+                        StaticContent = content,
+                        Align = item.TryGetProperty("align", out var alEl) && alEl.ValueKind == JsonValueKind.String ? ParseAlign(alEl.GetString()) : TextAlignMode.Left
+                    });
+                    break;
+
+                case "bar":
+                case "card":
+                    bars.Add(new BarWidgetSpec
+                    {
+                        X = x,
+                        Y = y,
+                        ZIndex = z,
+                        MaxWidth = w,
+                        MaxHeight = h,
+                        MaxNum = item.TryGetProperty("max", out var mxEl) && mxEl.TryGetSingle(out var mxv) ? mxv : 100f,
+                        CornerRadius = item.TryGetProperty("radius", out var rEl) && rEl.TryGetSingle(out var rv) ? rv : 4f,
+                        FillColor = ParseColor(colorHex, SKColors.Cyan),
+                        BackColor = string.IsNullOrEmpty(backHex) ? SKColor.Empty : ParseColor(backHex, SKColor.Empty),
+                        SensorKey = sensor,
+                        IsStaticFill = kind == "card" || string.IsNullOrWhiteSpace(sensor)
+                    });
+                    break;
+
+                case "radial":
+                case "ring":
+                    radials.Add(new RadialWidgetSpec
+                    {
+                        Cx = x + w * 0.5f,
+                        Cy = y + h * 0.5f,
+                        Radius = Math.Max(6f, Math.Min(w, h) * 0.45f),
+                        Thickness = item.TryGetProperty("thickness", out var thEl) && thEl.TryGetSingle(out var thv) ? thv : 10f,
+                        FillColor = ParseColor(colorHex, SKColors.OrangeRed),
+                        BackColor = string.IsNullOrEmpty(backHex) ? new SKColor(38, 31, 51, 220) : ParseColor(backHex, SKColor.Empty),
+                        SensorKey = sensor,
+                        ZIndex = z,
+                        ShowText = !item.TryGetProperty("showText", out var stEl) || stEl.ValueKind != JsonValueKind.False
+                    });
+                    break;
+
+                case "graph":
+                    graphs.Add(new GraphWidgetSpec
+                    {
+                        X = x, Y = y, Width = w, Height = h,
+                        LineColor = ParseColor(colorHex, SKColors.OrangeRed),
+                        SensorKey = sensor,
+                        ZIndex = z
+                    });
+                    break;
+
+                case "audiovisualizer":
+                    audioVisualizers.Add(new AudioVisualizerSpec
+                    {
+                        X = x, Y = y, Width = w, Height = h, ZIndex = z,
+                        PrimaryColor = ParseColor(colorHex, SKColors.Cyan),
+                        SecondaryColor = string.IsNullOrEmpty(backHex) ? SKColors.Magenta : ParseColor(backHex, SKColors.Magenta)
+                    });
+                    break;
+
+                case "albumart":
+                    albumArts.Add(new AlbumArtSpec
+                    {
+                        X = x, Y = y, Width = w, Height = h, ZIndex = z,
+                        IsVinylSpin = item.TryGetProperty("vinyl", out var vEl) && vEl.ValueKind == JsonValueKind.True
+                    });
+                    break;
+
+                case "image":
+                    string? src = item.TryGetProperty("src", out var srcEl) && srcEl.ValueKind == JsonValueKind.String ? srcEl.GetString() : null;
+                    string? resolved = !string.IsNullOrWhiteSpace(src) ? ResolveAssetPath(dir, src) : null;
+                    if (resolved != null)
+                    {
+                        images.Add(new ImageLayerSpec
+                        {
+                            FilePath = resolved,
+                            X = x, Y = y, ZIndex = z,
+                            Width = w > 0 ? w : canvasW,
+                            Height = h > 0 ? h : canvasH,
+                            IsBackground = item.TryGetProperty("isBackground", out var bgEl) && bgEl.ValueKind == JsonValueKind.True
+                        });
+                    }
+                    break;
+            }
+        }
+    }
+
     private static string? FindSettingFile(string dir)
     {
         var s1 = Path.Combine(dir, "Setting.txt");
@@ -437,7 +625,11 @@ public static class UnifiedThemeLoader
         ref int direction,
         List<ImageLayerSpec> images,
         List<TextWidgetSpec> texts,
-        List<BarWidgetSpec> bars)
+        List<BarWidgetSpec> bars,
+        List<RadialWidgetSpec> radials,
+        List<StatusIconSpec> statusIcons,
+        List<AudioVisualizerSpec> audioVisualizers,
+        List<AlbumArtSpec> albumArts)
     {
         foreach (var rawLine in File.ReadAllLines(settingPath, Encoding.UTF8))
         {
@@ -478,24 +670,48 @@ public static class UnifiedThemeLoader
             if (key.Equals("Text", StringComparison.OrdinalIgnoreCase))
             {
                 string dataKey = GetStr(p, "data");
+                string title = GetStr(p, "Title");
                 string? content = p.TryGetValue("content", out var c) ? c : (p.TryGetValue("Text", out var t) ? t : null);
+                if (string.IsNullOrWhiteSpace(dataKey) && string.IsNullOrWhiteSpace(content) && !string.IsNullOrWhiteSpace(title))
+                    content = title;
+
+                string prefix = string.Empty;
+                if (!string.IsNullOrWhiteSpace(dataKey) && !string.IsNullOrWhiteSpace(title))
+                    prefix = title.EndsWith(' ') ? title : title + " ";
+
                 bool isStatic = GetBool(p, "IsDefaultText") ||
                                 dataKey.Equals("Static", StringComparison.OrdinalIgnoreCase) ||
                                 (string.IsNullOrWhiteSpace(dataKey) && !string.IsNullOrWhiteSpace(content));
+
+                var align = ParseSettingTextAlign(GetStr(p, "TextAlignment"), GetStr(p, "Align"));
+                float fontSize = GetFloat(p, "FontSize", 24f);
+                float boxW = GetBool(p, "IsShowWidth") ? GetFloat(p, "width") : 0f;
+                float boxH = boxW > 0f ? (GetFloat(p, "height") > 0f ? GetFloat(p, "height") : fontSize * 1.3f) : 0f;
+                string anchor = align switch
+                {
+                    TextAlignMode.Center => "ma",
+                    TextAlignMode.Right => "ra",
+                    _ => "la"
+                };
+
                 texts.Add(new TextWidgetSpec
                 {
                     X = GetFloat(p, "x"),
                     Y = GetFloat(p, "y"),
                     ZIndex = GetInt(p, "z"),
-                    FontSize = GetFloat(p, "FontSize", 24f),
+                    FontSize = fontSize,
                     FontFamily = GetStr(p, "FontFamily").TrimStart('#'),
                     Color = ParseColor(GetStr(p, "Foreground", "#FFFFFF"), SKColors.White),
                     Opacity = Math.Clamp(GetFloat(p, "Opacity", 1f), 0f, 1f),
                     SensorKey = dataKey,
+                    Prefix = prefix,
                     Unit = GetStr(p, "unit"),
                     IsStaticText = isStatic,
                     StaticContent = content,
-                    Align = ParseAlign(GetStr(p, "Align"))
+                    Align = align,
+                    BoxWidth = boxW,
+                    BoxHeight = boxH,
+                    Anchor = anchor
                 });
             }
             else if (key.Equals("BorderLine", StringComparison.OrdinalIgnoreCase) ||
@@ -503,6 +719,8 @@ public static class UnifiedThemeLoader
                      key.Equals("DefaultLine", StringComparison.OrdinalIgnoreCase) ||
                      key.Equals("GridLine", StringComparison.OrdinalIgnoreCase))
             {
+                string dataKey = GetStr(p, "data");
+                bool isGrid = key.Equals("GridLine", StringComparison.OrdinalIgnoreCase);
                 bars.Add(new BarWidgetSpec
                 {
                     X = GetFloat(p, "x"),
@@ -512,18 +730,110 @@ public static class UnifiedThemeLoader
                     MaxHeight = GetFloat(p, "maxheight", 20f),
                     MinNum = GetFloat(p, "MinNum", 0f),
                     MaxNum = GetFloat(p, "MaxNum", 100f),
-                    CornerRadius = GetFloat(p, "CornerRadius", 0f),
+                    CornerRadius = ParseFirstFloat(GetStr(p, "CornerRadius"), 0f),
                     FillColor = ParseColor(GetStr(p, "Fill", "#00FFFF"), SKColors.Cyan),
                     BackColor = p.ContainsKey("BackColor") ? ParseColor(GetStr(p, "BackColor"), SKColor.Empty) : SKColor.Empty,
+                    SensorKey = dataKey,
+                    IsSegmented = isGrid,
+                    IsStaticFill = string.IsNullOrWhiteSpace(dataKey),
+                    BorderThickness = GetFloat(p, "BorderThicknes", GetFloat(p, "BorderThickness", 0f)),
+                    BorderColor = p.ContainsKey("BorderFill") ? ParseColor(GetStr(p, "BorderFill"), SKColor.Empty) : SKColor.Empty,
+                    SegmentCount = isGrid ? Math.Clamp(GetInt(p, "maxcount", 10), 2, 50) : 10,
+                    SegmentGap = isGrid ? Math.Max(0f, GetFloat(p, "Margin", 2f)) : 2f,
+                    ForceHorizontal = isGrid && GetStr(p, "Orientation").Equals("Horizontal", StringComparison.OrdinalIgnoreCase)
+                });
+            }
+            else if (key.Equals("RingProgressBar", StringComparison.OrdinalIgnoreCase))
+            {
+                float x = GetFloat(p, "x");
+                float y = GetFloat(p, "y");
+                float ringWidth = Math.Max(2f, GetFloat(p, "RingWidth", 10f));
+                float perimeter = Math.Max(16f, GetFloat(p, "Perimeter", 100f));
+                radials.Add(new RadialWidgetSpec
+                {
+                    Cx = x + perimeter * 0.5f,
+                    Cy = y + perimeter * 0.5f,
+                    Radius = Math.Max(4f, (perimeter - ringWidth) * 0.5f),
+                    Thickness = ringWidth,
+                    StartAngle = -90f,
+                    EndAngle = 270f,
+                    MinValue = GetFloat(p, "MinValue", 0f),
+                    MaxValue = GetFloat(p, "MaxValue", 100f),
+                    FillColor = ParseColor(GetStr(p, "IndexColor", GetStr(p, "Fill", "#FF00FFFF")), SKColors.Cyan),
+                    BackColor = p.ContainsKey("BackColor") ? ParseColor(GetStr(p, "BackColor"), SKColor.Empty) : new SKColor(255, 255, 255, 70),
+                    ShowText = false,
                     SensorKey = GetStr(p, "data"),
-                    IsSegmented = key.Equals("GridLine", StringComparison.OrdinalIgnoreCase)
+                    ZIndex = GetInt(p, "z", 2),
+                    Clockwise = true
+                });
+            }
+            else if (key.Equals("IsEnableItem", StringComparison.OrdinalIgnoreCase))
+            {
+                string src = GetStr(p, "Source");
+                string? resolved = !string.IsNullOrWhiteSpace(src) ? ResolveAssetPath(themeDir, src) : null;
+                if (resolved != null)
+                {
+                    statusIcons.Add(new StatusIconSpec
+                    {
+                        FilePath = resolved,
+                        X = GetFloat(p, "x"),
+                        Y = GetFloat(p, "y"),
+                        ZIndex = GetInt(p, "z", 3),
+                        Width = p.TryGetValue("width", out var ws) && TryFloat(ws, out var wv) ? wv : null,
+                        Height = p.TryGetValue("height", out var hs) && TryFloat(hs, out var hv) ? hv : null,
+                        SensorKey = GetStr(p, "Endata", GetStr(p, "data"))
+                    });
+                }
+            }
+            else if (key.Equals("AudioVisualizerControl", StringComparison.OrdinalIgnoreCase))
+            {
+                audioVisualizers.Add(new AudioVisualizerSpec
+                {
+                    X = GetFloat(p, "x"),
+                    Y = GetFloat(p, "y"),
+                    ZIndex = GetInt(p, "z", 2),
+                    Width = GetFloat(p, "Width", GetFloat(p, "width", 200f)),
+                    Height = GetFloat(p, "Height", GetFloat(p, "height", 60f)),
+                    BandWidth = Math.Max(2f, GetFloat(p, "BandWidth", 8f)),
+                    PrimaryColor = ParseColor(GetStr(p, "Color", "#FF00FFFF"), SKColors.Cyan),
+                    SecondaryColor = ParseColor(GetStr(p, "SeColor", "#FFFF00FF"), SKColors.Magenta)
+                });
+            }
+            else if (key.Equals("SonglyricsControl", StringComparison.OrdinalIgnoreCase))
+            {
+                texts.Add(new TextWidgetSpec
+                {
+                    X = GetFloat(p, "x"),
+                    Y = GetFloat(p, "y"),
+                    ZIndex = GetInt(p, "z", 4),
+                    FontSize = GetFloat(p, "FontSize", 18f),
+                    FontFamily = GetStr(p, "FontFamily").TrimStart('#'),
+                    Color = ParseColor(GetStr(p, "FontColor", GetStr(p, "Foreground", "#FFFFFF")), SKColors.White),
+                    SensorKey = "SongLyric",
+                    Align = TextAlignMode.Center,
+                    BoxWidth = GetFloat(p, "width", 300f),
+                    BoxHeight = GetFloat(p, "height", 40f),
+                    Anchor = "mm"
+                });
+            }
+            else if (key.Equals("SongIcon", StringComparison.OrdinalIgnoreCase))
+            {
+                albumArts.Add(new AlbumArtSpec
+                {
+                    X = GetFloat(p, "x"),
+                    Y = GetFloat(p, "y"),
+                    ZIndex = GetInt(p, "z", 3),
+                    Width = GetFloat(p, "width", 80f),
+                    Height = GetFloat(p, "height", 80f),
+                    CornerRadius = ParseFirstFloat(GetStr(p, "CornerRadius"), 8f)
                 });
             }
             else if (key.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
                      key.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                      key.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
                      key.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) ||
-                     key.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
+                     key.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) ||
+                     IsVideoExtension(key))
             {
                 string? resolved = ResolveAssetPath(themeDir, key);
                 if (resolved != null)
@@ -536,11 +846,26 @@ public static class UnifiedThemeLoader
                         ZIndex = GetInt(p, "z"),
                         Width = p.TryGetValue("width", out var ws) && TryFloat(ws, out var wv) ? wv : null,
                         Height = p.TryGetValue("height", out var hs) && TryFloat(hs, out var hv) ? hv : null,
-                        IsBackground = GetBool(p, "IsBack")
+                        IsBackground = GetBool(p, "IsBack") || IsVideoExtension(key)
                     });
                 }
             }
         }
+    }
+
+    private static TextAlignMode ParseSettingTextAlign(string textAlignment, string align) => textAlignment.Trim() switch
+    {
+        "1" => TextAlignMode.Center,
+        "2" => TextAlignMode.Right,
+        "0" => TextAlignMode.Left,
+        _ => ParseAlign(align)
+    };
+
+    private static float ParseFirstFloat(string raw, float def)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return def;
+        var first = raw.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+        return first != null && TryFloat(first, out var f) ? f : def;
     }
 
     private static void ParseThemeYaml(
@@ -584,21 +909,33 @@ public static class UnifiedThemeLoader
                 if (imgPath != null)
                 {
                     bool isBg = pathUpper.Contains("BACK") || !props.ContainsKey("X");
-                    images.Add(new ImageLayerSpec
+                    float? wOpt = props.TryGetValue("WIDTH", out var ws) && TryFloat(ws, out var wv) ? wv : (isBg ? cw : null);
+                    float? hOpt = props.TryGetValue("HEIGHT", out var hs) && TryFloat(hs, out var hv) ? hv : (isBg ? ch : null);
+                    if (isBg && wOpt is > 0 && hOpt is > 0 && Math.Abs(cw - 360f) < 1f && Math.Abs(ch - 960f) < 1f)
                     {
-                        FilePath = imgPath,
-                        X = GetFloat(props, "X"),
-                        Y = GetFloat(props, "Y"),
-                        ZIndex = isBg ? -5 : GetInt(props, "Z", 0),
-                        Width = props.TryGetValue("WIDTH", out var ws) && TryFloat(ws, out var wv) ? wv : (isBg ? cw : null),
-                        Height = props.TryGetValue("HEIGHT", out var hs) && TryFloat(hs, out var hv) ? hv : (isBg ? ch : null),
-                        IsBackground = isBg
-                    });
+                        cw = wOpt.Value;
+                        ch = hOpt.Value;
+                    }
+
+                    if (!images.Any(existing => existing.FilePath.Equals(imgPath, StringComparison.OrdinalIgnoreCase) && existing.IsBackground == isBg))
+                    {
+                        images.Add(new ImageLayerSpec
+                        {
+                            FilePath = imgPath,
+                            X = GetFloat(props, "X"),
+                            Y = GetFloat(props, "Y"),
+                            ZIndex = isBg ? -5 : GetInt(props, "Z", 0),
+                            Width = wOpt,
+                            Height = hOpt,
+                            IsBackground = isBg
+                        });
+                    }
                 }
             }
             else if (pathUpper.StartsWith("STATIC_TEXT", StringComparison.Ordinal) &&
                      props.TryGetValue("TEXT", out var staticText))
             {
+                string anchor = GetStr(props, "ANCHOR", "la");
                 texts.Add(new TextWidgetSpec
                 {
                     X = GetFloat(props, "X"),
@@ -610,8 +947,11 @@ public static class UnifiedThemeLoader
                     Opacity = Math.Clamp(GetFloat(props, "ALPHA", 255f) > 1f ? GetFloat(props, "ALPHA", 255f) / 255f : GetFloat(props, "ALPHA", 1f), 0f, 1f),
                     IsStaticText = true,
                     StaticContent = staticText,
-                    Align = ParseAlign(GetStr(props, "ALIGN")),
-                    IsBold = GetBool(props, "BOLD")
+                    Align = ResolveAnchorAlign(anchor, GetStr(props, "ALIGN")),
+                    IsBold = GetBool(props, "BOLD"),
+                    BoxWidth = GetFloat(props, "WIDTH"),
+                    BoxHeight = GetFloat(props, "HEIGHT"),
+                    Anchor = anchor
                 });
             }
             else if (pathUpper.StartsWith("STATS.", StringComparison.Ordinal))
@@ -620,24 +960,7 @@ public static class UnifiedThemeLoader
                 string widgetType = parts[^1];
                 string sensor = MapYamlPathToSensor(parts);
 
-                if (widgetType == "TEXT")
-                {
-                    texts.Add(new TextWidgetSpec
-                    {
-                        X = GetFloat(props, "X"),
-                        Y = GetFloat(props, "Y"),
-                        ZIndex = GetInt(props, "Z", 2),
-                        FontSize = GetFloat(props, "FONT_SIZE", 24f),
-                        FontFamily = GetStr(props, "FONT"),
-                        Color = ParseColor(GetStr(props, "FONT_COLOR", "#FFFFFF"), SKColors.White),
-                        Opacity = Math.Clamp(GetFloat(props, "ALPHA", 255f) > 1f ? GetFloat(props, "ALPHA", 255f) / 255f : GetFloat(props, "ALPHA", 1f), 0f, 1f),
-                        SensorKey = sensor,
-                        Unit = props.TryGetValue("UNIT", out var u) ? u : DefaultYamlUnit(sensor),
-                        Align = ParseAlign(GetStr(props, "ALIGN")),
-                        IsBold = GetBool(props, "BOLD")
-                    });
-                }
-                else if (widgetType == "BAR" || widgetType == "GRAPH")
+                if (widgetType == "BAR" || widgetType == "GRAPH" || widgetType.EndsWith("_GRAPH", StringComparison.Ordinal) && widgetType != "LINE_GRAPH")
                 {
                     bars.Add(new BarWidgetSpec
                     {
@@ -653,11 +976,27 @@ public static class UnifiedThemeLoader
                         BackColor = props.ContainsKey("BACKGROUND_COLOR")
                             ? ParseColor(GetStr(props, "BACKGROUND_COLOR"), new SKColor(38, 31, 51, 200))
                             : new SKColor(38, 31, 51, 200),
-                        SensorKey = sensor
+                        SensorKey = sensor,
+                        ReverseDirection = GetBool(props, "REVERSE_DIRECTION")
                     });
                 }
-                else if (widgetType == "RADIAL")
+                else if (widgetType == "RADIAL" || widgetType.EndsWith("_RADIAL", StringComparison.Ordinal))
                 {
+                    bool drawBarBg = GetBool(props, "DRAW_BAR_BACKGROUND") || props.ContainsKey("BAR_BACKGROUND_COLOR") || props.ContainsKey("BACKGROUND_COLOR");
+                    SKColor bgCol = drawBarBg
+                        ? ParseColor(GetStr(props, "BAR_BACKGROUND_COLOR", GetStr(props, "BACKGROUND_COLOR", "#261F33")), new SKColor(38, 31, 51, 220))
+                        : SKColor.Empty;
+                    bool clockwise = !props.TryGetValue("CLOCKWISE", out var cwStr) || !cwStr.Equals("false", StringComparison.OrdinalIgnoreCase);
+                    bool showUnit = !props.TryGetValue("SHOW_UNIT", out var rsu) || !rsu.Equals("false", StringComparison.OrdinalIgnoreCase);
+
+                    float offX = 0f, offY = 0f;
+                    if (props.TryGetValue("TEXT_OFFSET", out var toStr))
+                    {
+                        var tp = toStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        if (tp.Length >= 1) TryFloat(tp[0], out offX);
+                        if (tp.Length >= 2) TryFloat(tp[1], out offY);
+                    }
+
                     radials.Add(new RadialWidgetSpec
                     {
                         Cx = GetFloat(props, "CX", GetFloat(props, "X")),
@@ -669,14 +1008,17 @@ public static class UnifiedThemeLoader
                         MinValue = GetFloat(props, "MIN_VALUE", 0f),
                         MaxValue = GetFloat(props, "MAX_VALUE", 100f),
                         FillColor = ParseColor(GetStr(props, "BAR_COLOR", GetStr(props, "COLOR", "#FF6419")), SKColors.OrangeRed),
-                        BackColor = ParseColor(GetStr(props, "BACKGROUND_COLOR", "#261F33"), new SKColor(38, 31, 51, 220)),
+                        BackColor = bgCol,
                         ShowText = !props.TryGetValue("SHOW_TEXT", out var st) || !st.Equals("false", StringComparison.OrdinalIgnoreCase),
                         FontSize = GetFloat(props, "FONT_SIZE", 18f),
                         FontFamily = GetStr(props, "FONT"),
                         TextColor = ParseColor(GetStr(props, "FONT_COLOR", "#FFFFFF"), SKColors.White),
-                        Unit = props.TryGetValue("UNIT", out var ru) ? ru : DefaultYamlUnit(sensor),
+                        Unit = !showUnit ? string.Empty : (props.TryGetValue("UNIT", out var ru) ? ru : DefaultYamlUnit(sensor)),
                         SensorKey = sensor,
-                        ZIndex = GetInt(props, "Z", 2)
+                        ZIndex = GetInt(props, "Z", 2),
+                        Clockwise = clockwise,
+                        TextOffsetX = offX,
+                        TextOffsetY = offY
                     });
                 }
                 else if (widgetType == "LINE_GRAPH")
@@ -693,9 +1035,31 @@ public static class UnifiedThemeLoader
                         FillColor = ParseColor(GetStr(props, "FILL_COLOR", "255, 100, 25, 70"), new SKColor(255, 100, 25, 70)),
                         BackColor = ParseColor(GetStr(props, "BACKGROUND_COLOR", "20, 17, 30, 180"), new SKColor(20, 17, 30, 180)),
                         LineThickness = GetFloat(props, "LINE_WIDTH", 2.5f),
-                        MaxSamples = Math.Clamp(GetInt(props, "AXIS_X_RANGE", 60), 10, 180),
+                        MaxSamples = Math.Clamp(GetInt(props, "AXIS_X_RANGE", GetInt(props, "HISTORY_SIZE", 60)), 10, 180),
                         SensorKey = sensor,
                         ZIndex = GetInt(props, "Z", 1)
+                    });
+                }
+                else if (props.ContainsKey("X") && props.ContainsKey("Y"))
+                {
+                    bool showUnit = !props.TryGetValue("SHOW_UNIT", out var su) || !su.Equals("false", StringComparison.OrdinalIgnoreCase);
+                    string anchor = GetStr(props, "ANCHOR", "la");
+                    texts.Add(new TextWidgetSpec
+                    {
+                        X = GetFloat(props, "X"),
+                        Y = GetFloat(props, "Y"),
+                        ZIndex = GetInt(props, "Z", 2),
+                        FontSize = GetFloat(props, "FONT_SIZE", 24f),
+                        FontFamily = GetStr(props, "FONT"),
+                        Color = ParseColor(GetStr(props, "FONT_COLOR", "#FFFFFF"), SKColors.White),
+                        Opacity = Math.Clamp(GetFloat(props, "ALPHA", 255f) > 1f ? GetFloat(props, "ALPHA", 255f) / 255f : GetFloat(props, "ALPHA", 1f), 0f, 1f),
+                        SensorKey = sensor,
+                        Unit = !showUnit ? string.Empty : (props.TryGetValue("UNIT", out var u) ? u : DefaultYamlUnit(sensor)),
+                        Align = ResolveAnchorAlign(anchor, GetStr(props, "ALIGN")),
+                        IsBold = GetBool(props, "BOLD"),
+                        BoxWidth = GetFloat(props, "WIDTH"),
+                        BoxHeight = GetFloat(props, "HEIGHT"),
+                        Anchor = anchor
                     });
                 }
             }
@@ -743,24 +1107,18 @@ public static class UnifiedThemeLoader
                     canvasW = dw;
                 else if (k.Equals("DISPLAY_HEIGHT", StringComparison.OrdinalIgnoreCase) && TryFloat(v, out var dh) && dh > 0)
                     canvasH = dh;
-                else if (k.Equals("DISPLAY_ORIENTATION", StringComparison.OrdinalIgnoreCase))
-                {
-                    direction = v.ToLowerInvariant() switch
-                    {
-                        "landscape" => 1,
-                        "reverse_portrait" => 2,
-                        "reverse_landscape" => 3,
-                        _ => 0
-                    };
-                }
                 continue;
             }
 
-            if ((k.Equals("BACKGROUND_IMAGE", StringComparison.OrdinalIgnoreCase) ||
-                 k.Equals("PATH", StringComparison.OrdinalIgnoreCase) && parentUpper == "STATIC_IMAGES"))
+            bool isWidgetBlock = parentUpper.StartsWith("STATS.", StringComparison.Ordinal) ||
+                                 parentUpper.StartsWith("STATIC_TEXT", StringComparison.Ordinal);
+            if (!isWidgetBlock &&
+                (k.Equals("BACKGROUND_IMAGE", StringComparison.OrdinalIgnoreCase) ||
+                 (k.Equals("PATH", StringComparison.OrdinalIgnoreCase) && parentUpper == "STATIC_IMAGES")))
             {
                 var bgResolved = ResolveAssetPath(dir, v);
-                if (bgResolved != null)
+                if (bgResolved != null &&
+                    !images.Any(existing => existing.FilePath.Equals(bgResolved, StringComparison.OrdinalIgnoreCase) && existing.IsBackground))
                 {
                     images.Add(new ImageLayerSpec
                     {
@@ -793,25 +1151,40 @@ public static class UnifiedThemeLoader
     {
         string joined = string.Join(".", parts);
         if (joined.Contains("CPU.TEMPERATURE", StringComparison.OrdinalIgnoreCase)) return "CPUT";
-        if (joined.Contains("CPU.PERCENTAGE", StringComparison.OrdinalIgnoreCase)) return "CpuUsage";
+        if (joined.Contains("CPU.PERCENTAGE", StringComparison.OrdinalIgnoreCase) || joined.Contains("CPU.LOAD", StringComparison.OrdinalIgnoreCase)) return "CpuUsage";
         if (joined.Contains("CPU.FREQUENCY", StringComparison.OrdinalIgnoreCase)) return "CpuFrequency";
         if (joined.Contains("CPU.POWER", StringComparison.OrdinalIgnoreCase)) return "CpuTEC";
+        if (joined.Contains("CPU.FAN", StringComparison.OrdinalIgnoreCase)) return "GpuFan";
         if (joined.Contains("GPU.TEMPERATURE", StringComparison.OrdinalIgnoreCase)) return "GPUT";
         if (joined.Contains("GPU.PERCENTAGE", StringComparison.OrdinalIgnoreCase)) return "GpuUsage";
         if (joined.Contains("GPU.MEMORY_PERCENT", StringComparison.OrdinalIgnoreCase)) return "GPUMemoryLoad";
         if (joined.Contains("GPU.MEMORY_USED", StringComparison.OrdinalIgnoreCase)) return "GPUMemoryUsed";
+        if (joined.Contains("GPU.MEMORY_TOTAL", StringComparison.OrdinalIgnoreCase)) return "GPUMemoryTotal";
+        if (joined.Contains("GPU.MEMORY", StringComparison.OrdinalIgnoreCase)) return "GPUMemoryLoad";
         if (joined.Contains("GPU.FREQUENCY", StringComparison.OrdinalIgnoreCase)) return "GpuFrequency";
         if (joined.Contains("GPU.POWER", StringComparison.OrdinalIgnoreCase)) return "GpuTEC";
         if (joined.Contains("GPU.FAN", StringComparison.OrdinalIgnoreCase)) return "GpuFan";
+        if (joined.Contains("GPU.FPS", StringComparison.OrdinalIgnoreCase)) return "FPS";
         if (joined.Contains("MEMORY", StringComparison.OrdinalIgnoreCase) && joined.Contains("PERCENT", StringComparison.OrdinalIgnoreCase)) return "MemoryUsage";
-        if (joined.Contains("MEMORY", StringComparison.OrdinalIgnoreCase) && joined.Contains("USED", StringComparison.OrdinalIgnoreCase)) return "MemoryUseInt";
+        if (joined.Contains("MEMORY", StringComparison.OrdinalIgnoreCase) && joined.Contains("USED", StringComparison.OrdinalIgnoreCase)) return "MemoryUsed";
         if (joined.Contains("MEMORY", StringComparison.OrdinalIgnoreCase) && joined.Contains("FREE", StringComparison.OrdinalIgnoreCase)) return "MemoryFree";
+        if (joined.Contains("MEMORY", StringComparison.OrdinalIgnoreCase) && joined.Contains("TOTAL", StringComparison.OrdinalIgnoreCase)) return "MemoryTotal";
+        if (joined.Contains("MEMORY.VIRTUAL", StringComparison.OrdinalIgnoreCase)) return "MemoryUsage";
+        if (joined.Contains("MEMORY.SWAP", StringComparison.OrdinalIgnoreCase)) return "Swap";
+        if (joined.Contains(".LOAD.", StringComparison.OrdinalIgnoreCase)) return "SystemLoad";
+        if (joined.Contains("WEATHER.WEATHER_DESCRIPTION", StringComparison.OrdinalIgnoreCase)) return "WEATHER_DESCRIPTION";
+        if (joined.Contains("WEATHER.TEMPERATURE_FELT", StringComparison.OrdinalIgnoreCase)) return "TEMPERATURE_FELT";
+        if (joined.Contains("WEATHER.HUMIDITY", StringComparison.OrdinalIgnoreCase)) return "HUMIDITY";
+        if (joined.Contains("WEATHER.TEMPERATURE", StringComparison.OrdinalIgnoreCase)) return "WEATHER_TEMP";
         if (joined.Contains("DISK", StringComparison.OrdinalIgnoreCase) && joined.Contains("PERCENT", StringComparison.OrdinalIgnoreCase)) return "DiskUsage";
-        if (joined.Contains("DISK", StringComparison.OrdinalIgnoreCase) && joined.Contains("USED", StringComparison.OrdinalIgnoreCase)) return "DiskUsed";
+        if (joined.Contains("DISK", StringComparison.OrdinalIgnoreCase) && joined.Contains(".USED", StringComparison.OrdinalIgnoreCase) && !joined.Contains("PERCENT", StringComparison.OrdinalIgnoreCase)) return "DiskUsed";
         if (joined.Contains("DISK", StringComparison.OrdinalIgnoreCase) && joined.Contains("FREE", StringComparison.OrdinalIgnoreCase)) return "DiskFree";
+        if (joined.Contains("DISK", StringComparison.OrdinalIgnoreCase) && joined.Contains("TOTAL", StringComparison.OrdinalIgnoreCase)) return "DiskTotal";
         if (joined.Contains("DISK", StringComparison.OrdinalIgnoreCase) && joined.Contains("TEMP", StringComparison.OrdinalIgnoreCase)) return "DiskTemp";
         if (joined.Contains("NET", StringComparison.OrdinalIgnoreCase) && joined.Contains("UPLOAD", StringComparison.OrdinalIgnoreCase)) return "UpNetSpeed";
         if (joined.Contains("NET", StringComparison.OrdinalIgnoreCase) && joined.Contains("DOWNLOAD", StringComparison.OrdinalIgnoreCase)) return "DownNetSpeed";
+        if (joined.Contains("UPTIME", StringComparison.OrdinalIgnoreCase)) return "Uptime";
+        if (joined.Contains("PING", StringComparison.OrdinalIgnoreCase)) return "Ping";
         if (joined.Contains("DATE.DAY", StringComparison.OrdinalIgnoreCase)) return "CurrentDate";
         if (joined.Contains("DATE.HOUR", StringComparison.OrdinalIgnoreCase)) return "CurrentTime";
         return parts.Length >= 2 ? parts[^2] : parts[0];
@@ -819,14 +1192,26 @@ public static class UnifiedThemeLoader
 
     private static string DefaultYamlUnit(string sensorKey) => sensorKey.ToUpperInvariant() switch
     {
-        "CPUT" or "GPUT" or "DISKTEMP" => "°C",
-        "CPUUSAGE" or "GPUUSAGE" or "GPUMEMORYLOAD" or "MEMORYUSAGE" or "DISKUSAGE" or "GPUFAN" => "%",
+        "CPUT" or "GPUT" or "DISKTEMP" or "TEMPERATURE_FELT" or "WEATHER_TEMP" => "°C",
+        "CPUUSAGE" or "GPUUSAGE" or "GPUMEMORYLOAD" or "MEMORYUSAGE" or "DISKUSAGE" or "GPUFAN" or "SWAP" or "SYSTEMLOAD" or "HUMIDITY" => "%",
         "CPUFREQUENCY" or "GPUFREQUENCY" => "MHz",
         "CPUTEC" or "GPUTEC" => "W",
-        "MEMORYUSEINT" or "MEMORYFREE" or "GPUMEMORYUSED" or "DISKUSED" or "DISKFREE" => "GB",
+        "MEMORYUSED" or "MEMORYFREE" or "MEMORYTOTAL" or "GPUMEMORYUSED" or "GPUMEMORYTOTAL" or "DISKUSED" or "DISKFREE" or "DISKTOTAL" => "GB",
         "UPNETSPEED" or "DOWNNETSPEED" => "KB/s",
+        "PING" => " ms",
         _ => string.Empty
     };
+
+    private static TextAlignMode ResolveAnchorAlign(string? anchor, string? align)
+    {
+        if (!string.IsNullOrWhiteSpace(anchor))
+        {
+            char h = char.ToLowerInvariant(anchor[0]);
+            if (h == 'm') return TextAlignMode.Center;
+            if (h == 'r') return TextAlignMode.Right;
+        }
+        return ParseAlign(align);
+    }
 
     private static TextAlignMode ParseAlign(string? align)
     {

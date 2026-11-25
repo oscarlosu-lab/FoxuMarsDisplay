@@ -7,9 +7,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
-    <Version>1.1.0</Version>
+    <Version>2.0.0</Version>
     <Product>FoxuMarsDisplay</Product>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Themes\hf_verified_resolutions.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />

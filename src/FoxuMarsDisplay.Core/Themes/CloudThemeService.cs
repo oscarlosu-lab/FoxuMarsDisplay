@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -31,7 +32,8 @@ public sealed record CloudThemeItem(
     long SizeBytes,
     string LocalFilePath,
     bool IsDownloaded,
-    ThemeFormFactor FormFactor = ThemeFormFactor.Unknown);
+    ThemeFormFactor FormFactor = ThemeFormFactor.Unknown,
+    bool HasLiveSensors = true);
 
 public sealed record CloudCatalogResult(
     List<CloudThemeItem> Items,
@@ -56,6 +58,33 @@ public sealed class CloudThemeService
     private static readonly Regex ApiDataRegex = new(
         "name=[\"']api_data[\"']\\s+content=(?:'([^']+)'|\"([^\"]+)\")",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Lazy<Dictionary<string, string>> VerifiedHfResolutions = new(() =>
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var asm = Assembly.GetExecutingAssembly();
+            string? resName = asm.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith("hf_verified_resolutions.json", StringComparison.OrdinalIgnoreCase));
+            if (resName is null) return map;
+
+            using var stream = asm.GetManifestResourceStream(resName);
+            if (stream is null) return map;
+
+            using var doc = JsonDocument.Parse(stream);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object) return map;
+
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                string? val = prop.Value.GetString();
+                if (!string.IsNullOrWhiteSpace(prop.Name) && !string.IsNullOrWhiteSpace(val))
+                    map[prop.Name.TrimStart('/')] = val.Trim();
+            }
+        }
+        catch { }
+        return map;
+    });
 
     public CloudThemeService(HttpClient? httpClient = null, string? customThemesDir = null, string? customCacheDir = null)
     {
@@ -117,25 +146,42 @@ public sealed class CloudThemeService
         {
             List<CloudThemeItem> soeyi = [];
             List<CloudThemeItem> hf = [];
-            string? err = null;
+            string? soeyiErr = null;
+            string? hfErr = null;
 
-            try { soeyi = await FetchSoeyiCatalogAsync(ct).ConfigureAwait(false); }
-            catch (Exception ex) { err = ex.Message; }
+            var soeyiTask = Task.Run(async () =>
+            {
+                try { soeyi = await FetchSoeyiCatalogAsync(ct).ConfigureAwait(false); }
+                catch (Exception ex) { soeyiErr = ex.Message; }
+            }, ct);
 
-            try { hf = await FetchHuggingFaceCatalogAsync(ct).ConfigureAwait(false); }
-            catch (Exception ex) { err = err is null ? ex.Message : $"{err}; {ex.Message}"; }
+            var hfTask = Task.Run(async () =>
+            {
+                try { hf = await FetchHuggingFaceCatalogAsync(ct).ConfigureAwait(false); }
+                catch (Exception ex) { hfErr = ex.Message; }
+            }, ct);
+
+            await Task.WhenAll(soeyiTask, hfTask).ConfigureAwait(false);
+
+            string? err = (soeyiErr, hfErr) switch
+            {
+                (not null, not null) => $"{soeyiErr}; {hfErr}",
+                (not null, null) => soeyiErr,
+                (null, not null) => hfErr,
+                _ => null
+            };
 
             var merged = new List<CloudThemeItem>(soeyi.Count + hf.Count);
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var item in soeyi.Concat(hf))
+            foreach (var item in soeyi.Concat(hf).OrderByDescending(x => x.HasLiveSensors))
             {
-                if (seen.Add($"{item.Name}|{item.Width}x{item.Height}"))
+                if (seen.Add($"{item.Name}|{item.Width}x{item.Height}|{item.Format}"))
                     merged.Add(item);
             }
 
             string label = soeyi.Count > 0 && hf.Count > 0
-                ? "SOEYI + HuggingFace"
-                : soeyi.Count > 0 ? "SOEYI Oficial" : "HuggingFace (Fallback)";
+                ? "SOEYI + TURZX"
+                : soeyi.Count > 0 ? "SOEYI Oficial" : "TURZX / HuggingFace (Fallback)";
             return new CloudCatalogResult(merged, label, soeyi.Count == 0 && hf.Count > 0, err);
         }
 
@@ -289,7 +335,14 @@ public sealed class CloudThemeService
 
         try
         {
-            json = await _http.GetStringAsync($"{HuggingFaceBaseUrl}/catalog.json", ct).ConfigureAwait(false);
+            try
+            {
+                json = await _http.GetStringAsync($"{HuggingFaceBaseUrl}/catalog_v2.json", ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                json = await _http.GetStringAsync($"{HuggingFaceBaseUrl}/catalog.json", ct).ConfigureAwait(false);
+            }
             await File.WriteAllTextAsync(cacheFile, json, ct).ConfigureAwait(false);
         }
         catch
@@ -319,9 +372,23 @@ public sealed class CloudThemeService
             if (type.Equals("video", StringComparison.OrdinalIgnoreCase)) continue;
 
             string id = el.TryGetProperty("id", out var idEl) ? idEl.ToString() : Guid.NewGuid().ToString("N")[..8];
-            string name = el.TryGetProperty("name", out var nEl) ? (nEl.GetString() ?? id) : id;
+            string rawNameField = el.TryGetProperty("name", out var nEl) ? (nEl.GetString() ?? id) : id;
+            string sourceField = el.TryGetProperty("source", out var srcEl) ? (srcEl.GetString() ?? "") : "";
+            bool isPythonLive = sourceField.Equals("python", StringComparison.OrdinalIgnoreCase);
+            bool isTurzxStatic = sourceField.Equals("turzx", StringComparison.OrdinalIgnoreCase) ||
+                                 (!isPythonLive && downloadRel.Contains("TURZX", StringComparison.OrdinalIgnoreCase));
+            string displaySource = isPythonLive
+                ? "TURZX LIVE"
+                : isTurzxStatic
+                    ? "TURZX"
+                    : "HF";
+            bool hasLiveSensors = !isTurzxStatic;
+
+            string name = rawNameField;
             if (name.Length <= 2 && name.All(char.IsDigit))
                 name = Path.GetFileNameWithoutExtension(downloadRel);
+            if (isTurzxStatic)
+                name = ThemeLibraryScanner.FormatFriendlyThemeName(name, "TURZX");
 
             string previewRel = el.TryGetProperty("preview", out var pEl) ? (pEl.GetString() ?? "") : "";
             string res = el.TryGetProperty("resolution", out var rEl) ? (rEl.GetString() ?? "Auto") : "Auto";
@@ -331,7 +398,13 @@ public sealed class CloudThemeService
             if (el.TryGetProperty("tags", out var tagsEl) && tagsEl.ValueKind == JsonValueKind.Array)
                 tags = tagsEl.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
 
-            ThemeLibraryScanner.TryExtractResolution(res, $"{name} {downloadRel}", tags, out int w, out int h);
+            string normalizedRel = downloadRel.TrimStart('/');
+            int w = 0, h = 0;
+            if (!VerifiedHfResolutions.Value.TryGetValue(normalizedRel, out var verifiedRes) ||
+                !ThemeLibraryScanner.TryParseResolution(verifiedRes, out w, out h))
+            {
+                ThemeLibraryScanner.TryExtractResolution(res, $"{rawNameField} {downloadRel}", tags, out w, out h);
+            }
             var ori = ThemeLibraryScanner.ClassifyOrientation(w, h);
             var ff = ThemeLibraryScanner.ClassifyFormFactor(w, h);
 
@@ -347,18 +420,27 @@ public sealed class CloudThemeService
                 Width: w,
                 Height: h,
                 Orientation: ori,
-                Source: "HF",
+                Source: displaySource,
                 Format: type.ToUpperInvariant(),
                 ThumbnailUrl: string.IsNullOrWhiteSpace(previewRel) ? string.Empty : $"{HuggingFaceBaseUrl}/{previewRel.TrimStart('/')}",
-                DownloadUrl: $"{HuggingFaceBaseUrl}/{downloadRel.TrimStart('/')}",
+                DownloadUrl: $"{HuggingFaceBaseUrl}/{normalizedRel}",
                 FileName: rawName,
                 SizeBytes: size,
                 LocalFilePath: localPath,
                 IsDownloaded: File.Exists(localPath),
-                FormFactor: ff));
+                FormFactor: ff,
+                HasLiveSensors: hasLiveSensors));
         }
 
-        return items;
+        // Deduplicate static-only TURZX entries when an identical-name/orientation TURZX LIVE (theme.yaml) twin exists
+        var liveKeys = items
+            .Where(x => x.HasLiveSensors)
+            .Select(x => $"{x.Name.Trim()}|{x.Orientation}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return items
+            .Where(x => x.HasLiveSensors || !liveKeys.Contains($"{x.Name.Trim()}|{x.Orientation}"))
+            .ToList();
     }
 
     public async Task<string> DownloadThemeAsync(CloudThemeItem item, IProgress<int>? progress = null, CancellationToken ct = default)
@@ -394,42 +476,90 @@ public sealed class CloudThemeService
 
     public async Task<string?> GetOrDownloadThumbnailAsync(CloudThemeItem item, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+        bool isSmtheme = item.Format.Equals("SMTHEME", StringComparison.OrdinalIgnoreCase) ||
+                         item.DownloadUrl.EndsWith(".smtheme", StringComparison.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(item.ThumbnailUrl) && (!isSmtheme || string.IsNullOrWhiteSpace(item.DownloadUrl)))
             return null;
 
         Directory.CreateDirectory(_thumbsDir);
-        string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(item.ThumbnailUrl)))[..16];
-        string cachePath = Path.Combine(_thumbsDir, $"{hash}.img");
-        if (File.Exists(cachePath))
-            return cachePath;
+        string cacheKey = isSmtheme && !string.IsNullOrWhiteSpace(item.DownloadUrl)
+            ? item.DownloadUrl
+            : item.ThumbnailUrl;
+        string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(cacheKey)))[..16];
+        string cachePath = Path.Combine(_thumbsDir, isSmtheme ? $"sm_{hash}.img" : $"{hash}.img");
 
         try
         {
-            byte[] bytes = await _http.GetByteArrayAsync(item.ThumbnailUrl, ct).ConfigureAwait(false);
-            if (bytes.Length == 0) return null;
-            string tmp = cachePath + ".tmp";
-            await File.WriteAllBytesAsync(tmp, bytes, ct).ConfigureAwait(false);
-            File.Move(tmp, cachePath, overwrite: true);
-            return cachePath;
+            if (File.Exists(cachePath) && new FileInfo(cachePath).Length > 100)
+                return cachePath;
         }
-        catch
+        catch { }
+
+        if (isSmtheme)
+        {
+            byte[]? smBytes = null;
+
+            if (File.Exists(item.LocalFilePath))
+                smBytes = RemoteZipPreviewExtractor.TryExtractPreviewFromLocalZip(item.LocalFilePath);
+
+            bool isHuggingFaceUrl = item.DownloadUrl.Contains("huggingface.co", StringComparison.OrdinalIgnoreCase);
+            if (smBytes is null && !isHuggingFaceUrl && !string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+            {
+                try
+                {
+                    byte[] fetched = await _http.GetByteArrayAsync(item.ThumbnailUrl, ct).ConfigureAwait(false);
+                    if (RemoteZipPreviewExtractor.IsValidImageHeader(fetched))
+                        smBytes = fetched;
+                }
+                catch { }
+            }
+
+            if (smBytes is null && !string.IsNullOrWhiteSpace(item.DownloadUrl))
+                smBytes = await RemoteZipPreviewExtractor.TryExtractPreviewAsync(_http, item.DownloadUrl, ct).ConfigureAwait(false);
+
+            if (smBytes is { Length: > 0 })
+            {
+                string tmp = cachePath + ".tmp";
+                await File.WriteAllBytesAsync(tmp, smBytes, ct).ConfigureAwait(false);
+                File.Move(tmp, cachePath, overwrite: true);
+                return cachePath;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.ThumbnailUrl) &&
+            !(isSmtheme && item.DownloadUrl.Contains("huggingface.co", StringComparison.OrdinalIgnoreCase)))
         {
             try
             {
-                string fileName = Path.GetFileName(item.ThumbnailUrl);
-                if (!string.IsNullOrWhiteSpace(fileName))
+                byte[] bytes = await _http.GetByteArrayAsync(item.ThumbnailUrl, ct).ConfigureAwait(false);
+                if (bytes.Length > 0)
                 {
-                    string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                    string smtPreview = Path.Combine(docs, "SnakeMarsTheme", "resources", "Previews", fileName);
-                    if (File.Exists(smtPreview)) return smtPreview;
-
-                    string localPreview = Path.Combine(_cacheDir, "previews", fileName);
-                    if (File.Exists(localPreview)) return localPreview;
+                    string tmp = cachePath + ".tmp";
+                    await File.WriteAllBytesAsync(tmp, bytes, ct).ConfigureAwait(false);
+                    File.Move(tmp, cachePath, overwrite: true);
+                    return cachePath;
                 }
             }
             catch { }
-            return null;
         }
+
+        try
+        {
+            string fileName = Path.GetFileName(item.ThumbnailUrl);
+            if (!string.IsNullOrWhiteSpace(fileName))
+            {
+                string docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string smtPreview = Path.Combine(docs, "SnakeMarsTheme", "resources", "Previews", fileName);
+                if (File.Exists(smtPreview)) return smtPreview;
+
+                string localPreview = Path.Combine(_cacheDir, "previews", fileName);
+                if (File.Exists(localPreview)) return localPreview;
+            }
+        }
+        catch { }
+
+        return null;
     }
 
     public static string SanitizeFileName(string raw)

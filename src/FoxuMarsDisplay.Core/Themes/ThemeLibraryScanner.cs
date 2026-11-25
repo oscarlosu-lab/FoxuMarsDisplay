@@ -59,6 +59,7 @@ public static class ThemeLibraryScanner
         ("8001280", 800, 1280),
         ("360960", 360, 960),
         ("960360", 960, 360),
+        ("320960", 960, 320),
         ("240320", 240, 320),
         ("320240", 320, 240),
         ("320480", 320, 480),
@@ -106,14 +107,81 @@ public static class ThemeLibraryScanner
         if (themeW == screenW && themeH == screenH)
             return ThemeCompatibility.Exact;
 
-        if (ClassifyFormFactor(themeW, themeH) != ClassifyFormFactor(screenW, screenH))
-            return ThemeCompatibility.Incompatible;
+        var themeOri = ClassifyOrientation(themeW, themeH);
+        var screenOri = ClassifyOrientation(screenW, screenH);
+        if (themeOri == screenOri)
+            return ThemeCompatibility.Proportional;
 
-        double tr = (double)themeW / themeH;
         double sr = (double)screenW / screenH;
-        return Math.Abs(tr - sr) / sr <= 0.22
-            ? ThemeCompatibility.Proportional
-            : ThemeCompatibility.Incompatible;
+        double tr = (double)themeW / themeH;
+        if (themeOri == ThemeOrientation.Square && sr >= 0.70 && sr <= 1.45)
+            return ThemeCompatibility.Proportional;
+        if (screenOri == ThemeOrientation.Square && tr >= 0.70 && tr <= 1.45)
+            return ThemeCompatibility.Proportional;
+
+        return ThemeCompatibility.Incompatible;
+    }
+
+    private static readonly Regex TrailingTurzxResRegex = new(
+        @"_(?:7201280|8001280|800480|480480r?|320960|960320|4801920|1920480)$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public static string FormatFriendlyThemeName(string rawName, string? sourceHint = null)
+    {
+        if (string.IsNullOrWhiteSpace(rawName))
+            return rawName;
+
+        bool isTurzx = rawName.StartsWith("TURZX_", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(sourceHint, "TURZX", StringComparison.OrdinalIgnoreCase);
+        if (!isTurzx)
+            return rawName;
+
+        string work = rawName.Trim();
+        if (work.StartsWith("TURZX_", StringComparison.OrdinalIgnoreCase))
+            work = work[6..];
+
+        work = TrailingTurzxResRegex.Replace(work, string.Empty);
+        work = string.Join(' ', work.Replace('_', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(work))
+            return rawName;
+
+        if (work.All(char.IsDigit))
+            return $"TURZX #{work}";
+
+        return work;
+    }
+
+    public static (int Width, int Height, ThemeOrientation Orientation) InspectThemePath(string themePath, string? schemeJsonPath = null)
+    {
+        if (string.IsNullOrWhiteSpace(themePath))
+            return (0, 0, ThemeOrientation.Unknown);
+
+        string res = "Auto";
+        string? thumb = null;
+
+        if (Directory.Exists(themePath))
+        {
+            res = DetectFolderResolution(themePath, schemeJsonPath);
+            thumb = FindPreviewInDir(themePath);
+        }
+        else if (File.Exists(themePath))
+        {
+            string ext = Path.GetExtension(themePath);
+            if (ext.Equals(".photo", StringComparison.OrdinalIgnoreCase))
+                (res, thumb) = InspectPhoto(themePath);
+            else if (ext.Equals(".smtheme", StringComparison.OrdinalIgnoreCase))
+                (res, thumb) = InspectSmtheme(themePath);
+            else if (TryReadImageDimensions(themePath, out int iw, out int ih))
+                return (iw, ih, ClassifyOrientation(iw, ih));
+        }
+
+        if (!TryExtractResolution(res, themePath, null, out int w, out int h) &&
+            !string.IsNullOrEmpty(thumb) && File.Exists(thumb))
+        {
+            TryReadImageDimensions(thumb, out w, out h);
+        }
+
+        return (w, h, ClassifyOrientation(w, h));
     }
 
     public static bool TryExtractResolution(
@@ -220,9 +288,11 @@ public static class ThemeLibraryScanner
             }
         }
 
-        // 2. FoxuMarsDisplay local Themes folder
+        // 2. FoxuMarsDisplay local Themes & custom_themes folders
         var foxuThemes = Path.Combine(localAppData, "FoxuMarsDisplay", "Themes");
         ScanFolder(foxuThemes, results, seen);
+        var foxuCustomThemes = Path.Combine(localAppData, "FoxuMarsDisplay", "custom_themes");
+        ScanFolder(foxuCustomThemes, results, seen);
 
         // 3. User Documents SnakeMarsTheme Downloads (if present)
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -257,10 +327,10 @@ public static class ThemeLibraryScanner
 
         foreach (var sm in Directory.GetFiles(folder, "*.smtheme"))
         {
-            var name = Path.GetFileNameWithoutExtension(sm);
+            var rawName = Path.GetFileNameWithoutExtension(sm);
             var (res, thumb) = InspectSmtheme(sm);
-            if (seen.Add($"TURZX|{name}"))
-                results.Add(CreateEntry(name, "TURZX", res, sm, null, thumb));
+            if (seen.Add($"TURZX|{rawName}"))
+                results.Add(CreateEntry(FormatFriendlyThemeName(rawName, "TURZX"), "TURZX", res, sm, null, thumb));
         }
 
         foreach (var dir in Directory.GetDirectories(folder))
@@ -370,24 +440,51 @@ public static class ThemeLibraryScanner
         try
         {
             using var z = ZipFile.OpenRead(smthemePath);
-            var manifest = z.GetEntry("manifest.json");
+            static ZipArchiveEntry? FindEntry(ZipArchive archive, string fileName) =>
+                archive.Entries.FirstOrDefault(e =>
+                    !string.IsNullOrEmpty(e.Name) &&
+                    e.Name.Equals(fileName, StringComparison.OrdinalIgnoreCase));
+
+            var manifest = FindEntry(z, "manifest.json");
             if (manifest != null)
             {
                 using var sr = new StreamReader(manifest.Open());
                 using var doc = JsonDocument.Parse(sr.ReadToEnd());
                 if (doc.RootElement.TryGetProperty("Resolution", out var rEl) && rEl.ValueKind == JsonValueKind.String)
-                    res = rEl.GetString() ?? "Auto";
+                {
+                    var candidate = rEl.GetString();
+                    if (!string.IsNullOrWhiteSpace(candidate))
+                        res = candidate;
+                }
             }
 
-            var prev = z.GetEntry("preview.png") ?? z.GetEntry("demo.png");
+            var prev = FindEntry(z, "preview.png") ??
+                       FindEntry(z, "demo.png") ??
+                       FindEntry(z, "background.png") ??
+                       FindEntry(z, "back.png");
             if (prev != null)
             {
                 var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 var cacheDir = Path.Combine(localAppData, "FoxuMarsDisplay", "cache", "previews");
                 Directory.CreateDirectory(cacheDir);
-                thumbPath = Path.Combine(cacheDir, $"{Path.GetFileNameWithoutExtension(smthemePath)}.png");
+                thumbPath = Path.Combine(cacheDir, $"sm_{Path.GetFileNameWithoutExtension(smthemePath)}.png");
                 if (!File.Exists(thumbPath))
                     prev.ExtractToFile(thumbPath, overwrite: true);
+            }
+
+            if (res.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+            {
+                var bg = FindEntry(z, "background.png") ?? FindEntry(z, "back.png") ?? prev;
+                if (bg != null)
+                {
+                    using var stream = bg.Open();
+                    using var ms = new MemoryStream();
+                    stream.CopyTo(ms);
+                    ms.Position = 0;
+                    using var codec = SKCodec.Create(ms);
+                    if (codec != null && codec.Info.Width > 0 && codec.Info.Height > 0)
+                        res = $"{codec.Info.Width}x{codec.Info.Height}";
+                }
             }
         }
         catch { }

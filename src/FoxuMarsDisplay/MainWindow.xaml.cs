@@ -18,6 +18,7 @@ namespace FoxuMarsDisplay;
 public sealed record ScreenTargetItem(
     int Index,
     string SerialNumber,
+    string HardwareClass,
     int NativeWidth,
     int NativeHeight,
     int EffectiveWidth,
@@ -37,6 +38,7 @@ public sealed class ScreenItemVm : INotifyPropertyChanged
     private string _statsText = string.Empty;
     private int _brightness;
     private int _rotation;
+    private int _scaleModeIndex;
     private bool _isEnabled;
     private BitmapImage? _previewImage;
 
@@ -96,6 +98,12 @@ public sealed class ScreenItemVm : INotifyPropertyChanged
         set { if (_rotation != value) { _rotation = value; OnPropertyChanged(); } }
     }
 
+    public int ScaleModeIndex
+    {
+        get => _scaleModeIndex;
+        set { if (_scaleModeIndex != value) { _scaleModeIndex = value; OnPropertyChanged(); } }
+    }
+
     public bool IsEnabled
     {
         get => _isEnabled;
@@ -118,7 +126,13 @@ public sealed record ResolutionFilterItem(string Key, string Label);
 public sealed class GalleryItemVm : INotifyPropertyChanged
 {
     private BitmapImage? _thumbnailImage;
-    private Visibility _exactVisibility = Visibility.Collapsed;
+    private string _compatBadgeText = string.Empty;
+    private System.Windows.Media.Brush _compatBadgeBrush = System.Windows.Media.Brushes.Gray;
+    private Visibility _compatBadgeVisibility = Visibility.Collapsed;
+    private double _cardOpacity = 1.0;
+    private string _actionText = string.Empty;
+    private bool _canClick = true;
+    private string? _actionToolTip;
 
     public string Name { get; init; } = string.Empty;
     public string FullPath { get; init; } = string.Empty;
@@ -132,10 +146,46 @@ public sealed class GalleryItemVm : INotifyPropertyChanged
     public System.Windows.Media.Brush OrientationBrush { get; init; } = System.Windows.Media.Brushes.Gray;
     public string MetaText { get; init; } = string.Empty;
 
-    public Visibility ExactVisibility
+    public string CompatBadgeText
     {
-        get => _exactVisibility;
-        set { if (_exactVisibility != value) { _exactVisibility = value; OnPropertyChanged(); } }
+        get => _compatBadgeText;
+        set { if (_compatBadgeText != value) { _compatBadgeText = value; OnPropertyChanged(); } }
+    }
+
+    public System.Windows.Media.Brush CompatBadgeBrush
+    {
+        get => _compatBadgeBrush;
+        set { if (!ReferenceEquals(_compatBadgeBrush, value)) { _compatBadgeBrush = value; OnPropertyChanged(); } }
+    }
+
+    public Visibility CompatBadgeVisibility
+    {
+        get => _compatBadgeVisibility;
+        set { if (_compatBadgeVisibility != value) { _compatBadgeVisibility = value; OnPropertyChanged(); } }
+    }
+
+    public double CardOpacity
+    {
+        get => _cardOpacity;
+        set { if (Math.Abs(_cardOpacity - value) > 0.01) { _cardOpacity = value; OnPropertyChanged(); } }
+    }
+
+    public string ActionText
+    {
+        get => _actionText;
+        set { if (_actionText != value) { _actionText = value; OnPropertyChanged(); } }
+    }
+
+    public bool CanClick
+    {
+        get => _canClick;
+        set { if (_canClick != value) { _canClick = value; OnPropertyChanged(); } }
+    }
+
+    public string? ActionToolTip
+    {
+        get => _actionToolTip;
+        set { if (_actionToolTip != value) { _actionToolTip = value; OnPropertyChanged(); } }
     }
 
     public BitmapImage? ThumbnailImage
@@ -154,7 +204,11 @@ public sealed class CloudItemVm : INotifyPropertyChanged
     private BitmapImage? _thumbnailImage;
     private string _actionText = "⬇ Descargar y Aplicar";
     private bool _canClick = true;
-    private Visibility _exactVisibility = Visibility.Collapsed;
+    private string? _actionToolTip;
+    private string _compatBadgeText = string.Empty;
+    private System.Windows.Media.Brush _compatBadgeBrush = System.Windows.Media.Brushes.Gray;
+    private Visibility _compatBadgeVisibility = Visibility.Collapsed;
+    private double _cardOpacity = 1.0;
 
     public required CloudThemeItem Model { get; init; }
     public string Name => Model.Name;
@@ -164,10 +218,28 @@ public sealed class CloudItemVm : INotifyPropertyChanged
     public System.Windows.Media.Brush OrientationBrush { get; init; } = System.Windows.Media.Brushes.Gray;
     public string MetaText { get; init; } = string.Empty;
 
-    public Visibility ExactVisibility
+    public string CompatBadgeText
     {
-        get => _exactVisibility;
-        set { if (_exactVisibility != value) { _exactVisibility = value; OnPropertyChanged(); } }
+        get => _compatBadgeText;
+        set { if (_compatBadgeText != value) { _compatBadgeText = value; OnPropertyChanged(); } }
+    }
+
+    public System.Windows.Media.Brush CompatBadgeBrush
+    {
+        get => _compatBadgeBrush;
+        set { if (!ReferenceEquals(_compatBadgeBrush, value)) { _compatBadgeBrush = value; OnPropertyChanged(); } }
+    }
+
+    public Visibility CompatBadgeVisibility
+    {
+        get => _compatBadgeVisibility;
+        set { if (_compatBadgeVisibility != value) { _compatBadgeVisibility = value; OnPropertyChanged(); } }
+    }
+
+    public double CardOpacity
+    {
+        get => _cardOpacity;
+        set { if (Math.Abs(_cardOpacity - value) > 0.01) { _cardOpacity = value; OnPropertyChanged(); } }
     }
 
     public BitmapImage? ThumbnailImage
@@ -179,13 +251,19 @@ public sealed class CloudItemVm : INotifyPropertyChanged
     public string ActionText
     {
         get => _actionText;
-        set { _actionText = value; OnPropertyChanged(); }
+        set { if (_actionText != value) { _actionText = value; OnPropertyChanged(); } }
     }
 
     public bool CanClick
     {
         get => _canClick;
-        set { _canClick = value; OnPropertyChanged(); }
+        set { if (_canClick != value) { _canClick = value; OnPropertyChanged(); } }
+    }
+
+    public string? ActionToolTip
+    {
+        get => _actionToolTip;
+        set { if (_actionToolTip != value) { _actionToolTip = value; OnPropertyChanged(); } }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -199,15 +277,21 @@ public partial class MainWindow : Window
     private static readonly System.Windows.Media.Brush BrushHorizontal = CreateFrozenBrush(0xFF, 0xB8, 0x20);
     private static readonly System.Windows.Media.Brush BrushSquare = CreateFrozenBrush(0xB5, 0x7B, 0xFF);
     private static readonly System.Windows.Media.Brush BrushUnknown = CreateFrozenBrush(0x98, 0x8F, 0xAD);
+    private static readonly System.Windows.Media.Brush BrushExact = CreateFrozenBrush(0x22, 0xE5, 0x8B);
+    private static readonly System.Windows.Media.Brush BrushIncompat = CreateFrozenBrush(0xFF, 0x1F, 0x4B);
 
     private readonly DisplayHost _host;
     private readonly DispatcherTimer _uiTimer;
     private readonly ObservableCollection<ScreenItemVm> _screenItems = new();
+    private readonly List<ScreenTargetItem> _screenTargets = new();
     private readonly List<GalleryItemVm> _allGalleryItems = new();
     private readonly CloudThemeService _cloudService = new();
     private readonly List<CloudItemVm> _allCloudItems = new();
     private CancellationTokenSource? _thumbCts;
     private CancellationTokenSource? _cloudCts;
+    private CancellationTokenSource? _cloudThumbCts;
+    private string? _selectedTargetSerial;
+    private string _lastTargetSignature = string.Empty;
     private bool _cloudLoadedOnce;
     private bool _forceClose;
     private bool _isInitializing = true;
@@ -223,6 +307,7 @@ public partial class MainWindow : Window
         ScreensList.ItemsSource = _screenItems;
 
         LoadSystemSettings();
+        TxtUpdateStatus.Text = $"Versión instalada: v{GetCurrentAppVersion()}";
         LoadGallery();
         RefreshUi();
 
@@ -344,6 +429,90 @@ public partial class MainWindow : Window
             CmbLanguage.SelectedIndex = 0;
     }
 
+    private ScreenTargetItem? GetSelectedTargetScreen()
+    {
+        if (_screenTargets.Count == 0) return null;
+        if (!string.IsNullOrWhiteSpace(_selectedTargetSerial))
+        {
+            var found = _screenTargets.FirstOrDefault(x => x.SerialNumber.Equals(_selectedTargetSerial, StringComparison.OrdinalIgnoreCase));
+            if (found is not null) return found;
+        }
+        return _screenTargets[0];
+    }
+
+    private void RebuildScreenPills()
+    {
+        var selected = GetSelectedTargetScreen();
+        _selectedTargetSerial = selected?.SerialNumber;
+
+        void PopulatePanel(System.Windows.Controls.WrapPanel panel, System.Windows.Controls.TextBlock emptyText, string groupName)
+        {
+            panel.Children.Clear();
+            emptyText.Visibility = _screenTargets.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            var pillStyle = (Style)FindResource("ScreenPillRadio");
+
+            foreach (var screen in _screenTargets)
+            {
+                var rb = new System.Windows.Controls.RadioButton
+                {
+                    Content = $"🖥️ {screen.DisplayLabel}",
+                    ToolTip = screen.ToolTipText,
+                    GroupName = groupName,
+                    Style = pillStyle,
+                    Tag = screen.SerialNumber,
+                    IsChecked = selected is not null && screen.SerialNumber.Equals(selected.SerialNumber, StringComparison.OrdinalIgnoreCase),
+                    Margin = new Thickness(0, 2, 8, 2)
+                };
+                rb.Checked += OnScreenPillChecked;
+                panel.Children.Add(rb);
+            }
+        }
+
+        PopulatePanel(GalleryScreenPills, TxtGalleryNoScreen, "GalleryTargetScreen");
+        PopulatePanel(CloudScreenPills, TxtCloudNoScreen, "CloudTargetScreen");
+    }
+
+    private void OnScreenPillChecked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing || _isRefreshingUi) return;
+        if (sender is System.Windows.Controls.RadioButton rb && rb.Tag is string sn)
+            SelectTargetScreen(sn);
+    }
+
+    private void SelectTargetScreen(string serialNumber)
+    {
+        if (string.Equals(_selectedTargetSerial, serialNumber, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _selectedTargetSerial = serialNumber;
+        _isRefreshingUi = true;
+        try
+        {
+            foreach (var panel in new[] { GalleryScreenPills, CloudScreenPills })
+            {
+                foreach (var rb in panel.Children.OfType<System.Windows.Controls.RadioButton>())
+                {
+                    rb.IsChecked = rb.Tag is string sn && sn.Equals(serialNumber, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            if (CmbGalleryResolution.Items.Count > 0) CmbGalleryResolution.SelectedIndex = 0;
+            if (CmbCloudResolution.Items.Count > 0) CmbCloudResolution.SelectedIndex = 0;
+        }
+        finally
+        {
+            _isRefreshingUi = false;
+        }
+
+        UpdateGalleryFilterCounts();
+        ApplyGalleryFilter();
+        if (_cloudLoadedOnce)
+        {
+            UpdateCloudFilterCounts();
+            ApplyCloudFilter();
+        }
+    }
+
     private void LoadGallery()
     {
         _thumbCts?.Cancel();
@@ -374,10 +543,6 @@ public partial class MainWindow : Window
         }
 
         UpdateGalleryFilterCounts();
-        PopulateResolutionCombo(
-            CmbGalleryResolution,
-            _allGalleryItems.Select(x => (x.Width, x.Height)),
-            CmbTargetScreen.SelectedItem as ScreenTargetItem);
         ApplyGalleryFilter();
         _ = LoadThumbnailsAsync(_allGalleryItems.ToList(), ct);
     }
@@ -389,12 +554,12 @@ public partial class MainWindow : Window
         int horiz = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Horizontal);
         int sq = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Square);
 
-        var target = CmbTargetScreen.SelectedItem as ScreenTargetItem;
+        var target = GetSelectedTargetScreen();
         int compat = target is null ? 0 : _allGalleryItems.Count(x =>
             ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
 
+        ChkGalleryOnlyCompatible.Content = LocalizationService.Format("Str_OnlyCompatibleFmt", compat);
         FilterAll.Content = LocalizationService.Format("Str_FilterAllFmt", total);
-        FilterCompatible.Content = LocalizationService.Format("Str_FilterCompatFmt", compat);
         FilterVertical.Content = LocalizationService.Format("Str_FilterVertFmt", vert);
         FilterHorizontal.Content = LocalizationService.Format("Str_FilterHorizFmt", horiz);
         FilterSquare.Content = LocalizationService.Format("Str_FilterSquareFmt", sq);
@@ -467,25 +632,100 @@ public partial class MainWindow : Window
         return Math.Abs(tr - sr) / sr;
     }
 
+    private static string FormatOrientationName(ThemeOrientation o) => o switch
+    {
+        ThemeOrientation.Vertical => LocalizationService.T("Str_OriVerticalFull"),
+        ThemeOrientation.Horizontal => LocalizationService.T("Str_OriHorizontalFull"),
+        ThemeOrientation.Square => LocalizationService.T("Str_OriSquareFull"),
+        _ => "Auto"
+    };
+
     private void ApplyGalleryFilter()
     {
         if (GalleryList is null) return;
         string q = (TxtGallerySearch.Text ?? string.Empty).Trim();
-        var target = CmbTargetScreen.SelectedItem as ScreenTargetItem;
+        TxtGallerySearchWatermark.Visibility = string.IsNullOrEmpty(q) ? Visibility.Visible : Visibility.Collapsed;
+
+        var target = GetSelectedTargetScreen();
+        bool onlyCompat = ChkGalleryOnlyCompatible.IsChecked == true && target is not null;
+        GalleryExtraOrientPanel.Visibility = onlyCompat ? Visibility.Collapsed : Visibility.Visible;
+
+        var resSource = onlyCompat
+            ? _allGalleryItems.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target!.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible)
+            : _allGalleryItems;
+
+        _isRefreshingUi = true;
+        try
+        {
+            PopulateResolutionCombo(
+                CmbGalleryResolution,
+                resSource.Select(x => (x.Width, x.Height)),
+                target);
+        }
+        finally
+        {
+            _isRefreshingUi = false;
+        }
+
         string resKey = (CmbGalleryResolution.SelectedItem as ResolutionFilterItem)?.Key ?? "ALL";
 
         foreach (var item in _allGalleryItems)
         {
-            bool exact = target is not null &&
-                         ThemeLibraryScanner.EvaluateCompatibility(item.Width, item.Height, target.EffectiveWidth, target.EffectiveHeight) == ThemeCompatibility.Exact;
-            item.ExactVisibility = exact ? Visibility.Visible : Visibility.Collapsed;
+            var compat = target is null
+                ? ThemeCompatibility.Incompatible
+                : ThemeLibraryScanner.EvaluateCompatibility(item.Width, item.Height, target.EffectiveWidth, target.EffectiveHeight);
+
+            if (target is null)
+            {
+                item.CompatBadgeVisibility = Visibility.Collapsed;
+                item.CardOpacity = 1.0;
+                item.CanClick = false;
+                item.ActionText = LocalizationService.T("Str_ApplyOnScreen");
+                item.ActionToolTip = LocalizationService.T("Str_NoScreenBanner");
+            }
+            else if (compat == ThemeCompatibility.Exact)
+            {
+                item.CompatBadgeText = LocalizationService.T("Str_BadgeExact");
+                item.CompatBadgeBrush = BrushExact;
+                item.CompatBadgeVisibility = Visibility.Visible;
+                item.CardOpacity = 1.0;
+                item.CanClick = true;
+                item.ActionText = LocalizationService.Format("Str_ApplyToScreenFmt", target.Index);
+                item.ActionToolTip = null;
+            }
+            else if (compat == ThemeCompatibility.Proportional)
+            {
+                item.CompatBadgeText = LocalizationService.T("Str_BadgeAdaptable");
+                item.CompatBadgeBrush = BrushHorizontal;
+                item.CompatBadgeVisibility = Visibility.Visible;
+                item.CardOpacity = 1.0;
+                item.CanClick = true;
+                item.ActionText = LocalizationService.Format("Str_ApplyToScreenFmt", target.Index);
+                item.ActionToolTip = null;
+            }
+            else
+            {
+                item.CompatBadgeText = LocalizationService.T("Str_BadgeOtherOri");
+                item.CompatBadgeBrush = BrushIncompat;
+                item.CompatBadgeVisibility = Visibility.Visible;
+                item.CardOpacity = 0.78;
+                item.CanClick = true;
+                item.ActionText = LocalizationService.Format("Str_ApplyToScreenFmt", target.Index);
+                string themeRes = item.Width > 0 && item.Height > 0 ? $"{item.Width}×{item.Height}" : "Auto";
+                item.ActionToolTip = LocalizationService.Format(
+                    "Str_IncompatTooltipFmt",
+                    FormatOrientationName(item.Orientation),
+                    themeRes,
+                    $"{target.HardwareClass} {target.Index}",
+                    $"{target.EffectiveWidth}×{target.EffectiveHeight}");
+            }
         }
 
         IEnumerable<GalleryItemVm> seq = _allGalleryItems;
 
-        if (FilterCompatible.IsChecked == true && target is not null)
+        if (onlyCompat)
         {
-            seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
+            seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target!.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
         }
         else if (FilterVertical.IsChecked == true)
             seq = seq.Where(x => x.Orientation == ThemeOrientation.Vertical);
@@ -511,7 +751,11 @@ public partial class MainWindow : Window
                 .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
         }
 
-        GalleryList.ItemsSource = seq.ToList();
+        var list = seq.ToList();
+        GalleryList.ItemsSource = list;
+        GalleryEmptyPanel.Visibility = list.Count == 0 && onlyCompat && string.IsNullOrEmpty(q)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void RefreshUi()
@@ -552,21 +796,20 @@ public partial class MainWindow : Window
                 var effOri = ThemeLibraryScanner.ClassifyOrientation(effW, effH);
                 var (_, oriLabel, oriBrush) = GetOrientationMeta(effOri);
 
-                string shortOri = effOri switch
-                {
-                    ThemeOrientation.Vertical => LocalizationService.T("Str_OriVerticalFull"),
-                    ThemeOrientation.Horizontal => LocalizationService.T("Str_OriHorizontalFull"),
-                    ThemeOrientation.Square => LocalizationService.T("Str_OriSquareFull"),
-                    _ => "Auto"
-                };
+                string shortOri = FormatOrientationName(effOri);
+                bool isAio = s.SerialNumber.StartsWith("VMAXA", StringComparison.OrdinalIgnoreCase) ||
+                             Math.Max(s.Width, s.Height) <= 480;
+                string hwClass = isAio
+                    ? LocalizationService.T("Str_ScreenClassAio")
+                    : LocalizationService.T("Str_ScreenClassPanel");
 
                 string inlineScreen = LocalizationService.T("Str_ScreenTitleInline");
                 string displayLabel = swapped
-                    ? $"{inlineScreen} {idx} · {effW}×{effH} {shortOri} ({s.Width}×{s.Height})"
-                    : $"{inlineScreen} {idx} · {s.Width}×{s.Height} {shortOri}";
+                    ? $"{inlineScreen} {idx} ({hwClass}) · {effW}×{effH} {shortOri}"
+                    : $"{inlineScreen} {idx} ({hwClass}) · {s.Width}×{s.Height} {shortOri}";
 
                 targetItems.Add(new ScreenTargetItem(
-                    idx, s.SerialNumber, s.Width, s.Height, effW, effH, effOri,
+                    idx, s.SerialNumber, hwClass, s.Width, s.Height, effW, effH, effOri,
                     displayLabel, $"SN: {s.SerialNumber}"));
 
                 BitmapImage? preview = null;
@@ -603,35 +846,26 @@ public partial class MainWindow : Window
                 vm.StatsText = LocalizationService.Format("Str_StatsFmt", s.FramesSent, s.KeepAlivesSent, s.BusyDrops, s.SendErrors);
                 vm.Brightness = s.Brightness;
                 vm.Rotation = rot;
+                vm.ScaleModeIndex = s.ScaleMode switch
+                {
+                    ThemeScaleMode.Fit => 1,
+                    ThemeScaleMode.Stretch => 2,
+                    _ => 0
+                };
                 vm.IsEnabled = s.IsEnabled;
                 vm.PreviewImage = preview;
 
                 idx++;
             }
 
-            var currentLabels = CmbTargetScreen.Items.OfType<ScreenTargetItem>().Select(x => x.DisplayLabel).ToList();
-            var nextLabels = targetItems.Select(x => x.DisplayLabel).ToList();
-            if (!currentLabels.SequenceEqual(nextLabels))
+            string signature = string.Join("|", targetItems.Select(x => $"{x.SerialNumber}:{x.DisplayLabel}"));
+            if (!string.Equals(_lastTargetSignature, signature, StringComparison.Ordinal))
             {
-                string? prevSn = (CmbTargetScreen.SelectedItem as ScreenTargetItem)?.SerialNumber;
-                CmbTargetScreen.Items.Clear();
-                foreach (var item in targetItems)
-                    CmbTargetScreen.Items.Add(item);
+                _lastTargetSignature = signature;
+                _screenTargets.Clear();
+                _screenTargets.AddRange(targetItems);
 
-                var restored = prevSn != null
-                    ? targetItems.FirstOrDefault(x => x.SerialNumber.Equals(prevSn, StringComparison.OrdinalIgnoreCase))
-                    : null;
-                CmbTargetScreen.SelectedItem = restored ?? targetItems.FirstOrDefault();
-
-                string? prevCloudSn = (CmbCloudTargetScreen.SelectedItem as ScreenTargetItem)?.SerialNumber;
-                CmbCloudTargetScreen.Items.Clear();
-                foreach (var item in targetItems)
-                    CmbCloudTargetScreen.Items.Add(item);
-                var restoredCloud = prevCloudSn != null
-                    ? targetItems.FirstOrDefault(x => x.SerialNumber.Equals(prevCloudSn, StringComparison.OrdinalIgnoreCase))
-                    : null;
-                CmbCloudTargetScreen.SelectedItem = restoredCloud ?? targetItems.FirstOrDefault();
-
+                RebuildScreenPills();
                 UpdateGalleryFilterCounts();
                 UpdateCloudFilterCounts();
                 if (!_isInitializing)
@@ -683,6 +917,14 @@ public partial class MainWindow : Window
         ((App)System.Windows.Application.Current).RestartElevated();
     }
 
+    private void OnOpenThemeEditorClick(object sender, RoutedEventArgs e)
+    {
+        var editor = new ThemeEditorWindow(_host, _selectedTargetSerial) { Owner = this };
+        editor.ShowDialog();
+        LoadGallery();
+        RefreshUi();
+    }
+
     private void OnMinimizeClick(object sender, RoutedEventArgs e)
     {
         Hide();
@@ -714,6 +956,43 @@ public partial class MainWindow : Window
             _host.SetRotation(sn, cmb.SelectedIndex);
     }
 
+    private void OnScaleModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing || _isRefreshingUi) return;
+        if (sender is System.Windows.Controls.ComboBox cmb && cmb.Tag is string sn && cmb.SelectedIndex >= 0)
+        {
+            var mode = cmb.SelectedIndex switch
+            {
+                1 => ThemeScaleMode.Fit,
+                2 => ThemeScaleMode.Stretch,
+                _ => ThemeScaleMode.Auto
+            };
+            _host.SetScaleMode(sn, mode);
+        }
+    }
+
+    private void OnOpenCloudForScreenClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string sn) return;
+        SelectTargetScreen(sn);
+        ChkCloudOnlyCompatible.IsChecked = true;
+        NavCloud.IsChecked = true;
+    }
+
+    private void OnOpenGalleryForScreenClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string sn) return;
+        SelectTargetScreen(sn);
+        ChkGalleryOnlyCompatible.IsChecked = true;
+        NavGallery.IsChecked = true;
+    }
+
+    private void OnGoToCloudStoreClick(object sender, RoutedEventArgs e)
+    {
+        ChkCloudOnlyCompatible.IsChecked = true;
+        NavCloud.IsChecked = true;
+    }
+
     private void OnPickThemeForScreenClick(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string sn) return;
@@ -733,12 +1012,41 @@ public partial class MainWindow : Window
             {
                 target = Path.GetDirectoryName(target)!;
             }
+
+            var screenTarget = _screenTargets.FirstOrDefault(x => x.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
+            if (screenTarget is not null)
+            {
+                var (tw, th, tori) = ThemeLibraryScanner.InspectThemePath(target);
+                if (tw > 0 && th > 0 &&
+                    ThemeLibraryScanner.EvaluateCompatibility(tw, th, screenTarget.EffectiveWidth, screenTarget.EffectiveHeight) == ThemeCompatibility.Incompatible)
+                {
+                    string msg = LocalizationService.Format(
+                        "Str_ManualIncompatMsgFmt",
+                        FormatOrientationName(tori),
+                        $"{tw}×{th}",
+                        $"{screenTarget.HardwareClass} {screenTarget.Index}",
+                        $"{screenTarget.EffectiveWidth}×{screenTarget.EffectiveHeight}");
+                    var confirm = System.Windows.MessageBox.Show(
+                        msg,
+                        LocalizationService.T("Str_ManualIncompatTitle"),
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning,
+                        MessageBoxResult.No);
+                    if (confirm != MessageBoxResult.Yes)
+                        return;
+                }
+            }
+
             _host.ApplyTheme(sn, target);
             RefreshUi();
         }
     }
 
     private void OnGallerySearchChanged(object sender, TextChangedEventArgs e) => ApplyGalleryFilter();
+    private void OnGalleryOnlyCompatibleChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_isInitializing && !_isRefreshingUi) ApplyGalleryFilter();
+    }
     private void OnOrientationFilterChanged(object sender, RoutedEventArgs e)
     {
         if (!_isInitializing) ApplyGalleryFilter();
@@ -749,23 +1057,33 @@ public partial class MainWindow : Window
         if (!_isInitializing && !_isRefreshingUi) ApplyGalleryFilter();
     }
 
-    private void OnTargetScreenChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (!_isInitializing && !_isRefreshingUi)
-        {
-            UpdateGalleryFilterCounts();
-            ApplyGalleryFilter();
-        }
-    }
-
     private void OnRescanGalleryClick(object sender, RoutedEventArgs e) => LoadGallery();
 
     private void OnApplyGalleryThemeClick(object sender, RoutedEventArgs e)
     {
         if (sender is System.Windows.Controls.Button btn &&
             btn.Tag is GalleryItemVm item &&
-            CmbTargetScreen.SelectedItem is ScreenTargetItem target)
+            GetSelectedTargetScreen() is { } target)
         {
+            if (ThemeLibraryScanner.EvaluateCompatibility(item.Width, item.Height, target.EffectiveWidth, target.EffectiveHeight) == ThemeCompatibility.Incompatible)
+            {
+                string msg = LocalizationService.Format(
+                    "Str_CrossOriConfirmMsgFmt",
+                    FormatOrientationName(item.Orientation),
+                    item.Width > 0 && item.Height > 0 ? $"{item.Width}×{item.Height}" : "Auto",
+                    $"{target.HardwareClass} {target.Index}",
+                    FormatOrientationName(target.EffectiveOrientation),
+                    $"{target.EffectiveWidth}×{target.EffectiveHeight}");
+                var confirm = System.Windows.MessageBox.Show(
+                    msg,
+                    LocalizationService.T("Str_ManualIncompatTitle"),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question,
+                    MessageBoxResult.Yes);
+                if (confirm != MessageBoxResult.Yes)
+                    return;
+            }
+
             _host.ApplyTheme(target.SerialNumber, item.FullPath, item.SchemeJsonPath);
             NavScreens.IsChecked = true;
             RefreshUi();
@@ -790,10 +1108,11 @@ public partial class MainWindow : Window
             LocalizationService.ApplyLanguage(code);
 
             TxtFpsLabel.Text = LocalizationService.Format("Str_FpsLabelFmt", _host.Config.TargetFps);
+            _lastTargetSignature = string.Empty;
+            RefreshUi();
             LoadGallery();
             if (_cloudLoadedOnce)
                 _ = LoadCloudCatalogAsync();
-            RefreshUi();
         }
     }
 
@@ -829,11 +1148,90 @@ public partial class MainWindow : Window
         System.Windows.MessageBox.Show("Procesos Soeyi.exe detenidos.", "FoxuMarsDisplay", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private static string GetCurrentAppVersion()
+    {
+        var v = typeof(MainWindow).Assembly.GetName().Version;
+        return v is null ? "1.1.0" : $"{v.Major}.{v.Minor}.{Math.Max(0, v.Build)}";
+    }
+
+    private async void OnCheckUpdatesClick(object sender, RoutedEventArgs e)
+    {
+        string currentVer = GetCurrentAppVersion();
+        BtnCheckUpdates.IsEnabled = false;
+        TxtUpdateStatus.Foreground = BrushHorizontal;
+        TxtUpdateStatus.Text = "Comprobando actualizaciones en GitHub...";
+
+        try
+        {
+            var result = await UpdateChecker.CheckLatestAsync(currentVer);
+            if (result is null)
+            {
+                TxtUpdateStatus.Foreground = BrushUnknown;
+                TxtUpdateStatus.Text = $"⚠️ No se pudo comprobar actualizaciones (actual: v{currentVer}).";
+                return;
+            }
+
+            if (!result.UpdateAvailable)
+            {
+                TxtUpdateStatus.Foreground = BrushExact;
+                TxtUpdateStatus.Text = $"✅ Estás al día — instalada v{currentVer} (última publicada: {result.LatestTag}).";
+                return;
+            }
+
+            TxtUpdateStatus.Foreground = BrushHorizontal;
+            TxtUpdateStatus.Text = $"✨ Nueva versión disponible: {result.LatestTag} (actual: v{currentVer}).";
+
+            var answer = System.Windows.MessageBox.Show(
+                $"Hay una nueva versión disponible: {result.LatestTag} (instalada: v{currentVer}).\n\n¿Deseas descargar e iniciar el instalador?",
+                "Actualización disponible — FoxuMarsDisplay",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (answer != MessageBoxResult.Yes)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(result.InstallerDownloadUrl))
+            {
+                TxtUpdateStatus.Text = $"Descargando {result.LatestTag}...";
+                string safeTag = string.Concat(result.LatestTag.Where(c => char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '_'));
+                string dlPath = Path.Combine(Path.GetTempPath(), $"FoxuMarsDisplay_Setup_{safeTag}.exe");
+                using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromMinutes(3) };
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("FoxuMarsDisplay-Updater/1.0");
+                byte[] bytes = await http.GetByteArrayAsync(result.InstallerDownloadUrl);
+                await File.WriteAllBytesAsync(dlPath, bytes);
+
+                if (!string.IsNullOrWhiteSpace(result.ExpectedSha256) &&
+                    !UpdateChecker.VerifyFileSha256(dlPath, result.ExpectedSha256))
+                {
+                    try { File.Delete(dlPath); } catch { }
+                    TxtUpdateStatus.Foreground = BrushIncompat;
+                    TxtUpdateStatus.Text = "⛔ Error de verificación SHA-256 en el instalador descargado.";
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo(dlPath) { UseShellExecute = true });
+            }
+            else if (!string.IsNullOrWhiteSpace(result.ReleaseUrl))
+            {
+                Process.Start(new ProcessStartInfo(result.ReleaseUrl) { UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            TxtUpdateStatus.Foreground = BrushIncompat;
+            TxtUpdateStatus.Text = $"⚠️ Error comprobando actualización: {ex.Message}";
+        }
+        finally
+        {
+            BtnCheckUpdates.IsEnabled = true;
+        }
+    }
+
     private CloudSourceMode GetSelectedCloudMode() => CmbCloudSource.SelectedIndex switch
     {
-        1 => CloudSourceMode.HuggingFaceOnly,
-        2 => CloudSourceMode.Both,
-        _ => CloudSourceMode.AutoSoeyiWithHfFallback
+        1 => CloudSourceMode.AutoSoeyiWithHfFallback,
+        2 => CloudSourceMode.HuggingFaceOnly,
+        _ => CloudSourceMode.Both
     };
 
     private async Task LoadCloudCatalogAsync()
@@ -849,40 +1247,26 @@ public partial class MainWindow : Window
         if (ct.IsCancellationRequested) return;
 
         _allCloudItems.Clear();
+        string liveTag = LocalizationService.T("Str_MetaLiveTag");
+        string artTag = LocalizationService.T("Str_MetaArtTag");
         foreach (var item in result.Items)
         {
             var (badge, _, brush) = GetOrientationMeta(item.Orientation);
             string resLabel = item.Width > 0 && item.Height > 0 ? $"{item.Width}×{item.Height}" : item.Resolution;
+            string kindTag = item.HasLiveSensors ? liveTag : artTag;
             _allCloudItems.Add(new CloudItemVm
             {
                 Model = item,
                 OrientationBadge = badge,
                 OrientationBrush = brush,
-                MetaText = $"{resLabel} • {item.Format}",
+                MetaText = $"{resLabel} • {item.Format} • {kindTag}",
                 ActionText = item.IsDownloaded ? LocalizationService.T("Str_ApplyNow") : LocalizationService.T("Str_DownloadAndApply")
             });
         }
 
         UpdateCloudFilterCounts();
-        var cloudTarget = CmbCloudTargetScreen.SelectedItem as ScreenTargetItem;
-        PopulateResolutionCombo(
-            CmbCloudResolution,
-            _allCloudItems.Select(x => (x.Model.Width, x.Model.Height)),
-            cloudTarget);
-
-        if (cloudTarget is not null &&
-            _allCloudItems.Any(x => ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, cloudTarget.EffectiveWidth, cloudTarget.EffectiveHeight) != ThemeCompatibility.Incompatible))
-        {
-            CloudFilterCompatible.IsChecked = true;
-        }
-        else
-        {
-            CloudFilterAll.IsChecked = true;
-        }
-
         TxtCloudStatus.Text = LocalizationService.Format("Str_ThemesCountFmt", result.ActiveSourceLabel, _allCloudItems.Count);
         ApplyCloudFilter();
-        _ = LoadCloudThumbnailsAsync(_allCloudItems.ToList(), ct);
     }
 
     private void UpdateCloudFilterCounts()
@@ -892,12 +1276,12 @@ public partial class MainWindow : Window
         int horiz = _allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Horizontal);
         int sq = _allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Square);
 
-        var target = CmbCloudTargetScreen.SelectedItem as ScreenTargetItem;
+        var target = GetSelectedTargetScreen();
         int compat = target is null ? 0 : _allCloudItems.Count(x =>
             ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
 
+        ChkCloudOnlyCompatible.Content = LocalizationService.Format("Str_OnlyCompatibleFmt", compat);
         CloudFilterAll.Content = LocalizationService.Format("Str_FilterAllFmt", total);
-        CloudFilterCompatible.Content = LocalizationService.Format("Str_FilterCompatFmt", compat);
         CloudFilterVertical.Content = LocalizationService.Format("Str_FilterVertFmt", vert);
         CloudFilterHorizontal.Content = LocalizationService.Format("Str_FilterHorizFmt", horiz);
         CloudFilterSquare.Content = LocalizationService.Format("Str_FilterSquareFmt", sq);
@@ -906,12 +1290,12 @@ public partial class MainWindow : Window
     private async Task LoadCloudThumbnailsAsync(List<CloudItemVm> items, CancellationToken ct)
     {
         using var sem = new SemaphoreSlim(6);
-        var tasks = items.Select(async vm =>
+        var tasks = items.Where(vm => vm.ThumbnailImage is null).Select(async vm =>
         {
             await sem.WaitAsync(ct).ConfigureAwait(false);
             try
             {
-                if (ct.IsCancellationRequested) return;
+                if (ct.IsCancellationRequested || vm.ThumbnailImage is not null) return;
                 string? localThumb = await _cloudService.GetOrDownloadThumbnailAsync(vm.Model, ct).ConfigureAwait(false);
                 if (localThumb is null || ct.IsCancellationRequested) return;
 
@@ -979,20 +1363,94 @@ public partial class MainWindow : Window
     {
         if (CloudList is null) return;
         string q = (TxtCloudSearch.Text ?? string.Empty).Trim();
-        var target = CmbCloudTargetScreen.SelectedItem as ScreenTargetItem;
+        TxtCloudSearchWatermark.Visibility = string.IsNullOrEmpty(q) ? Visibility.Visible : Visibility.Collapsed;
+
+        var target = GetSelectedTargetScreen();
+        bool onlyCompat = ChkCloudOnlyCompatible.IsChecked == true && target is not null;
+        CloudExtraOrientPanel.Visibility = onlyCompat ? Visibility.Collapsed : Visibility.Visible;
+
+        var resSource = onlyCompat
+            ? _allCloudItems.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target!.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible)
+            : _allCloudItems;
+
+        _isRefreshingUi = true;
+        try
+        {
+            PopulateResolutionCombo(
+                CmbCloudResolution,
+                resSource.Select(x => (x.Model.Width, x.Model.Height)),
+                target);
+        }
+        finally
+        {
+            _isRefreshingUi = false;
+        }
+
         string resKey = (CmbCloudResolution.SelectedItem as ResolutionFilterItem)?.Key ?? "ALL";
 
         foreach (var item in _allCloudItems)
         {
-            bool exact = target is not null &&
-                         ThemeLibraryScanner.EvaluateCompatibility(item.Model.Width, item.Model.Height, target.EffectiveWidth, target.EffectiveHeight) == ThemeCompatibility.Exact;
-            item.ExactVisibility = exact ? Visibility.Visible : Visibility.Collapsed;
+            bool isDownloaded = item.Model.IsDownloaded || File.Exists(item.Model.LocalFilePath);
+            var compat = target is null
+                ? ThemeCompatibility.Incompatible
+                : ThemeLibraryScanner.EvaluateCompatibility(item.Model.Width, item.Model.Height, target.EffectiveWidth, target.EffectiveHeight);
+
+            if (target is null)
+            {
+                item.CompatBadgeVisibility = Visibility.Collapsed;
+                item.CardOpacity = 1.0;
+                item.CanClick = !isDownloaded;
+                item.ActionText = isDownloaded ? LocalizationService.T("Str_DownloadedIncompat") : LocalizationService.T("Str_DownloadOnly");
+                item.ActionToolTip = LocalizationService.T("Str_NoScreenBanner");
+            }
+            else if (compat == ThemeCompatibility.Exact)
+            {
+                item.CompatBadgeText = LocalizationService.T("Str_BadgeExact");
+                item.CompatBadgeBrush = BrushExact;
+                item.CompatBadgeVisibility = Visibility.Visible;
+                item.CardOpacity = 1.0;
+                item.CanClick = true;
+                item.ActionText = isDownloaded
+                    ? LocalizationService.Format("Str_ApplyToScreenFmt", target.Index)
+                    : LocalizationService.T("Str_DownloadAndApply");
+                item.ActionToolTip = null;
+            }
+            else if (compat == ThemeCompatibility.Proportional)
+            {
+                item.CompatBadgeText = LocalizationService.T("Str_BadgeAdaptable");
+                item.CompatBadgeBrush = BrushHorizontal;
+                item.CompatBadgeVisibility = Visibility.Visible;
+                item.CardOpacity = 1.0;
+                item.CanClick = true;
+                item.ActionText = isDownloaded
+                    ? LocalizationService.Format("Str_ApplyToScreenFmt", target.Index)
+                    : LocalizationService.T("Str_DownloadAndApply");
+                item.ActionToolTip = null;
+            }
+            else
+            {
+                item.CompatBadgeText = LocalizationService.T("Str_BadgeOtherOri");
+                item.CompatBadgeBrush = BrushIncompat;
+                item.CompatBadgeVisibility = Visibility.Visible;
+                item.CardOpacity = 0.78;
+                item.CanClick = true;
+                item.ActionText = isDownloaded
+                    ? LocalizationService.Format("Str_ApplyToScreenFmt", target.Index)
+                    : LocalizationService.T("Str_DownloadAndApply");
+                string themeRes = item.Model.Width > 0 && item.Model.Height > 0 ? $"{item.Model.Width}×{item.Model.Height}" : "Auto";
+                item.ActionToolTip = LocalizationService.Format(
+                    "Str_IncompatTooltipFmt",
+                    FormatOrientationName(item.Model.Orientation),
+                    themeRes,
+                    $"{target.HardwareClass} {target.Index}",
+                    $"{target.EffectiveWidth}×{target.EffectiveHeight}");
+            }
         }
 
         IEnumerable<CloudItemVm> seq = _allCloudItems;
-        if (CloudFilterCompatible.IsChecked == true && target is not null)
+        if (onlyCompat)
         {
-            seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
+            seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target!.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
         }
         else if (CloudFilterVertical.IsChecked == true)
             seq = seq.Where(x => x.Model.Orientation == ThemeOrientation.Vertical);
@@ -1005,20 +1463,37 @@ public partial class MainWindow : Window
             seq = seq.Where(x => $"{x.Model.Width}x{x.Model.Height}" == resKey);
 
         if (!string.IsNullOrEmpty(q))
-            seq = seq.Where(x => x.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || x.MetaText.Contains(q, StringComparison.OrdinalIgnoreCase));
+            seq = seq.Where(x => x.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || x.MetaText.Contains(q, StringComparison.OrdinalIgnoreCase) || x.Source.Contains(q, StringComparison.OrdinalIgnoreCase));
 
         if (target is not null)
         {
             seq = seq
                 .OrderByDescending(x => (int)ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight))
+                .ThenByDescending(x => x.Model.HasLiveSensors)
                 .ThenBy(x => AspectDelta(x.Model.Width, x.Model.Height, target))
                 .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
         }
 
-        CloudList.ItemsSource = seq.ToList();
+        var visible = seq.ToList();
+        CloudList.ItemsSource = visible;
+
+        if (_allCloudItems.Count > 0)
+        {
+            _cloudThumbCts?.Cancel();
+            _cloudThumbCts?.Dispose();
+            _cloudThumbCts = CancellationTokenSource.CreateLinkedTokenSource(_cloudCts?.Token ?? CancellationToken.None);
+
+            var visibleSet = visible.ToHashSet();
+            var prioritized = visible.Concat(_allCloudItems.Where(x => !visibleSet.Contains(x))).ToList();
+            _ = LoadCloudThumbnailsAsync(prioritized, _cloudThumbCts.Token);
+        }
     }
 
     private void OnCloudSearchChanged(object sender, TextChangedEventArgs e) => ApplyCloudFilter();
+    private void OnCloudOnlyCompatibleChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_isInitializing && !_isRefreshingUi) ApplyCloudFilter();
+    }
     private void OnCloudSourceChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_isInitializing && NavCloud.IsChecked == true)
@@ -1032,14 +1507,6 @@ public partial class MainWindow : Window
     {
         if (!_isInitializing && !_isRefreshingUi) ApplyCloudFilter();
     }
-    private void OnCloudTargetScreenChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (!_isInitializing && !_isRefreshingUi)
-        {
-            UpdateCloudFilterCounts();
-            ApplyCloudFilter();
-        }
-    }
     private void OnReloadCloudClick(object sender, RoutedEventArgs e) => _ = LoadCloudCatalogAsync();
 
     private async void OnDownloadAndApplyCloudClick(object sender, RoutedEventArgs e)
@@ -1047,10 +1514,30 @@ public partial class MainWindow : Window
         if (sender is not System.Windows.Controls.Button btn || btn.Tag is not CloudItemVm vm)
             return;
 
-        if (CmbCloudTargetScreen.SelectedItem is not ScreenTargetItem target)
+        var target = GetSelectedTargetScreen();
+        if (target is null)
         {
-            System.Windows.MessageBox.Show("No hay ninguna pantalla USB conectada.", "FoxuMarsDisplay", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show(LocalizationService.T("Str_NoScreenBanner"), "FoxuMarsDisplay", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
+        }
+
+        if (ThemeLibraryScanner.EvaluateCompatibility(vm.Model.Width, vm.Model.Height, target.EffectiveWidth, target.EffectiveHeight) == ThemeCompatibility.Incompatible)
+        {
+            string msg = LocalizationService.Format(
+                "Str_CrossOriConfirmMsgFmt",
+                FormatOrientationName(vm.Model.Orientation),
+                vm.Model.Width > 0 && vm.Model.Height > 0 ? $"{vm.Model.Width}×{vm.Model.Height}" : "Auto",
+                $"{target.HardwareClass} {target.Index}",
+                FormatOrientationName(target.EffectiveOrientation),
+                $"{target.EffectiveWidth}×{target.EffectiveHeight}");
+            var confirm = System.Windows.MessageBox.Show(
+                msg,
+                LocalizationService.T("Str_ManualIncompatTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question,
+                MessageBoxResult.Yes);
+            if (confirm != MessageBoxResult.Yes)
+                return;
         }
 
         vm.CanClick = false;
@@ -1063,7 +1550,7 @@ public partial class MainWindow : Window
                 localPath = await _cloudService.DownloadThemeAsync(vm.Model, progress);
             }
 
-            vm.ActionText = LocalizationService.T("Str_ApplyNow");
+            vm.ActionText = LocalizationService.Format("Str_ApplyToScreenFmt", target.Index);
             _host.ApplyTheme(target.SerialNumber, localPath);
             LoadGallery();
             NavScreens.IsChecked = true;

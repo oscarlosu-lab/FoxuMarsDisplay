@@ -24,7 +24,8 @@ public sealed record ScreenRuntimeStatus(
     long KeepAlivesSent,
     long BusyDrops,
     long SendErrors,
-    int HardwareRotationOffset = 0);
+    int HardwareRotationOffset = 0,
+    ThemeScaleMode ScaleMode = ThemeScaleMode.Auto);
 
 /// <summary>
 /// Central orchestrator for USB LCD displays: manages device attach/detach,
@@ -51,6 +52,8 @@ public sealed class DisplayHost : IDisposable
         public long LastSendMs;
         public long LastSlideshowSwitchMs;
         public int SlideshowIndex;
+        public string? ActiveOverrideThemePath;
+        public string? NormalThemePath;
         public bool BlackSent;
         public readonly object SyncRoot = new();
 
@@ -183,7 +186,8 @@ public sealed class DisplayHost : IDisposable
                 Interlocked.Read(ref s.KeepAlivesSent),
                 Interlocked.Read(ref s.BusyDrops),
                 Interlocked.Read(ref s.SendErrors),
-                s.Renderer?.HardwareRotationOffset ?? ResolveHardwareOffset(s.Device, s.Profile)));
+                s.Renderer?.HardwareRotationOffset ?? ResolveHardwareOffset(s.Device, s.Profile),
+                s.Profile.ScaleMode));
         }
         return list;
     }
@@ -210,7 +214,8 @@ public sealed class DisplayHost : IDisposable
                 session.Profile.Brightness,
                 session.Profile.Rotation,
                 _customCacheDir,
-                ResolveHardwareOffset(session.Device, session.Profile));
+                ResolveHardwareOffset(session.Device, session.Profile),
+                session.Profile.ScaleMode);
             session.BlackSent = false;
             session.LastSendMs = 0; // force immediate send
         }
@@ -226,11 +231,12 @@ public sealed class DisplayHost : IDisposable
         if (session is null) return false;
 
         int clamped = Math.Clamp(brightness, 0, 100);
+        bool hwOk = !_dryRun && _backend.TrySetHardwareBrightness(session.Device.Handle, clamped);
         lock (session.SyncRoot)
         {
             session.Profile.Brightness = clamped;
             if (session.Renderer is not null)
-                session.Renderer.Brightness = clamped;
+                session.Renderer.Brightness = hwOk ? 100 : clamped;
             session.LastSendMs = 0;
         }
         SaveConfig();
@@ -248,6 +254,22 @@ public sealed class DisplayHost : IDisposable
         {
             session.Profile.Rotation = norm;
             session.Renderer?.SetRotation(norm);
+            session.LastSendMs = 0;
+        }
+        SaveConfig();
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public bool SetScaleMode(string serialNumber, ThemeScaleMode mode)
+    {
+        var session = FindSession(serialNumber);
+        if (session is null) return false;
+
+        lock (session.SyncRoot)
+        {
+            session.Profile.ScaleMode = mode;
+            session.Renderer?.SetScaleMode(mode);
             session.LastSendMs = 0;
         }
         SaveConfig();
@@ -350,7 +372,8 @@ public sealed class DisplayHost : IDisposable
             profile.Brightness,
             profile.Rotation,
             _customCacheDir,
-            hwOffset);
+            hwOffset,
+            profile.ScaleMode);
 
         _sessions[device.Handle] = session;
         if (configMigrated)
@@ -404,12 +427,87 @@ public sealed class DisplayHost : IDisposable
         }
     }
 
+    public static IReadOnlyList<UsbDisplayPnpStatus> GetConnectedUsbDiagnostics() =>
+        UsbRecoveryHelper.EnumerateDisplayDevices();
+
     private void ProcessScreenTick(ScreenSession session, SensorSnapshot snapshot, long nowMs)
     {
         lock (session.SyncRoot)
         {
             var renderer = session.Renderer;
             if (renderer is null) return;
+
+            // Handle auto-game / idle screensaver override if configured
+            string? desiredOverride = null;
+            if (session.Profile.AutoSwitchOnGame && !string.IsNullOrWhiteSpace(session.Profile.GameModeThemePath) && File.Exists(session.Profile.GameModeThemePath))
+            {
+                bool gameActive = _isFullscreenPaused;
+                if (!gameActive && session.Profile.GameProcessNames.Count > 0)
+                {
+                    string fg = IdleDetector.GetForegroundProcessName();
+                    if (!string.IsNullOrEmpty(fg))
+                        gameActive = session.Profile.GameProcessNames.Any(g => g.Equals(fg, StringComparison.OrdinalIgnoreCase));
+                }
+                if (gameActive)
+                    desiredOverride = session.Profile.GameModeThemePath;
+            }
+            if (desiredOverride is null && session.Profile.IdleTimeoutSec > 0 &&
+                !string.IsNullOrWhiteSpace(session.Profile.IdleScreensaverThemePath) &&
+                File.Exists(session.Profile.IdleScreensaverThemePath) &&
+                IdleDetector.GetIdleTime().TotalSeconds >= session.Profile.IdleTimeoutSec)
+            {
+                desiredOverride = session.Profile.IdleScreensaverThemePath;
+            }
+
+            if (!string.Equals(desiredOverride, session.ActiveOverrideThemePath, StringComparison.OrdinalIgnoreCase))
+            {
+                if (desiredOverride != null)
+                {
+                    session.NormalThemePath ??= session.Profile.ThemePath;
+                    var ovTheme = UnifiedThemeLoader.Load(desiredOverride);
+                    if (ovTheme != null)
+                    {
+                        renderer.Dispose();
+                        session.Theme = ovTheme;
+                        renderer = new SkiaThemeRenderer(
+                            ovTheme,
+                            session.Device.NativeWidth,
+                            session.Device.NativeHeight,
+                            _targetFps,
+                            session.Profile.Brightness,
+                            session.Profile.Rotation,
+                            _customCacheDir,
+                            ResolveHardwareOffset(session.Device, session.Profile),
+                            session.Profile.ScaleMode);
+                        session.Renderer = renderer;
+                        session.ActiveOverrideThemePath = desiredOverride;
+                        session.LastSendMs = 0;
+                    }
+                }
+                else
+                {
+                    string restorePath = session.NormalThemePath ?? session.Profile.ThemePath;
+                    var normTheme = !string.IsNullOrWhiteSpace(restorePath) && File.Exists(restorePath)
+                        ? UnifiedThemeLoader.Load(restorePath, session.Profile.SchemeJsonPath)
+                        : UnifiedThemeLoader.CreateBuiltInDefaultTheme(session.Device.NativeWidth, session.Device.NativeHeight);
+                    renderer.Dispose();
+                    session.Theme = normTheme;
+                    renderer = new SkiaThemeRenderer(
+                        normTheme,
+                        session.Device.NativeWidth,
+                        session.Device.NativeHeight,
+                        _targetFps,
+                        session.Profile.Brightness,
+                        session.Profile.Rotation,
+                        _customCacheDir,
+                        ResolveHardwareOffset(session.Device, session.Profile),
+                        session.Profile.ScaleMode);
+                    session.Renderer = renderer;
+                    session.ActiveOverrideThemePath = null;
+                    session.NormalThemePath = null;
+                    session.LastSendMs = 0;
+                }
+            }
 
             if (!session.Profile.IsEnabled)
             {

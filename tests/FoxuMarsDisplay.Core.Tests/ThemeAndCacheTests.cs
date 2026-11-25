@@ -66,26 +66,109 @@ public sealed class ThemeAndCacheTests
         Directory.CreateDirectory(dir);
         try
         {
+            using (var bmp = new SKBitmap(480, 1920, SKColorType.Bgra8888, SKAlphaType.Premul))
+            {
+                bmp.Erase(new SKColor(18, 22, 34, 255));
+                using var img = SKImage.FromBitmap(bmp);
+                using var data = img.Encode(SKEncodedImageFormat.Png, 90);
+                File.WriteAllBytes(Path.Combine(dir, "background.png"), data.ToArray());
+            }
+
             File.WriteAllText(Path.Combine(dir, "theme.yaml"), """
                 display:
-                  DISPLAY_WIDTH: 360
-                  DISPLAY_HEIGHT: 960
+                  DISPLAY_SIZE: 8.8"
+                  DISPLAY_ORIENTATION: landscape
+                static_images:
+                  BACKGROUND:
+                    PATH: background.png
+                    X: 0
+                    Y: 0
+                    WIDTH: 480
+                    HEIGHT: 1920
+                static_text:
+                  CPU:
+                    TEXT: CPU
+                    X: 344
+                    Y: 1273
+                    FONT_SIZE: 24
+                    FONT_COLOR: 0, 0, 0
+                    BACKGROUND_IMAGE: background.png
                 STATS:
                   CPU:
+                    PERCENTAGE:
+                      TEXT:
+                        SHOW: True
+                        SHOW_UNIT: False
+                        X: 326
+                        Y: 1655
+                        WIDTH: 100
+                        HEIGHT: 44
+                        ANCHOR: mm
+                        FONT_SIZE: 40
+                        FONT_COLOR: 255, 255, 255
+                        BACKGROUND_IMAGE: background.png
+                      GRAPH:
+                        SHOW: True
+                        X: 160
+                        Y: 1270
+                        WIDTH: 174
+                        HEIGHT: 24
+                        MIN_VALUE: 0
+                        MAX_VALUE: 100
+                        BAR_COLOR: 0, 0, 0
+                        BACKGROUND_COLOR: 255, 255, 255
                     TEMPERATURE:
                       TEXT:
-                        SHOW: true
-                        X: 50
-                        Y: 100
-                        FONT_SIZE: 28
+                        SHOW: True
+                        SHOW_UNIT: False
+                        X: 326
+                        Y: 1597
+                        WIDTH: 100
+                        HEIGHT: 44
+                        ANCHOR: mm
+                        FONT_SIZE: 40
                         FONT_COLOR: 255, 255, 255
+                        BACKGROUND_IMAGE: background.png
+                  MEMORY:
+                    VIRTUAL:
+                      USED:
+                        SHOW: True
+                        SHOW_UNIT: True
+                        X: 163
+                        Y: 1435
+                        FONT_SIZE: 30
+                        FONT_COLOR: 255, 255, 255
+                        BACKGROUND_IMAGE: background.png
+                      PERCENT_TEXT:
+                        SHOW: True
+                        SHOW_UNIT: True
+                        X: 145
+                        Y: 1499
+                        FONT_SIZE: 30
+                        FONT_COLOR: 255, 255, 255
+                        BACKGROUND_IMAGE: background.png
                 """);
 
             var theme = UnifiedThemeLoader.Load(dir);
             Assert.NotNull(theme);
-            Assert.Equal(360f, theme!.CanvasWidth);
-            Assert.Equal(960f, theme.CanvasHeight);
-            Assert.True(theme.TextWidgets.Count >= 1);
+            Assert.Equal(480f, theme!.CanvasWidth);
+            Assert.Equal(1920f, theme.CanvasHeight);
+            Assert.Equal(0, theme.DisplayDirection);
+            Assert.Single(theme.ImageLayers);
+            Assert.Equal(5, theme.TextWidgets.Count);
+            Assert.Single(theme.BarWidgets);
+            Assert.True(theme.HasLiveSensors);
+            Assert.Equal(string.Empty, theme.TextWidgets.First(t => t.SensorKey == "CpuUsage").Unit);
+
+            using var renderer = new SkiaThemeRenderer(theme, 360, 960, scaleModeOverride: ThemeScaleMode.Fit);
+            var snap1 = new SensorSnapshot { CpuTemp = 50f, CpuUsage = 20f, MemoryUsedGb = 8.5, MemoryUsagePct = 26f, Now = DateTime.Now };
+            Assert.True(renderer.RenderIfDirty(snap1, 100));
+            var snap2 = new SensorSnapshot { CpuTemp = 79f, CpuUsage = 92f, MemoryUsedGb = 24.0, MemoryUsagePct = 75f, Now = DateTime.Now };
+            Assert.True(renderer.RenderIfDirty(snap2, 200));
+
+            renderer.SetScaleMode(ThemeScaleMode.Stretch);
+            Assert.Equal(ThemeScaleMode.Stretch, renderer.ScaleMode);
+            Assert.True(renderer.RenderIfDirty(snap2, 300));
         }
         finally
         {
@@ -114,17 +197,51 @@ public sealed class ThemeAndCacheTests
         Assert.Equal(ThemeFormFactor.HorizontalStrip, ThemeLibraryScanner.ClassifyFormFactor(1920, 462));
         Assert.Equal(ThemeFormFactor.Square, ThemeLibraryScanner.ClassifyFormFactor(480, 480));
 
-        // Compatibility checks
+        // Compatibility checks — universal same-orientation + near-square AIO compatibility
         Assert.Equal(ThemeCompatibility.Exact, ThemeLibraryScanner.EvaluateCompatibility(360, 960, 360, 960));
         Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(320, 960, 360, 960));
-        Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(240, 320, 360, 960));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(480, 1920, 360, 960)); // Cyberpunk 2077 Vertical
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(320, 1480, 360, 960));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(240, 320, 360, 960));
+        Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(1920, 480, 360, 960));
         Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(0, 0, 360, 960));
+
+        // 320x240 AIO accepts Horizontal & Square (e.g. ROGCode 480x480), rejects Vertical
+        Assert.Equal(ThemeCompatibility.Exact, ThemeLibraryScanner.EvaluateCompatibility(320, 240, 320, 240));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(480, 320, 320, 240));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(480, 480, 320, 240));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(1280, 720, 320, 240));
+        foreach (var (tw, th) in new[] { (240, 320), (360, 960), (480, 1920) })
+            Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(tw, th, 320, 240));
+
+        // 240x320 AIO accepts Vertical & Square (e.g. ROGCode 480x480), rejects Horizontal
+        Assert.Equal(ThemeCompatibility.Exact, ThemeLibraryScanner.EvaluateCompatibility(240, 320, 240, 320));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(320, 480, 240, 320));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(480, 480, 240, 320));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(720, 1280, 240, 320));
+        foreach (var (tw, th) in new[] { (320, 240), (800, 480) })
+            Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(tw, th, 240, 320));
+
+        // 480x480 Square AIO accepts Square & compact near-square AIO (240x320, 320x240)
+        Assert.Equal(ThemeCompatibility.Exact, ThemeLibraryScanner.EvaluateCompatibility(480, 480, 480, 480));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(240, 320, 480, 480));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(320, 240, 480, 480));
+        foreach (var (tw, th) in new[] { (360, 960), (1280, 720) })
+            Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(tw, th, 480, 480));
+
+        // Friendly TURZX name formatting
+        Assert.Equal("TURZX #1", ThemeLibraryScanner.FormatFriendlyThemeName("TURZX_1_7201280", "TURZX"));
+        Assert.Equal("Dragon Ball vertical", ThemeLibraryScanner.FormatFriendlyThemeName("TURZX_Dragon Ball_vertical_800480", "TURZX"));
+        Assert.Equal("AMD", ThemeLibraryScanner.FormatFriendlyThemeName("TURZX_AMD_320960", "TURZX"));
+        Assert.Equal("TURZX #24", ThemeLibraryScanner.FormatFriendlyThemeName("TURZX_24_480480r", "TURZX"));
 
         // Concatenated filename resolution extraction
         Assert.True(ThemeLibraryScanner.TryExtractResolution(null, "TURZX_1_7201280.smtheme", null, out int w1, out int h1));
         Assert.Equal((720, 1280), (w1, h1));
         Assert.True(ThemeLibraryScanner.TryExtractResolution(null, "TURZX_24_480480r.smtheme", null, out int w2, out int h2));
         Assert.Equal((480, 480), (w2, h2));
+        Assert.True(ThemeLibraryScanner.TryExtractResolution(null, "TURZX_AMD_320960.smtheme", null, out int w4, out int h4));
+        Assert.Equal((960, 320), (w4, h4));
         Assert.True(ThemeLibraryScanner.TryExtractResolution(null, "Example_0.96Inch_1.smtheme", null, out int w3, out int h3));
         Assert.Equal((160, 80), (w3, h3));
 
@@ -148,6 +265,32 @@ public sealed class ThemeAndCacheTests
             Assert.Equal(480, found.Height);
             Assert.Equal(ThemeOrientation.Square, found.Orientation);
             Assert.False(string.IsNullOrEmpty(found.ThumbnailPath));
+
+            // InspectThemePath on synthetic .smtheme (both manifest & background fallback)
+            string smPath = Path.Combine(root, "TURZX_Demo_320960.smtheme");
+            using (var zip = System.IO.Compression.ZipFile.Open(smPath, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var mf = zip.CreateEntry("manifest.json");
+                using (var sw = new StreamWriter(mf.Open()))
+                    sw.Write("{\"Resolution\":\"960x320\"}");
+                var prev = zip.CreateEntry("preview.png");
+                using var ps = prev.Open();
+                byte[] pngBytes = File.ReadAllBytes(Path.Combine(themeDir, "back.png"));
+                ps.Write(pngBytes, 0, pngBytes.Length);
+            }
+            var (swW, swH, swOri) = ThemeLibraryScanner.InspectThemePath(smPath);
+            Assert.Equal((960, 320, ThemeOrientation.Horizontal), (swW, swH, swOri));
+
+            string smNoManifest = Path.Combine(root, "CustomNoManifest.smtheme");
+            using (var zip = System.IO.Compression.ZipFile.Open(smNoManifest, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var bg = zip.CreateEntry("background.png");
+                using var bs = bg.Open();
+                byte[] pngBytes = File.ReadAllBytes(Path.Combine(themeDir, "back.png"));
+                bs.Write(pngBytes, 0, pngBytes.Length);
+            }
+            var (nmW, nmH, nmOri) = ThemeLibraryScanner.InspectThemePath(smNoManifest);
+            Assert.Equal((480, 480, ThemeOrientation.Square), (nmW, nmH, nmOri));
         }
         finally
         {
@@ -485,5 +628,181 @@ public sealed class ThemeAndCacheTests
         Assert.Equal("62%", snap.FormatValue("DiskUsage", "%"));
         Assert.Equal("120KB/s", snap.FormatValue("UpNetSpeed", "KB/s"));
         Assert.Equal("840KB/s", snap.FormatValue("DownNetSpeed", "KB/s"));
+    }
+
+    [Fact]
+    public void UnifiedThemeLoader_ParsesAllSoeyiWidgetsAndYamlMemoryFixes()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "FoxuParity_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        string srcDir = Path.Combine(dir, "source");
+        Directory.CreateDirectory(srcDir);
+
+        try
+        {
+            using (var ico = new SKBitmap(24, 24, SKColorType.Bgra8888, SKAlphaType.Premul))
+            {
+                ico.Erase(SKColors.Lime);
+                using var img = SKImage.FromBitmap(ico);
+                using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+                File.WriteAllBytes(Path.Combine(srcDir, "NumLockBool.png"), data.ToArray());
+            }
+
+            File.WriteAllText(Path.Combine(dir, "Setting.txt"), """
+                name:ParityTest
+                width:360
+                height:960
+                BorderLine:x@20,y@40,z@2,maxheight@50,maxwidth@320,CornerRadius@10 10 10 10,Fill@#80161616,BorderThicknes@2,BorderFill@#FFFFFFFF
+                GridLine:x@20,y@110,z@3,maxheight@20,maxwidth@300,maxcount@6,Margin@7,Orientation@Horizontal,Fill@#FF00FFAA,data@CpuUsage
+                RingProgressBar:x@30,y@160,z@4,RingWidth@12,Perimeter@100,MaxValue@100,IndexColor@#FFFF0036,BackColor@#80FFFFFF,data@GpuUsage
+                Text:x@30,y@300,z@5,Title@CPU TEMP,FontSize@22,Foreground@#FFFFFF,data@CPUTemp,unit@°C,TextAlignment@1,IsShowWidth@True,width@260
+                IsEnableItem:x@30,y@360,z@6,width@24,height@24,Source@NumLockBool.png,Endata@NumLockBool
+                AudioVisualizerControl:x@30,y@420,z@7,Width@280,Height@60,BandWidth@8,Color@#FF00FFFF,SeColor@#FFFF00FF
+                SonglyricsControl:x@30,y@500,z@8,width@300,height@40,FontSize@16,FontColor@#FFFFFF
+                SongIcon:x@30,y@560,z@8,width@64,height@64,CornerRadius@12 12 12 12
+                """);
+
+            var theme = UnifiedThemeLoader.Load(dir);
+            Assert.Equal(2, theme.BarWidgets.Count);
+            Assert.True(theme.BarWidgets[0].IsStaticFill);
+            Assert.Equal(10f, theme.BarWidgets[0].CornerRadius);
+            Assert.Equal(2f, theme.BarWidgets[0].BorderThickness);
+            Assert.True(theme.BarWidgets[1].IsSegmented);
+            Assert.Equal(6, theme.BarWidgets[1].SegmentCount);
+            Assert.Equal(7f, theme.BarWidgets[1].SegmentGap);
+            Assert.True(theme.BarWidgets[1].ForceHorizontal);
+
+            Assert.Single(theme.RadialWidgets);
+            Assert.Equal(80f, theme.RadialWidgets[0].Cx);
+            Assert.Equal(210f, theme.RadialWidgets[0].Cy);
+            Assert.Equal(44f, theme.RadialWidgets[0].Radius);
+
+            Assert.Equal(2, theme.TextWidgets.Count);
+            Assert.Equal("CPU TEMP ", theme.TextWidgets[0].Prefix);
+            Assert.Equal(TextAlignMode.Center, theme.TextWidgets[0].Align);
+            Assert.Equal(260f, theme.TextWidgets[0].BoxWidth);
+            Assert.Equal("SongLyric", theme.TextWidgets[1].SensorKey);
+
+            Assert.Single(theme.StatusIcons);
+            Assert.Single(theme.AudioVisualizers);
+            Assert.Single(theme.AlbumArts);
+            Assert.True(theme.HasLiveSensors);
+
+            using var renderer = new SkiaThemeRenderer(theme, 360, 960, customCacheDir: Path.Combine(dir, "cache"));
+            var snapA = new SensorSnapshot
+            {
+                CpuTemp = 45, CpuUsage = 20, GpuUsage = 35, MemoryUsagePct = 52, MemoryUsedGb = 16.4,
+                DiskCUsagePct = 61, DiskDUsagePct = 44, Fan2Rpm = 1200, VolumePct = 75, PingMs = 14,
+                HasWeather = true, WeatherDescription = "Clear", WeatherTempC = 22, WeatherFeelsLikeC = 21,
+                WeatherHumidityPct = 55, WeatherHighC = 24, WeatherLowC = 14,
+                NumLockOn = true, AudioPeak = 0.0f, SongTitle = "Track A", Artist = "Artist A"
+            };
+            var snapB = new SensorSnapshot
+            {
+                CpuTemp = 78, CpuUsage = 85, GpuUsage = 92, MemoryUsagePct = 77, MemoryUsedGb = 24.5,
+                DiskCUsagePct = 61, DiskDUsagePct = 44, Fan2Rpm = 1800, VolumePct = 80, PingMs = 19,
+                HasWeather = true, WeatherDescription = "Rain", WeatherTempC = 18, WeatherFeelsLikeC = 17,
+                WeatherHumidityPct = 80, WeatherHighC = 20, WeatherLowC = 12,
+                NumLockOn = false, AudioPeak = 0.82f, SongTitle = "Track B", Artist = "Artist B"
+            };
+
+            Assert.Equal("52%", snapA.FormatValue("MemoryUseInt", "%"));
+            Assert.Equal("16.4GB", snapA.FormatValue("MemoryUsed", "GB"));
+            Assert.Equal("61%", snapA.FormatValue("DiskCUsed", "%"));
+            Assert.Equal("44%", snapA.FormatValue("DiskDUsed", "%"));
+            Assert.Equal("Clear", snapA.FormatValue("WEATHER_DESCRIPTION", ""));
+            Assert.Equal("21°C", snapA.FormatValue("TEMPERATURE_FELT", "°C"));
+            Assert.True(snapA.GetBoolState("NumLockBool"));
+            Assert.False(snapB.GetBoolState("NumLockBool"));
+
+            Assert.True(renderer.RenderIfDirty(snapA, 100));
+            byte[]? png1 = renderer.CopyPreviewPngBytes(360);
+            Assert.True(renderer.RenderIfDirty(snapB, 500));
+            byte[]? png2 = renderer.CopyPreviewPngBytes(360);
+            Assert.NotNull(png1);
+            Assert.NotNull(png2);
+            Assert.False(png1!.SequenceEqual(png2!));
+
+            // Also verify YAML MEMORY.VIRTUAL / MEMORY.VIRTUAL.USED / GPU.MEMORY / WEATHER mappings
+            string yamlDir = Path.Combine(dir, "yaml");
+            Directory.CreateDirectory(yamlDir);
+            File.WriteAllText(Path.Combine(yamlDir, "theme.yaml"), """
+                display:
+                  DISPLAY_WIDTH: 480
+                  DISPLAY_HEIGHT: 320
+                STATS:
+                  MEMORY:
+                    VIRTUAL:
+                      GRAPH:
+                        SHOW: True
+                        X: 10
+                        Y: 10
+                        WIDTH: 100
+                        HEIGHT: 12
+                      USED:
+                        TEXT:
+                          SHOW: True
+                          X: 10
+                          Y: 30
+                  GPU:
+                    MEMORY:
+                      TEXT:
+                        SHOW: True
+                        X: 10
+                        Y: 60
+                  WEATHER:
+                    WEATHER_DESCRIPTION:
+                      TEXT:
+                        SHOW: True
+                        X: 10
+                        Y: 90
+                """);
+            var yTheme = UnifiedThemeLoader.Load(yamlDir);
+            Assert.Single(yTheme.BarWidgets);
+            Assert.Equal("MemoryUsage", yTheme.BarWidgets[0].SensorKey);
+            Assert.Equal("MemoryUsed", yTheme.TextWidgets[0].SensorKey);
+            Assert.Equal("GB", yTheme.TextWidgets[0].Unit);
+            Assert.Equal("GPUMemoryLoad", yTheme.TextWidgets[1].SensorKey);
+            Assert.Equal("WEATHER_DESCRIPTION", yTheme.TextWidgets[2].SensorKey);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void MediaFoundationVideoDecoder_DecodesRealMp4_WhenEnvVarProvided()
+    {
+        string? mp4Path = Environment.GetEnvironmentVariable("FOXU_TEST_MP4");
+        if (string.IsNullOrWhiteSpace(mp4Path) || !File.Exists(mp4Path))
+            return;
+
+        var frames = new List<(byte[] Bytes, int DurationMs)>();
+        bool ok = MediaFoundationVideoDecoder.TryDecodeToFrames(
+            mp4Path, 180, 480, 0, 0, 180, 480, 10, 15,
+            (bytes, dur) => frames.Add((bytes, dur)));
+
+        Assert.True(ok, MediaFoundationVideoDecoder.LastError ?? "TryDecodeToFrames returned false");
+        Assert.True(frames.Count > 1);
+        using var bmp = SKBitmap.Decode(frames[0].Bytes);
+        Assert.NotNull(bmp);
+        Assert.Equal(180, bmp!.Width);
+        Assert.Equal(480, bmp.Height);
+
+        bool hasNonBlack = false;
+        for (int y = 0; y < bmp.Height && !hasNonBlack; y += 12)
+        {
+            for (int x = 0; x < bmp.Width; x += 12)
+            {
+                var px = bmp.GetPixel(x, y);
+                if (px.Red > 5 || px.Green > 5 || px.Blue > 5)
+                {
+                    hasNonBlack = true;
+                    break;
+                }
+            }
+        }
+        Assert.True(hasNonBlack);
     }
 }

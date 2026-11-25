@@ -31,10 +31,45 @@
 
     <sys:String x:Key="Str_CloudTitle">THEME-STORE</sys:String>
     <sys:String x:Key="Str_Update">🔄 Aktualisieren</sys:String>
-    <sys:String x:Key="Str_SourceAuto">SOEYI Offiziell (Auto + HF)</sys:String>
-    <sys:String x:Key="Str_SourceHF">HuggingFace (SnakeFoxu)</sys:String>
-    <sys:String x:Key="Str_SourceBoth">Beide Quellen (SOEYI + HF)</sys:String>
+    <sys:String x:Key="Str_SourceAuto">SOEYI Offiziell (.photo)</sys:String>
+    <sys:String x:Key="Str_SourceHF">TURZX &amp; Community (.smtheme)</sys:String>
+    <sys:String x:Key="Str_SourceBoth">Alle (SOEYI + TURZX)</sys:String>
+    <sys:String x:Key="Str_StepSelectScreen">1. ZIEL-DISPLAY:</sys:String>
+    <sys:String x:Key="Str_OnlyCompatibleFmt">✅ Nur kompatibel mit diesem Display ({0})</sys:String>
+    <sys:String x:Key="Str_SearchPlaceholder">🔍 Theme suchen...</sys:String>
+    <sys:String x:Key="Str_BadgeCompat">✓ KOMPATIBEL</sys:String>
+    <sys:String x:Key="Str_BadgeAdaptable">✓ ANPASSBAR</sys:String>
+    <sys:String x:Key="Str_BadgeOtherOri">⚠ ANDERE AUSRICHTUNG</sys:String>
+    <sys:String x:Key="Str_BadgeIncompat">⛔ INKOMPATIBEL</sys:String>
+    <sys:String x:Key="Str_ScaleMode">Anpassung:</sys:String>
+    <sys:String x:Key="Str_ScaleAuto">Auto</sys:String>
+    <sys:String x:Key="Str_ScaleFit">Einpassen</sys:String>
+    <sys:String x:Key="Str_ScaleStretch">Vollbild füllen</sys:String>
+    <sys:String x:Key="Str_CrossOriConfirmMsgFmt">Dieses Theme ist {0} ({1}) und Ihr {2} ist {3} ({4}).
+FoxuMarsDisplay skaliert es automatisch.
+
+Auf diesem Display anwenden?</sys:String>
+    <sys:String x:Key="Str_MetaLiveTag">⚡ LIVE</sys:String>
+    <sys:String x:Key="Str_MetaArtTag">🖼️ BILD</sys:String>
+    <sys:String x:Key="Str_ApplyToScreenFmt">▶ Auf Display {0} anwenden</sys:String>
     <sys:String x:Key="Str_DownloadAndApply">⬇ Laden &amp; Anwenden</sys:String>
+    <sys:String x:Key="Str_DownloadOnly">⬇ Nur laden</sys:String>
+    <sys:String x:Key="Str_DownloadedIncompat">✓ Geladen (andere Größe)</sys:String>
+    <sys:String x:Key="Str_IncompatButton">⛔ Größe inkompatibel</sys:String>
+    <sys:String x:Key="Str_IncompatTooltipFmt">Dieses Theme ist {0} ({1}) und passt nicht zu {2} ({3}).</sys:String>
+    <sys:String x:Key="Str_ScreenClassAio">AIO</sys:String>
+    <sys:String x:Key="Str_ScreenClassPanel">Panel</sys:String>
+    <sys:String x:Key="Str_BtnDownloadForScreen">☁️ Themes laden</sys:String>
+    <sys:String x:Key="Str_BtnMyThemesForScreen">🎨 Meine Themes</sys:String>
+    <sys:String x:Key="Str_BtnPickLocalFile">📁 Datei...</sys:String>
+    <sys:String x:Key="Str_NoScreenBanner">USB-Display anschließen für automatische Kompatibilitätsprüfung.</sys:String>
+    <sys:String x:Key="Str_EmptyGalleryCompat">Noch keine kompatiblen heruntergeladenen Themes für dieses Display.</sys:String>
+    <sys:String x:Key="Str_GoToStoreBtn">☁️ Zum Theme-Store</sys:String>
+    <sys:String x:Key="Str_ManualIncompatTitle">Inkompatible Theme-Größe</sys:String>
+    <sys:String x:Key="Str_ManualIncompatMsgFmt">Das gewählte Theme ist {0} ({1}), aber dieses Display ist {2} ({3}).
+Es könnte verzerrt oder mit Balken dargestellt werden.
+
+Trotzdem anwenden?</sys:String>
     <sys:String x:Key="Str_ApplyNow">▶ Jetzt anwenden</sys:String>
     <sys:String x:Key="Str_DownloadingFmt">Lade {0}%</sys:String>
     <sys:String x:Key="Str_Retry">⬇ Wiederholen</sys:String>
@@ -70,6 +105,7 @@
     <sys:String x:Key="Str_AutoStart">Mit Windows im Tray starten (--tray)</sys:String>
     <sys:String x:Key="Str_ClearCache">🧹 .sdac-Cache leeren</sys:String>
     <sys:String x:Key="Str_KillSoeyi">⚡ SOEYI.exe beenden</sys:String>
+    <sys:String x:Key="Str_CheckUpdates">🔄 Nach Updates suchen</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Zum Vergrößern klicken</sys:String>
     <sys:String x:Key="Str_LightboxHint">Klicken oder Esc zum Schließen</sys:String>
