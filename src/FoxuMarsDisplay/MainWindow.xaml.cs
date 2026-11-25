@@ -212,6 +212,7 @@ public partial class MainWindow : Window
     private bool _forceClose;
     private bool _isInitializing = true;
     private bool _isRefreshingUi;
+    private bool _thumbnailsPurged;
 
     public MainWindow(DisplayHost host)
     {
@@ -265,11 +266,61 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
+            TrimVisualMemoryOnHide();
             return;
         }
         _thumbCts?.Cancel();
+        _cloudCts?.Cancel();
         _uiTimer.Stop();
         base.OnClosing(e);
+    }
+
+    public void TrimVisualMemoryOnHide()
+    {
+        if (_thumbnailsPurged) return;
+        _thumbnailsPurged = true;
+
+        _thumbCts?.Cancel();
+        _cloudCts?.Cancel();
+        CloseLightbox();
+
+        foreach (var g in _allGalleryItems)
+            g.ThumbnailImage = null;
+        foreach (var c in _allCloudItems)
+            c.ThumbnailImage = null;
+        foreach (var s in _screenItems)
+            s.PreviewImage = null;
+
+        GC.Collect(1, GCCollectionMode.Optimized, blocking: false);
+    }
+
+    public void RestoreVisualsOnShow()
+    {
+        if (_thumbnailsPurged)
+        {
+            _thumbnailsPurged = false;
+            if (NavGallery.IsChecked == true)
+                RestartGalleryThumbnails();
+            else if (NavCloud.IsChecked == true && _allCloudItems.Count > 0)
+                RestartCloudThumbnails();
+        }
+        RefreshUi();
+    }
+
+    private void RestartGalleryThumbnails()
+    {
+        _thumbCts?.Cancel();
+        _thumbCts?.Dispose();
+        _thumbCts = new CancellationTokenSource();
+        _ = LoadThumbnailsAsync(_allGalleryItems.ToList(), _thumbCts.Token);
+    }
+
+    private void RestartCloudThumbnails()
+    {
+        _cloudCts?.Cancel();
+        _cloudCts?.Dispose();
+        _cloudCts = new CancellationTokenSource();
+        _ = LoadCloudThumbnailsAsync(_allCloudItems.ToList(), _cloudCts.Token);
     }
 
     private void LoadSystemSettings()
@@ -607,8 +658,24 @@ public partial class MainWindow : Window
         PageTelemetry.Visibility = NavTelemetry.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageSystem.Visibility = NavSystem.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
 
-        if (NavCloud.IsChecked == true && !_cloudLoadedOnce)
-            _ = LoadCloudCatalogAsync();
+        if (NavGallery.IsChecked == true && _thumbnailsPurged)
+        {
+            _thumbnailsPurged = false;
+            RestartGalleryThumbnails();
+        }
+
+        if (NavCloud.IsChecked == true)
+        {
+            if (!_cloudLoadedOnce)
+            {
+                _ = LoadCloudCatalogAsync();
+            }
+            else if (_thumbnailsPurged && _allCloudItems.Count > 0)
+            {
+                _thumbnailsPurged = false;
+                RestartCloudThumbnails();
+            }
+        }
     }
 
     private void OnElevateClick(object sender, RoutedEventArgs e)
@@ -616,7 +683,11 @@ public partial class MainWindow : Window
         ((App)System.Windows.Application.Current).RestartElevated();
     }
 
-    private void OnMinimizeClick(object sender, RoutedEventArgs e) => Hide();
+    private void OnMinimizeClick(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        TrimVisualMemoryOnHide();
+    }
     private void OnMaximizeClick(object sender, RoutedEventArgs e) =>
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     private void OnCloseClick(object sender, RoutedEventArgs e) => Close();

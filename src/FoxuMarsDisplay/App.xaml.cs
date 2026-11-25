@@ -132,6 +132,7 @@ public partial class App : System.Windows.Application
             _mainWindow.Show();
         if (_mainWindow.WindowState == WindowState.Minimized)
             _mainWindow.WindowState = WindowState.Normal;
+        _mainWindow.RestoreVisualsOnShow();
         _mainWindow.Activate();
     }
 

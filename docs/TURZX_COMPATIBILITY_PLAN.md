@@ -4,14 +4,14 @@ Este documento define la hoja de ruta técnica para llevar la compatibilidad de 
 
 ---
 
-## Estado Actual en FoxuMarsDisplay
-* **Soportado hoy**:
-  * Carga directa de archivos `.smtheme` (ZIP) y carpetas con `manifest.json` + `theme.yaml` básico (`DISPLAY_WIDTH`, `DISPLAY_HEIGHT`, `STATIC_IMAGES`, `STATS` simples).
-  * Escaneo unificado en galería (`ThemeLibraryScanner`), extracción de `preview.png`, detección de resolución desde `manifest.json` o nombre del archivo (`7201280`, `480480`, `0.96Inch`, etc.) y descarga desde el catálogo HuggingFace.
-* **Limitaciones actuales**:
-  * Muchos temas TURZX oficiales usan jerarquías YAML anidadas (`STATS.CPU.TEMPERATURE.TEXT`, `RADIAL`, `BAR`, `LINE_GRAPH`, `STATIC_TEXT`) que aún no se parsean por completo.
-  * Los temas TURZX están diseñados para resoluciones TURZX (`320×480`, `480×800`, `480×1920`, `720×1280`, `480×480`) y necesitan escalado inteligente cuando se aplican en pantallas Mars Gaming / SOEYI (`240×320`, `360×960`).
-  * No existe todavía backend USB-CDC serie para pantallas físicas TURZX sin chip MacroSilicon/AIC.
+## Estado Actual en FoxuMarsDisplay (`v1.1.0`)
+* **Soportado hoy (Fases 1, 2, 3 y 5 completadas):**
+  * Parser completo `theme.yaml` v2/v3 (`DISPLAY_WIDTH/HEIGHT/ORIENTATION`, `STATIC_IMAGES`, `STATIC_TEXT`, `TEXT` con alineación, `BAR`/`GRAPH`, `RADIAL`, `LINE_GRAPH`, colores RGB por comas y flag `SHOW`).
+  * Escalado inteligente *aspect-preserving* (`ThemeScaleMode.Auto`/`Fit`) con letterbox `#000000` limpio cuando la proporción difiere >22%.
+  * Medidores radiales (`SKCanvas.DrawArc`), gráficas de historial con búfer circular sin asignaciones y sensores extendidos (VRAM clock/GB, fan GPU, disco GB/%, RAM libre).
+  * Escaneo unificado en galería (`ThemeLibraryScanner`), extracción de `.smtheme` y descarga de 271 temas desde el espejo HuggingFace.
+* **Pendiente (`v1.2.0`):**
+  * **Fase 4 (`TurzxSerialBackend`):** backend USB-CDC serie (`COMx`) para pantallas físicas TURZX sin chip MacroSilicon/AIC, además de sprites de dígitos `0..9.png` y agujas rotatorias de paquetes `.theme` binarios oficiales de TURZX Windows.
 
 ---
 

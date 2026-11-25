@@ -68,12 +68,12 @@
 
 - **Zero-allocation SkiaSharp renderer** (BGRA8888) with pre-cropped animated GIF cache and dirty-checking → static themes cost ~0 % CPU.
 - **Multi-screen hot-plug**, per-screen brightness (0–100 %), rotation (0° / 90° / 180° / 270°), on/off and Game Mode auto-pause.
-- **Unified theme support:** SOEYI `Setting.txt` + JSON, `.photo` archives (native extraction, no 7-Zip), TURZX `.smtheme` (basic), PNG sequences, GIFs, static images.
+- **Unified theme support:** SOEYI `Setting.txt` + Type 0/1 JSON, `.photo` archives (native extraction, no 7-Zip), **TURZX `.smtheme` & `theme.yaml` v2/v3** (radial arc gauges, history line graphs, auto aspect-fit scaling), **Theme Maker** (`DefaultLine`, segmented `GridLine`, `DisplayImages`), PNG sequences, GIFs, and static images.
 - **Cloud store:** live catalog from the official SOEYI theme site with automatic HuggingFace fallback, orientation (**Vertical / Horizontal / Square**), resolution and *Compatible with my screen* filters, `★ EXACT` match badge.
 - **Click-to-zoom lightbox** for full-resolution previews.
-- **Hardware sensors:** NVIDIA NVML, LibreHardwareMonitor (PawnIO) with ACPI fallback, network throughput. Optional 1-click admin mode for CPU temperature sensors.
+- **Hardware sensors:** NVIDIA NVML (temp, usage, power, core/VRAM clocks, VRAM GB, fan %), LibreHardwareMonitor (PawnIO) with ACPI fallback, DriveInfo disk usage/free GB, and network throughput. Optional 1-click admin mode for CPU temperature sensors.
 - **5 languages** auto-detected from Windows: Español, English, Français, Deutsch, Português (switchable in *System*).
-- **System tray**, single instance, Named Pipe IPC (`FoxuMarsDisplay_IPC_v1`).
+- **System tray** with automatic thumbnail RAM trim on minimize, single instance, and Named Pipe IPC (`FoxuMarsDisplay_IPC_v1`).
 
 ## Supported Hardware & Resolutions
 

@@ -35,10 +35,14 @@ public sealed class SkiaThemeRenderer : IDisposable
     private readonly Dictionary<string, SKTypeface> _fonts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SKBitmap> _staticImages = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<CachedAnimFrame> _animFrames = [];
+    private readonly List<GraphHistoryBuffer> _graphBuffers = [];
     private SKBitmap? _animScratchBitmap;
 
     private readonly SKPaint _textPaint = new() { IsAntialias = true, SubpixelText = true };
     private readonly SKPaint _barPaint = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
+    private readonly SKPaint _radialPaint = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeCap = SKStrokeCap.Round };
+    private readonly SKPaint _graphPaint = new() { IsAntialias = true, Style = SKPaintStyle.Stroke };
+    private readonly SKPath _graphPath = new();
     private readonly SKPaint _blitPaint = new() { FilterQuality = SKFilterQuality.Medium };
     private SKColorFilter? _brightnessFilter;
     private int _cachedFilterBrightness = 100;
@@ -102,6 +106,39 @@ public sealed class SkiaThemeRenderer : IDisposable
 
         LoadFonts();
         PreloadAssets(logW, logH);
+        InitGraphBuffers();
+    }
+
+    private void InitGraphBuffers()
+    {
+        _graphBuffers.Clear();
+        foreach (var g in _theme.GraphWidgets)
+            _graphBuffers.Add(new GraphHistoryBuffer(Math.Clamp(g.MaxSamples, 10, 180)));
+    }
+
+    private (float Ox, float Oy, float Sx, float Sy) ComputeTransform(int targetW, int targetH)
+    {
+        float cw = Math.Max(1f, _theme.CanvasWidth);
+        float ch = Math.Max(1f, _theme.CanvasHeight);
+        float tw = Math.Max(1f, targetW);
+        float th = Math.Max(1f, targetH);
+
+        float themeAspect = cw / ch;
+        float targetAspect = tw / th;
+        float ratio = Math.Max(themeAspect / targetAspect, targetAspect / themeAspect);
+
+        bool useFit = _theme.ScaleMode == ThemeScaleMode.Fit ||
+                      (_theme.ScaleMode == ThemeScaleMode.Auto && ratio > 1.22f);
+
+        if (useFit)
+        {
+            float scale = Math.Min(tw / cw, th / ch);
+            float ox = (tw - (cw * scale)) * 0.5f;
+            float oy = (th - (ch * scale)) * 0.5f;
+            return (ox, oy, scale, scale);
+        }
+
+        return (0f, 0f, tw / cw, th / ch);
     }
 
     private (int W, int H) GetLogicalDimensions(int rot)
@@ -191,8 +228,7 @@ public sealed class SkiaThemeRenderer : IDisposable
 
     private void PreloadAssets(int targetW, int targetH)
     {
-        float sx = targetW / Math.Max(1f, _theme.CanvasWidth);
-        float sy = targetH / Math.Max(1f, _theme.CanvasHeight);
+        var (ox, oy, sx, sy) = ComputeTransform(targetW, targetH);
 
         foreach (var layer in _theme.ImageLayers)
         {
@@ -200,7 +236,7 @@ public sealed class SkiaThemeRenderer : IDisposable
 
             if (layer.IsGif && _animFrames.Count == 0)
             {
-                PreCropAnimatedGif(layer, targetW, targetH, sx, sy);
+                PreCropAnimatedGif(layer, targetW, targetH, ox, oy, sx, sy);
             }
             else if (!_staticImages.ContainsKey(layer.FilePath))
             {
@@ -229,10 +265,10 @@ public sealed class SkiaThemeRenderer : IDisposable
             PreloadFrameSequence(targetW, targetH);
     }
 
-    private void PreCropAnimatedGif(ImageLayerSpec layer, int targetW, int targetH, float sx, float sy)
+    private void PreCropAnimatedGif(ImageLayerSpec layer, int targetW, int targetH, float ox, float oy, float sx, float sy)
     {
         var fi = new FileInfo(layer.FilePath);
-        string cacheKey = $"{layer.FilePath}|{fi.Length}|{fi.LastWriteTimeUtc.Ticks}|{layer.X}|{layer.Y}|{layer.Width}|{layer.Height}|{targetW}x{targetH}|{_targetFps}";
+        string cacheKey = $"{layer.FilePath}|{fi.Length}|{fi.LastWriteTimeUtc.Ticks}|{layer.X}|{layer.Y}|{layer.Width}|{layer.Height}|{targetW}x{targetH}|{_targetFps}|{ox:F1},{oy:F1}";
         string cachePath = GetSdacCachePath(cacheKey, targetW, targetH);
         LastAnimCachePath = cachePath;
 
@@ -247,8 +283,8 @@ public sealed class SkiaThemeRenderer : IDisposable
         int srcH = codec.Info.Height;
         int count = codec.FrameCount;
 
-        float dstX = layer.X * sx;
-        float dstY = layer.Y * sy;
+        float dstX = ox + layer.X * sx;
+        float dstY = oy + layer.Y * sy;
         float dstW = (layer.Width ?? srcW) * sx;
         float dstH = (layer.Height ?? srcH) * sy;
         var destRect = new SKRect(dstX, dstY, dstX + dstW, dstY + dstH);
@@ -425,8 +461,8 @@ public sealed class SkiaThemeRenderer : IDisposable
         int rot = PhysicalRotation;
         int logW = _logicalBitmap.Width;
         int logH = _logicalBitmap.Height;
-        float sx = logW / Math.Max(1f, _theme.CanvasWidth);
-        float sy = logH / Math.Max(1f, _theme.CanvasHeight);
+        var (ox, oy, sx, sy) = ComputeTransform(logW, logH);
+        float minScale = Math.Min(sx, sy);
 
         _logicalCanvas.Clear(SKColors.Black);
 
@@ -444,7 +480,7 @@ public sealed class SkiaThemeRenderer : IDisposable
             }
 
             if (_staticImages.TryGetValue(layer.FilePath, out var bmp))
-                _logicalCanvas.DrawBitmap(bmp, layer.X * sx, layer.Y * sy);
+                _logicalCanvas.DrawBitmap(bmp, ox + layer.X * sx, oy + layer.Y * sy);
         }
 
         if (!drewAnim && _animFrames.Count > 0)
@@ -452,11 +488,11 @@ public sealed class SkiaThemeRenderer : IDisposable
 
         foreach (var bar in _theme.BarWidgets)
         {
-            float bx = bar.X * sx;
-            float by = bar.Y * sy;
+            float bx = ox + bar.X * sx;
+            float by = oy + bar.Y * sy;
             float bw = bar.MaxWidth * sx;
             float bh = bar.MaxHeight * sy;
-            float rad = bar.CornerRadius * Math.Min(sx, sy);
+            float rad = bar.CornerRadius * minScale;
 
             if (bar.BackColor != SKColor.Empty && bar.BackColor.Alpha > 0)
             {
@@ -465,11 +501,132 @@ public sealed class SkiaThemeRenderer : IDisposable
             }
 
             double val = sensors.GetNumericValue(bar.SensorKey);
-            float ratio = (float)Math.Clamp(val / Math.Max(1.0, bar.MaxNum), 0.0, 1.0);
+            double range = Math.Max(1.0, bar.MaxNum - bar.MinNum);
+            float ratio = (float)Math.Clamp((val - bar.MinNum) / range, 0.0, 1.0);
             if (ratio > 0.001f)
             {
                 _barPaint.Color = bar.FillColor;
-                _logicalCanvas.DrawRoundRect(bx, by, bw * ratio, bh, rad, rad, _barPaint);
+                if (bar.IsSegmented)
+                {
+                    const int segments = 10;
+                    bool vertical = bh > bw;
+                    float gap = Math.Max(1.5f, 2f * minScale);
+                    int active = Math.Max(1, (int)Math.Round(ratio * segments));
+                    if (vertical)
+                    {
+                        float segH = Math.Max(2f, (bh - gap * (segments - 1)) / segments);
+                        for (int s = 0; s < active; s++)
+                        {
+                            float syPos = by + bh - ((s + 1) * segH + s * gap);
+                            _logicalCanvas.DrawRoundRect(bx, syPos, bw, segH, rad, rad, _barPaint);
+                        }
+                    }
+                    else
+                    {
+                        float segW = Math.Max(2f, (bw - gap * (segments - 1)) / segments);
+                        for (int s = 0; s < active; s++)
+                        {
+                            float sxPos = bx + s * (segW + gap);
+                            _logicalCanvas.DrawRoundRect(sxPos, by, segW, bh, rad, rad, _barPaint);
+                        }
+                    }
+                }
+                else if (bh > bw)
+                {
+                    float fillH = bh * ratio;
+                    _logicalCanvas.DrawRoundRect(bx, by + (bh - fillH), bw, fillH, rad, rad, _barPaint);
+                }
+                else
+                {
+                    _logicalCanvas.DrawRoundRect(bx, by, bw * ratio, bh, rad, rad, _barPaint);
+                }
+            }
+        }
+
+        foreach (var radW in _theme.RadialWidgets)
+        {
+            float cx = ox + radW.Cx * sx;
+            float cy = oy + radW.Cy * sy;
+            float r = Math.Max(4f, radW.Radius * minScale);
+            float thick = Math.Max(2f, radW.Thickness * minScale);
+            var rect = new SKRect(cx - r, cy - r, cx + r, cy + r);
+
+            _radialPaint.StrokeWidth = thick;
+            float sweepTotal = radW.EndAngle - radW.StartAngle;
+            if (Math.Abs(sweepTotal) < 1f) sweepTotal = 360f;
+
+            if (radW.BackColor != SKColor.Empty && radW.BackColor.Alpha > 0)
+            {
+                _radialPaint.Color = radW.BackColor;
+                _logicalCanvas.DrawArc(rect, radW.StartAngle, sweepTotal, false, _radialPaint);
+            }
+
+            double val = sensors.GetNumericValue(radW.SensorKey);
+            float ratio = (float)Math.Clamp((val - radW.MinValue) / Math.Max(1.0, radW.MaxValue - radW.MinValue), 0.0, 1.0);
+            if (ratio > 0.001f)
+            {
+                _radialPaint.Color = radW.FillColor;
+                _logicalCanvas.DrawArc(rect, radW.StartAngle, sweepTotal * ratio, false, _radialPaint);
+            }
+
+            if (radW.ShowText)
+            {
+                _textPaint.Typeface = ResolveTypeface(radW.FontFamily);
+                _textPaint.TextSize = Math.Max(8f, radW.FontSize * minScale);
+                _textPaint.TextAlign = SKTextAlign.Center;
+                _textPaint.Color = radW.TextColor;
+                string label = sensors.FormatValue(radW.SensorKey, radW.Unit);
+                float tyCenter = cy - (_textPaint.FontMetrics.Ascent + _textPaint.FontMetrics.Descent) * 0.5f;
+                _logicalCanvas.DrawText(label, cx, tyCenter, _textPaint);
+            }
+        }
+
+        for (int gi = 0; gi < _theme.GraphWidgets.Count && gi < _graphBuffers.Count; gi++)
+        {
+            var g = _theme.GraphWidgets[gi];
+            var buf = _graphBuffers[gi];
+            double val = sensors.GetNumericValue(g.SensorKey);
+            buf.PushIfDue(val, elapsedMs);
+
+            float gx = ox + g.X * sx;
+            float gy = oy + g.Y * sy;
+            float gw = Math.Max(10f, g.Width * sx);
+            float gh = Math.Max(8f, g.Height * sy);
+
+            if (g.BackColor != SKColor.Empty && g.BackColor.Alpha > 0)
+            {
+                _barPaint.Color = g.BackColor;
+                _logicalCanvas.DrawRoundRect(gx, gy, gw, gh, 4f * minScale, 4f * minScale, _barPaint);
+            }
+
+            if (buf.Count >= 1)
+            {
+                double span = Math.Max(1.0, g.MaxValue - g.MinValue);
+                _graphPath.Reset();
+                int n = buf.Count;
+                float stepX = n > 1 ? gw / (n - 1) : gw;
+                for (int i = 0; i < n; i++)
+                {
+                    float norm = (float)Math.Clamp((buf.GetSample(i) - g.MinValue) / span, 0.0, 1.0);
+                    float px = gx + i * stepX;
+                    float py = gy + gh - (norm * (gh - 2f));
+                    if (i == 0) _graphPath.MoveTo(px, py);
+                    else _graphPath.LineTo(px, py);
+                }
+
+                if (g.FillColor != SKColor.Empty && g.FillColor.Alpha > 0 && n > 1)
+                {
+                    using var fillPath = new SKPath(_graphPath);
+                    fillPath.LineTo(gx + (n - 1) * stepX, gy + gh);
+                    fillPath.LineTo(gx, gy + gh);
+                    fillPath.Close();
+                    _barPaint.Color = g.FillColor;
+                    _logicalCanvas.DrawPath(fillPath, _barPaint);
+                }
+
+                _graphPaint.Color = g.LineColor;
+                _graphPaint.StrokeWidth = Math.Max(1f, g.LineThickness * minScale);
+                _logicalCanvas.DrawPath(_graphPath, _graphPaint);
             }
         }
 
@@ -479,13 +636,19 @@ public sealed class SkiaThemeRenderer : IDisposable
                 ? (txt.StaticContent ?? txt.SensorKey)
                 : sensors.FormatValue(txt.SensorKey, txt.Unit);
 
-            _textPaint.Typeface = ResolveTypeface(txt.FontFamily);
+            _textPaint.Typeface = ResolveTypeface(txt.FontFamily, txt.IsBold);
             _textPaint.TextSize = Math.Max(6f, txt.FontSize * sy);
+            _textPaint.TextAlign = txt.Align switch
+            {
+                TextAlignMode.Center => SKTextAlign.Center,
+                TextAlignMode.Right => SKTextAlign.Right,
+                _ => SKTextAlign.Left
+            };
             byte alpha = (byte)Math.Clamp(Math.Round(txt.Color.Alpha * txt.Opacity), 0, 255);
             _textPaint.Color = txt.Color.WithAlpha(alpha);
 
-            float tx = txt.X * sx;
-            float ty = txt.Y * sy - _textPaint.FontMetrics.Ascent;
+            float tx = ox + txt.X * sx;
+            float ty = oy + txt.Y * sy - _textPaint.FontMetrics.Ascent;
             _logicalCanvas.DrawText(value, tx, ty, _textPaint);
         }
 
@@ -574,6 +737,12 @@ public sealed class SkiaThemeRenderer : IDisposable
         foreach (var bar in _theme.BarWidgets)
             h = FnvAdd(h, (uint)(int)Math.Round(sensors.GetNumericValue(bar.SensorKey) * 10.0));
 
+        foreach (var r in _theme.RadialWidgets)
+            h = FnvAdd(h, (uint)(int)Math.Round(sensors.GetNumericValue(r.SensorKey) * 10.0));
+
+        foreach (var g in _theme.GraphWidgets)
+            h = FnvAdd(h, (uint)(int)Math.Round(sensors.GetNumericValue(g.SensorKey) * 10.0));
+
         return h;
     }
 
@@ -594,7 +763,7 @@ public sealed class SkiaThemeRenderer : IDisposable
         return h * 1099511628211UL;
     }
 
-    private SKTypeface ResolveTypeface(string family)
+    private SKTypeface ResolveTypeface(string family, bool isBold = false)
     {
         if (!string.IsNullOrEmpty(family) && _fonts.TryGetValue(family, out var tf))
             return tf;
@@ -606,7 +775,12 @@ public sealed class SkiaThemeRenderer : IDisposable
                 return kv.Value;
         }
 
-        return _fonts.Values.FirstOrDefault() ?? SKTypeface.Default;
+        if (_fonts.Count > 0)
+            return _fonts.Values.First();
+
+        return isBold
+            ? SKTypeface.FromFamilyName(null, SKFontStyle.Bold) ?? SKTypeface.Default
+            : SKTypeface.Default;
     }
 
     private void UpdateBrightnessFilter()
@@ -644,6 +818,9 @@ public sealed class SkiaThemeRenderer : IDisposable
         _brightnessFilter?.Dispose();
         _textPaint.Dispose();
         _barPaint.Dispose();
+        _radialPaint.Dispose();
+        _graphPaint.Dispose();
+        _graphPath.Dispose();
         _blitPaint.Dispose();
 
         foreach (var bmp in _staticImages.Values) bmp.Dispose();
@@ -656,4 +833,36 @@ public sealed class SkiaThemeRenderer : IDisposable
     }
 
     private sealed record CachedAnimFrame(byte[] WebpBytes, long StartMs, int DurationMs);
+
+    private sealed class GraphHistoryBuffer
+    {
+        private readonly float[] _ring;
+        private int _head;
+        private int _count;
+        private long _lastPushMs = -10000;
+
+        public int Count => _count;
+
+        public GraphHistoryBuffer(int capacity)
+        {
+            _ring = new float[Math.Max(2, capacity)];
+        }
+
+        public void PushIfDue(double value, long elapsedMs)
+        {
+            if (_count > 0 && elapsedMs - _lastPushMs < 1000)
+                return;
+            _lastPushMs = elapsedMs;
+            _ring[_head] = (float)value;
+            _head = (_head + 1) % _ring.Length;
+            if (_count < _ring.Length)
+                _count++;
+        }
+
+        public float GetSample(int index)
+        {
+            int start = _count < _ring.Length ? 0 : _head;
+            return _ring[(start + index) % _ring.Length];
+        }
+    }
 }

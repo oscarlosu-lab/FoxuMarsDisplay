@@ -68,12 +68,12 @@
 
 - **Renderizador SkiaSharp sin asignaciones** (BGRA8888) con caché de GIF animados y detección de cambios → los temas estáticos cuestan ~0 % de CPU.
 - **Multi-pantalla con hot-plug**, brillo por pantalla (0–100 %), rotación (0° / 90° / 180° / 270°), encendido/apagado y pausa automática en modo juego.
-- **Soporte unificado:** `Setting.txt` + JSON de SOEYI, paquetes `.photo` (extracción nativa, sin 7-Zip), `.smtheme` de TURZX (básico), secuencias PNG, GIF e imágenes.
+- **Soporte unificado:** `Setting.txt` + JSON Tipo 0/1 de SOEYI, paquetes `.photo` (extracción nativa, sin 7-Zip), **TURZX `.smtheme` y `theme.yaml` v2/v3** (medidores radiales, gráficas de historial, escalado automático *aspect-fit*), **Theme Maker** (`DefaultLine`, `GridLine` segmentado, `DisplayImages`), secuencias PNG, GIF e imágenes.
 - **Tienda en la nube:** catálogo en vivo del sitio oficial de temas SOEYI con respaldo automático en HuggingFace, filtros de orientación (**Vertical / Horizontal / Cuadrado**), resolución y *Compatible con mi pantalla*, insignia `★ EXACTO`.
 - **Vista previa ampliable** a resolución completa con un clic.
-- **Sensores:** NVIDIA NVML, LibreHardwareMonitor (PawnIO) con respaldo ACPI y tráfico de red. Modo administrador opcional con un clic para la temperatura de CPU.
+- **Sensores:** NVIDIA NVML (temp, uso, consumo, relojes GPU/VRAM, VRAM GB, fan %), LibreHardwareMonitor (PawnIO) con respaldo ACPI, disco (uso/libre GB) y tráfico de red. Modo administrador opcional con un clic para la temperatura de CPU.
 - **5 idiomas** autodetectados desde Windows: Español, English, Français, Deutsch, Português (cambiable en *Sistema*).
-- **Bandeja del sistema**, instancia única e IPC por Named Pipe (`FoxuMarsDisplay_IPC_v1`).
+- **Bandeja del sistema** con liberación automática de RAM de miniaturas al minimizar, instancia única e IPC por Named Pipe (`FoxuMarsDisplay_IPC_v1`).
 
 ## Hardware y resoluciones compatibles
 

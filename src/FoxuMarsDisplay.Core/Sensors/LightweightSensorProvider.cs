@@ -22,6 +22,10 @@ public sealed class LightweightSensorProvider : IDisposable
     private long _prevNetSent;
     private long _prevNetRecv;
     private long _prevNetTickMs;
+    private long _lastDiskTickMs;
+    private double _diskUsagePct;
+    private double _diskUsedGb;
+    private double _diskFreeGb;
     private volatile bool _disposed;
 
     public SensorSnapshot Current => Volatile.Read(ref _current);
@@ -100,7 +104,8 @@ public sealed class LightweightSensorProvider : IDisposable
     {
         double cpuTemp = 0, cpuUsage = 0, cpuFreq = 0, cpuPower = 0, cpuVolt = 0;
         double gpuTemp = 0, gpuUsage = 0, gpuFreq = 0, gpuPower = 0, gpuMemLoad = 0;
-        double memPct = 0, memUsedGb = 0;
+        double gpuMemFreq = 0, gpuMemUsedGb = 0, gpuMemTotalGb = 0, gpuFan = 0;
+        double memPct = 0, memUsedGb = 0, memFreeGb = 0, memTotalGb = 0;
 
         if (_nvmlAvailable && _nvmlDevice != IntPtr.Zero)
         {
@@ -114,8 +119,16 @@ public sealed class LightweightSensorProvider : IDisposable
                     gpuPower = mw / 1000.0;
                 if (NvmlNative.nvmlDeviceGetClockInfo(_nvmlDevice, 0, out uint mhz) == 0)
                     gpuFreq = mhz;
+                if (NvmlNative.nvmlDeviceGetClockInfo(_nvmlDevice, 2, out uint memMhz) == 0)
+                    gpuMemFreq = memMhz;
                 if (NvmlNative.nvmlDeviceGetMemoryInfo(_nvmlDevice, out var mem) == 0 && mem.total > 0)
+                {
                     gpuMemLoad = (mem.used * 100.0) / mem.total;
+                    gpuMemUsedGb = mem.used / (1024.0 * 1024.0 * 1024.0);
+                    gpuMemTotalGb = mem.total / (1024.0 * 1024.0 * 1024.0);
+                }
+                if (NvmlNative.nvmlDeviceGetFanSpeed(_nvmlDevice, out uint fanPct) == 0)
+                    gpuFan = fanPct;
             }
             catch
             {
@@ -216,16 +229,19 @@ public sealed class LightweightSensorProvider : IDisposable
                 cpuTemp = tzTemp;
         }
 
-        if (memPct <= 0)
+        var memStatus = MemoryStatusEx.Query();
+        if (memStatus.dwMemoryLoad > 0)
         {
-            var memStatus = MemoryStatusEx.Query();
-            if (memStatus.dwMemoryLoad > 0)
+            memTotalGb = memStatus.ullTotalPhys / (1024.0 * 1024.0 * 1024.0);
+            memFreeGb = memStatus.ullAvailPhys / (1024.0 * 1024.0 * 1024.0);
+            if (memPct <= 0)
             {
                 memPct = memStatus.dwMemoryLoad;
-                memUsedGb = (memStatus.ullTotalPhys - memStatus.ullAvailPhys) / (1024.0 * 1024.0 * 1024.0);
+                memUsedGb = memTotalGb - memFreeGb;
             }
         }
 
+        SampleDiskInfoIfDue();
         SampleNetworkDelta(out double netUpKbps, out double netDownKbps);
 
         Volatile.Write(ref _current, new SensorSnapshot
@@ -240,8 +256,17 @@ public sealed class LightweightSensorProvider : IDisposable
             GpuFrequencyMhz = gpuFreq,
             GpuPowerW = gpuPower,
             GpuMemoryLoad = gpuMemLoad,
+            GpuMemoryFreqMhz = gpuMemFreq,
+            GpuMemoryUsedGb = gpuMemUsedGb,
+            GpuMemoryTotalGb = gpuMemTotalGb,
+            GpuFanPct = gpuFan,
             MemoryUsagePct = memPct,
             MemoryUsedGb = memUsedGb,
+            MemoryFreeGb = memFreeGb,
+            MemoryTotalGb = memTotalGb,
+            DiskUsagePct = _diskUsagePct,
+            DiskUsedGb = _diskUsedGb,
+            DiskFreeGb = _diskFreeGb,
             NetUpKbps = netUpKbps,
             NetDownKbps = netDownKbps,
             Now = DateTime.Now
@@ -265,6 +290,29 @@ public sealed class LightweightSensorProvider : IDisposable
         if (name.Contains("Package", StringComparison.OrdinalIgnoreCase)) return 1;
         if (name.Contains("Cores", StringComparison.OrdinalIgnoreCase)) return 2;
         return 10;
+    }
+
+    private void SampleDiskInfoIfDue()
+    {
+        long nowMs = Environment.TickCount64;
+        if (_lastDiskTickMs > 0 && nowMs - _lastDiskTickMs < 10_000)
+            return;
+        _lastDiskTickMs = nowMs;
+
+        try
+        {
+            var root = Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\";
+            var di = new DriveInfo(root);
+            if (di.IsReady && di.TotalSize > 0)
+            {
+                double totalGb = di.TotalSize / (1024.0 * 1024.0 * 1024.0);
+                double freeGb = di.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                _diskFreeGb = freeGb;
+                _diskUsedGb = Math.Max(0, totalGb - freeGb);
+                _diskUsagePct = Math.Clamp((_diskUsedGb * 100.0) / totalGb, 0, 100);
+            }
+        }
+        catch { }
     }
 
     private void SampleNetworkDelta(out double upKbps, out double downKbps)
@@ -371,6 +419,9 @@ public sealed class LightweightSensorProvider : IDisposable
 
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
         public static extern int nvmlDeviceGetMemoryInfo(IntPtr device, out NvmlMemory memory);
+
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int nvmlDeviceGetFanSpeed(IntPtr device, out uint speedPct);
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]

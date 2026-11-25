@@ -28,28 +28,26 @@ Every feature or fix passes four mandatory gates before release:
 
 ---
 
-### 🟠 P1 — Native TURZX Theme & USB-Serial Hardware Compatibility
-* **Status:** Planned — Full technical specification in [docs/TURZX_COMPATIBILITY_PLAN.md](docs/TURZX_COMPATIBILITY_PLAN.md)
-* **Goal:** Native support for **TURZX** (Turing Smart Screen) `.smtheme` themes and direct USB-Serial panels without third-party conversion tools.
-* **Phases:**
-  1. **Phase 1 — Full `theme.yaml` v2/v3 Parser:** Support `DISPLAY_ORIENTATION`, `SCREEN_WIDTH/HEIGHT`, `STATIC_TEXT`, `DYNAMIC_TEXT`, `DYNAMIC_IMAGE`, `DYNAMIC_BAR`, `RADIAL_GAUGE`, `GRAPH`, and custom fonts.
-  2. **Phase 2 — Smart Aspect-Ratio Scaler:** Scale `480×1920`, `720×1280`, `480×800`, and `320×480` TURZX layouts cleanly onto `360×960`, `240×320`, and `480×480` panels.
-  3. **Phase 3 — SkiaSharp Gauge & Graph Widgets:** Implement radial arcs, needles, sparkline history graphs, and extended sensor keys (`CPU_FAN`, `GPU_CLOCK`, `RAM_USED_GB`, `DISK_TEMP`).
-  4. **Phase 4 — `TurzxSerialBackend`:** Native `IDisplayBackend` over USB CDC (`System.IO.Ports`) for TURZX Rev A / B / C / E (`3.5"`, `5"`, `8.8"`).
-  5. **Phase 5 — Golden-Frame Test Suite:** Automated pixel-verified regression tests per widget type.
+### ✅ P1 — Native TURZX Theme Compatibility (`v1.1.0`) & USB-Serial Hardware (`v1.2.0`)
+* **Status:** Phases 1, 2, 3 & 5 **Completed in `v1.1.0`** — Full technical specification in [docs/TURZX_COMPATIBILITY_PLAN.md](docs/TURZX_COMPATIBILITY_PLAN.md)
+* **Completed (`v1.1.0`):**
+  1. **Phase 1 — Full `theme.yaml` v2/v3 Parser:** Hierarchical indentation parser supporting `DISPLAY_WIDTH/HEIGHT/ORIENTATION`, `STATIC_IMAGES`, `STATIC_TEXT`, `TEXT` alignment, `BAR`/`GRAPH`, `RADIAL`, `LINE_GRAPH`, `SHOW` flag, and comma RGB colors.
+  2. **Phase 2 — Smart Aspect-Ratio Scaler:** Automatic `Fit` aspect-preserving scaling with clean `#000000` letterbox when aspect ratio differs >22% (e.g., `480×1920` -> `240×320`).
+  3. **Phase 3 — SkiaSharp Gauge, Graph & Extended Sensors:** Radial arc gauges, ring-buffer history line graphs, plus NVML VRAM clock/used/fan and DriveInfo disk usage/free GB sensors.
+  4. **Phase 5 — Automated Tests:** Pixel-verified `SkiaThemeRenderer` & `UnifiedThemeLoader` regression tests.
+* **Pending (`v1.2.0`):**
+  - **Phase 4 — `TurzxSerialBackend`:** Native `IDisplayBackend` over USB CDC (`System.IO.Ports`) for TURZX Rev A / B / C / E (`3.5"`, `5"`, `8.8"`), plus official TURZX Windows `.theme` digit/needle sprites.
 
 ---
 
-### 🟠 P1 — Theme Maker Compatibility & Next-Gen Theme Creator (`SnakeMarsTheme`)
-* **Status:** Active Ecosystem Integration
-* **Goal:** Seamless 100% native compatibility with themes built in **Theme Maker** / [**SnakeMarsTheme**](https://github.com/Snakefoxu/marsmakertheme), plus a unified next-generation creator workflow:
-  1. **Full Native Compatibility with Theme Maker Outputs:**
-     - Parse all Theme Maker / `SnakeMarsTheme` `.photo`, `.smtheme`, `Setting.txt`, and Type 0/1 `.json` schemas (`Text`, `BorderLine`, `Image`, `gif`, `FontFamily`, `CornerRadius`, `Opacity`, `DisplayDirection`).
-     - Guarantee sensor key parity across CPU, GPU, RAM, Disk, Network, Time/Date, Audio, and Weather tokens.
-  2. **Live Editor ↔ Engine Bridge (`FoxuMarsDisplay_IPC_v1`):**
-     - Instant 1-click *Apply & Preview* from Theme Maker directly onto live USB screens via Named Pipe IPC (`apply_theme`, `set_brightness`, `set_rotation`, `get_status`).
-  3. **Next-Generation Integrated Theme Creator:**
-     - WYSIWYG drag-and-drop canvas with snap guides, live telemetry binding, animated GIF/WebP timeline preview, multi-resolution presets (`240×320`, `320×240`, `360×960`, `480×480`, `320×1480`), and 1-click export to `.photo` + `.smtheme`.
+### ✅ P1 — Theme Maker Schema Parity (`v1.1.0`) & Next-Gen Theme Creator (`v1.2.0`)
+* **Status:** Schema & Format Parity **Completed in `v1.1.0`**; Integrated Creator in `v1.2.0`
+* **Completed (`v1.1.0`):**
+  - Full native parsing of Theme Maker / [**SnakeMarsTheme**](https://github.com/Snakefoxu/marsmakertheme) `.photo`, `.smtheme`, `Setting.txt` (`Text`, `BorderLine`, `DefaultLine`, segmented `GridLine`, `DisplayDirection`), and Type 0/1 `.json` (`DisplayTexts` + `DisplayImages`).
+  - Complete `*PU` and extended sensor parity (`CPUTempPU`, `GpuUsagePU`, `GPUMemoryFrequencyPU`, `UpNetSpeed`, `DownNetSpeed`, `DiskUsage`/`DiskFree`, etc.).
+  - Live Editor ↔ Engine Bridge via Named Pipe (`FoxuMarsDisplay_IPC_v1`).
+* **Pending (`v1.2.0`):**
+  - Next-Generation Integrated WYSIWYG Theme Creator (drag-and-drop canvas, live telemetry binding, animated GIF/WebP timeline preview, 1-click `.photo` / `.smtheme` export).
 
 ---
 

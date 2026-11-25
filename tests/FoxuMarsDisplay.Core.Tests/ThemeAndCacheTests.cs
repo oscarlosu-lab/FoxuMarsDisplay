@@ -266,4 +266,224 @@ public sealed class ThemeAndCacheTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Fact]
+    public void UnifiedThemeLoader_ParsesTurzxThemeYamlV2V3_AllWidgetsAndRgbColors()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "FoxuTurzxV3_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "theme.yaml"), """
+                display:
+                  DISPLAY_WIDTH: 480
+                  DISPLAY_HEIGHT: 1920
+                  DISPLAY_ORIENTATION: portrait
+                static_text:
+                  TITLE:
+                    SHOW: true
+                    X: 240
+                    Y: 20
+                    FONT_SIZE: 30
+                    FONT_COLOR: 255, 100, 25
+                    ALIGN: center
+                  HIDDEN_LABEL:
+                    SHOW: false
+                    X: 10
+                    Y: 10
+                    TEXT: Hidden
+                STATS:
+                  CPU:
+                    TEMPERATURE:
+                      TEXT:
+                        SHOW: true
+                        X: 40
+                        Y: 120
+                        FONT_SIZE: 36
+                        FONT_COLOR: 255, 255, 255
+                        UNIT: "°C"
+                    PERCENTAGE:
+                      RADIAL:
+                        SHOW: true
+                        CX: 120
+                        CY: 300
+                        RADIUS: 60
+                        BAR_WIDTH: 14
+                        MIN_VALUE: 0
+                        MAX_VALUE: 100
+                        BAR_COLOR: 255, 31, 75
+                        BACKGROUND_COLOR: 38, 31, 51
+                      BAR:
+                        SHOW: true
+                        X: 40
+                        Y: 420
+                        WIDTH: 300
+                        HEIGHT: 18
+                        BAR_COLOR: 255, 184, 32
+                      LINE_GRAPH:
+                        SHOW: true
+                        X: 40
+                        Y: 500
+                        WIDTH: 400
+                        HEIGHT: 90
+                        LINE_COLOR: 255, 100, 25
+                        AXIS_X_RANGE: 30
+                """);
+
+            // Add static text content on TITLE
+            string yaml = File.ReadAllText(Path.Combine(dir, "theme.yaml"))
+                .Replace("ALIGN: center", "ALIGN: center\n    TEXT: FOXI TURZX");
+            File.WriteAllText(Path.Combine(dir, "theme.yaml"), yaml);
+
+            var theme = UnifiedThemeLoader.Load(dir);
+            Assert.Equal(480f, theme.CanvasWidth);
+            Assert.Equal(1920f, theme.CanvasHeight);
+            Assert.Equal(2, theme.TextWidgets.Count); // TITLE + CPU.TEMP (HIDDEN_LABEL skipped)
+            Assert.Single(theme.RadialWidgets);
+            Assert.Single(theme.BarWidgets);
+            Assert.Single(theme.GraphWidgets);
+            Assert.Equal(TextAlignMode.Center, theme.TextWidgets[0].Align);
+            Assert.Equal(new SKColor(255, 100, 25, 255), theme.TextWidgets[0].Color);
+            Assert.Equal("CpuUsage", theme.RadialWidgets[0].SensorKey);
+            Assert.Equal(30, theme.GraphWidgets[0].MaxSamples);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void UnifiedThemeLoader_ParsesSnakeMarsTheme_GridLineDefaultLineAndType0Json()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "FoxuSmtTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            using (var bmp = new SKBitmap(32, 32, SKColorType.Bgra8888, SKAlphaType.Premul))
+            {
+                bmp.Erase(SKColors.Orange);
+                using var img = SKImage.FromBitmap(bmp);
+                using var data = img.Encode(SKEncodedImageFormat.Png, 90);
+                File.WriteAllBytes(Path.Combine(dir, "badge.png"), data.ToArray());
+            }
+
+            File.WriteAllText(Path.Combine(dir, "Setting.txt"), """
+                name:ThemeMakerPro
+                width:240
+                height:320
+                DisplayDirection:0
+                Text:x@10,y@20,z@1,FontSize@18,Foreground@#FFB820,data@CPUTempPU,unit@°C
+                DefaultLine:x@10,y@60,z@1,maxwidth@180,maxheight@10,Fill@#FF6419,data@GpuUsagePU
+                GridLine:x@10,y@90,z@1,maxwidth@180,maxheight@12,Fill@#FF1F4B,data@MemoryUsagePU
+                """);
+
+            File.WriteAllText(Path.Combine(dir, "ThemeMakerPro.json"), """
+                {
+                  "Type": 0,
+                  "Name": "ThemeMakerPro",
+                  "Width": 240,
+                  "Height": 320,
+                  "DisplayDirection": 0,
+                  "DisplayTexts": [],
+                  "DisplayImages": [
+                    { "ImagePath": "badge.png", "Left": 190, "Top": 10, "Width": 32, "Height": 32, "ZIndex": 2 }
+                  ]
+                }
+                """);
+
+            var theme = UnifiedThemeLoader.Load(dir);
+            Assert.Equal(2, theme.BarWidgets.Count);
+            Assert.False(theme.BarWidgets[0].IsSegmented);
+            Assert.True(theme.BarWidgets[1].IsSegmented);
+            Assert.Contains(theme.ImageLayers, l => Path.GetFileName(l.FilePath) == "badge.png");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SkiaThemeRenderer_RendersRadialGraphGridLineAndAspectFit_Cleanly()
+    {
+        var theme = new DisplayTheme
+        {
+            Name = "TurzxAspect",
+            CanvasWidth = 480f,
+            CanvasHeight = 1920f,
+            ScaleMode = ThemeScaleMode.Auto
+        };
+        theme.RadialWidgets.Add(new RadialWidgetSpec
+        {
+            Cx = 240, Cy = 400, Radius = 140, Thickness = 24,
+            FillColor = new SKColor(255, 100, 25), BackColor = new SKColor(40, 35, 55),
+            SensorKey = "CpuUsage", ShowText = false
+        });
+        theme.BarWidgets.Add(new BarWidgetSpec
+        {
+            X = 60, Y = 800, MaxWidth = 360, MaxHeight = 40,
+            FillColor = new SKColor(255, 31, 75), SensorKey = "GpuUsage", IsSegmented = true
+        });
+        theme.GraphWidgets.Add(new GraphWidgetSpec
+        {
+            X = 60, Y = 1100, Width = 360, Height = 200,
+            LineColor = new SKColor(255, 184, 32), FillColor = new SKColor(255, 184, 32, 90),
+            SensorKey = "MemoryUsage"
+        });
+
+        // Target is 240x320 (480x1920 aspect = 0.25 vs 0.75 => ratio 3.0 > 1.22 => Auto AspectFit letterbox!)
+        using var renderer = new SkiaThemeRenderer(theme, 240, 320);
+        var snap = new SensorSnapshot { CpuUsage = 75, GpuUsage = 80, MemoryUsagePct = 55, Now = DateTime.Now };
+        Assert.True(renderer.RenderIfDirty(snap, 100));
+        // Second sample for line graph
+        snap = new SensorSnapshot { CpuUsage = 76, GpuUsage = 80, MemoryUsagePct = 65, Now = DateTime.Now };
+        Assert.True(renderer.RenderIfDirty(snap, 1200));
+
+        // Left letterbox edge at x=5, y=160 must remain pure black
+        Assert.Equal(new SKColor(0, 0, 0, 255), renderer.OutputBitmap.GetPixel(5, 160));
+
+        // Center area must contain non-black rendered pixels from widgets
+        bool hasColored = false;
+        for (int y = 20; y < 300 && !hasColored; y += 4)
+        {
+            for (int x = 85; x < 155; x += 4)
+            {
+                var px = renderer.OutputBitmap.GetPixel(x, y);
+                if (px.Red > 30 || px.Green > 30 || px.Blue > 30)
+                {
+                    hasColored = true;
+                    break;
+                }
+            }
+        }
+        Assert.True(hasColored);
+    }
+
+    [Fact]
+    public void SensorSnapshot_SupportsAllSnakeMarsThemeAndTurzxTokens()
+    {
+        var snap = new SensorSnapshot
+        {
+            CpuTemp = 54,
+            GpuUsage = 82,
+            GpuMemoryFreqMhz = 7000,
+            GpuMemoryUsedGb = 4.5,
+            MemoryFreeGb = 18.2,
+            DiskFreeGb = 210.4,
+            DiskUsagePct = 62,
+            NetUpKbps = 120,
+            NetDownKbps = 840
+        };
+
+        Assert.Equal("54°C", snap.FormatValue("CPUTempPU", "°C"));
+        Assert.Equal("82%", snap.FormatValue("GpuUsagePU", "%"));
+        Assert.Equal("7000MHz", snap.FormatValue("GPUMemoryFrequencyPU", "MHz"));
+        Assert.Equal("4.5GB", snap.FormatValue("GPUMemoryUsed", "GB"));
+        Assert.Equal("18.2GB", snap.FormatValue("MemoryFree", "GB"));
+        Assert.Equal("210.4GB", snap.FormatValue("DiskFree", "GB"));
+        Assert.Equal("62%", snap.FormatValue("DiskUsage", "%"));
+        Assert.Equal("120KB/s", snap.FormatValue("UpNetSpeed", "KB/s"));
+        Assert.Equal("840KB/s", snap.FormatValue("DownNetSpeed", "KB/s"));
+    }
 }
