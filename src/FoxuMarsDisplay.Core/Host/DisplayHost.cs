@@ -89,6 +89,7 @@ public sealed class DisplayHost : IDisposable
     public SensorSnapshot CurrentSensors => _sensors.Current;
 
     public event Action? StateChanged;
+    public event Action? ShowWindowRequested;
 
     public DisplayHost(
         IDisplayBackend? backend = null,
@@ -480,6 +481,7 @@ public sealed class DisplayHost : IDisposable
             return req.Command.ToLowerInvariant() switch
             {
                 "ping" => new IpcResponse(true, "pong"),
+                "show_window" => RunAndOk(() => ShowWindowRequested?.Invoke(), "Window shown"),
                 "get_status" => new IpcResponse(true, null, GetStatuses()),
                 "apply_theme" => (!string.IsNullOrWhiteSpace(req.SerialNumber) && !string.IsNullOrWhiteSpace(req.ThemePath))
                     ? (ApplyTheme(req.SerialNumber, req.ThemePath, req.SchemeJsonPath)
@@ -507,10 +509,10 @@ public sealed class DisplayHost : IDisposable
         }
     }
 
-    private static IpcResponse RunAndOk(Action action)
+    private static IpcResponse RunAndOk(Action action, string? message = null)
     {
         action();
-        return new IpcResponse(true);
+        return new IpcResponse(true, message);
     }
 
     public void Dispose()

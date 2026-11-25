@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="FOXU // MARS DISPLAY"
-        Width="1120" Height="740" MinWidth="920" MinHeight="600"
+        Width="1160" Height="760" MinWidth="960" MinHeight="620"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgObsidian}"
         Foreground="{StaticResource TextPrimary}"
@@ -69,6 +69,7 @@
                         <StackPanel DockPanel.Dock="Top">
                             <RadioButton x:Name="NavScreens" Content="🖥️  Pantallas" IsChecked="True" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
                             <RadioButton x:Name="NavGallery" Content="🎨  Galería Unificada" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
+                            <RadioButton x:Name="NavCloud" Content="☁️  Descargar Temas" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
                             <RadioButton x:Name="NavTelemetry" Content="📊  Telemetría" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
                             <RadioButton x:Name="NavSystem" Content="⚙️  Sistema" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
                         </StackPanel>
@@ -103,16 +104,19 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <!-- Live Hardware Bezel Preview -->
-                                                <Border Width="136" Height="160" Background="#05070B" BorderBrush="#26334D" BorderThickness="2" CornerRadius="6" Padding="4" Margin="0,0,16,0">
+                                                <Border Width="136" Height="164" Background="#05070B" BorderBrush="#26334D" BorderThickness="2" CornerRadius="6" Padding="4" Margin="0,0,16,0">
                                                     <Image Source="{Binding PreviewImage}" Stretch="Uniform" />
                                                 </Border>
 
                                                 <StackPanel Grid.Column="1">
-                                                    <DockPanel Margin="0,0,0,8">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="{Binding SerialNumber}" FontSize="15" FontWeight="Bold" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" />
-                                                            <Border Background="#161E2E" CornerRadius="4" Padding="6,2" Margin="10,0,0,0">
-                                                                <TextBlock Text="{Binding ResolutionText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource EmeraldLive}" />
+                                                    <DockPanel Margin="0,0,0,6">
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding ScreenTitle}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
+                                                            <Border Background="#162236" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="10,0,0,0">
+                                                                <TextBlock Text="{Binding ResolutionText}" FontSize="12" FontWeight="Bold" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" />
+                                                            </Border>
+                                                            <Border Background="#161E2E" BorderBrush="#26334D" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="8,0,0,0">
+                                                                <TextBlock Text="{Binding OrientationLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding OrientationBrush}" />
                                                             </Border>
                                                         </StackPanel>
                                                         <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right"
@@ -123,6 +127,7 @@
                                                                   Click="OnToggleScreenEnabledClick" />
                                                     </DockPanel>
 
+                                                    <TextBlock Text="{Binding HardwareSubline}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource TextMuted}" Margin="0,0,0,6" />
                                                     <TextBlock Text="{Binding ThemeSummary}" FontSize="12" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4" />
                                                     <TextBlock Text="{Binding StatsText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10" />
 
@@ -167,31 +172,70 @@
                     <Grid x:Name="PageGallery" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <DockPanel Margin="0,0,0,12">
+                        <DockPanel Margin="0,0,0,10">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="GALERÍA UNIFICADA" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,16,0" />
-                                <TextBox x:Name="TxtGallerySearch" Width="260" Padding="8,5" Background="#0E131D" Foreground="#F1F5F9" BorderBrush="#26334D" TextChanged="OnGallerySearchChanged" />
+                                <TextBox x:Name="TxtGallerySearch" Width="240" Padding="8,5" Background="#0E131D" Foreground="#F1F5F9" BorderBrush="#26334D" TextChanged="OnGallerySearchChanged" />
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <TextBlock Text="Destino:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
-                                <ComboBox x:Name="CmbTargetScreen" Width="210" Margin="0,0,8,0" />
+                                <ComboBox x:Name="CmbTargetScreen" Width="280" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnTargetScreenChanged">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                            <Setter Property="ToolTip" Value="{Binding ToolTipText}" />
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
                                 <Button Content="🔄 Escanear" Style="{StaticResource CyberButton}" Click="OnRescanGalleryClick" />
                             </StackPanel>
                         </DockPanel>
 
-                        <ListBox x:Name="GalleryList" Grid.Row="1" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <!-- Orientation Filter Pills -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                            <RadioButton x:Name="FilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
+                            <RadioButton x:Name="FilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
+                            <RadioButton x:Name="FilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
+                            <RadioButton x:Name="FilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
+                            <RadioButton x:Name="FilterCompatible" Content="🎯 Para pantalla destino" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
+                        </StackPanel>
+
+                        <ListBox x:Name="GalleryList" Grid.Row="2" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel />
                                 </ItemsPanelTemplate>
                             </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0,0,10,10" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="220" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,10,10">
+                                    <Border Width="216" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="10">
                                         <StackPanel>
+                                            <Border Height="136" Background="#05070B" BorderBrush="#1F293D" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True">
+                                                <Grid>
+                                                    <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" />
+                                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0A0E16" BorderBrush="#26334D" BorderThickness="1">
+                                                        <TextBlock Text="{Binding OrientationBadge}" FontSize="9" FontWeight="Bold" Foreground="{Binding OrientationBrush}" />
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Text="{Binding MetaText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" Margin="0,3,0,8" />
                                             <Button Content="Aplicar en Pantalla" Style="{StaticResource CyberButton}" Tag="{Binding}" Click="OnApplyGalleryThemeClick" />
@@ -202,7 +246,95 @@
                         </ListBox>
                     </Grid>
 
-                    <!-- TAB 3: TELEMETRIA -->
+                    <!-- TAB 3: DESCARGAR TEMAS (SOEYI + HUGGINGFACE) -->
+                    <Grid x:Name="PageCloud" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="TIENDA DE TEMAS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <TextBox x:Name="TxtCloudSearch" Width="200" Padding="8,5" Background="#0E131D" Foreground="#F1F5F9" BorderBrush="#26334D" TextChanged="OnCloudSearchChanged" Margin="0,0,8,0" />
+                                <ComboBox x:Name="CmbCloudSource" Width="210" SelectionChanged="OnCloudSourceChanged">
+                                    <ComboBoxItem Content="SOEYI Oficial (Auto + Fallback HF)" IsSelected="True" />
+                                    <ComboBoxItem Content="HuggingFace (SnakeFoxu)" />
+                                    <ComboBoxItem Content="Ambas fuentes (SOEYI + HF)" />
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBlock Text="Destino:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
+                                <ComboBox x:Name="CmbCloudTargetScreen" Width="250" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnCloudTargetScreenChanged">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                            <Setter Property="ToolTip" Value="{Binding ToolTipText}" />
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
+                                <Button Content="🔄 Actualizar" Style="{StaticResource CyberButton}" Click="OnReloadCloudClick" />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <DockPanel Grid.Row="1" Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="CloudFilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
+                                <RadioButton x:Name="CloudFilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
+                                <RadioButton x:Name="CloudFilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
+                                <RadioButton x:Name="CloudFilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
+                                <RadioButton x:Name="CloudFilterCompatible" Content="🎯 Para pantalla destino" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
+                            </StackPanel>
+                            <TextBlock x:Name="TxtCloudStatus" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" Text="Listo" />
+                        </DockPanel>
+
+                        <ListBox x:Name="CloudList" Grid.Row="2" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0,0,10,10" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="216" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="10">
+                                        <StackPanel>
+                                            <Border Height="136" Background="#05070B" BorderBrush="#1F293D" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True">
+                                                <Grid>
+                                                    <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" />
+                                                    <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0A0E16" BorderBrush="#26334D" BorderThickness="1">
+                                                        <TextBlock Text="{Binding Source}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource MarsCrimson}" />
+                                                    </Border>
+                                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0A0E16" BorderBrush="#26334D" BorderThickness="1">
+                                                        <TextBlock Text="{Binding OrientationBadge}" FontSize="9" FontWeight="Bold" Foreground="{Binding OrientationBrush}" />
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding MetaText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" Margin="0,3,0,8" />
+                                            <Button Content="{Binding ActionText}" IsEnabled="{Binding CanClick}" Style="{StaticResource CyberButton}" Tag="{Binding}" Click="OnDownloadAndApplyCloudClick" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+
+                    <!-- TAB 4: TELEMETRIA -->
                     <ScrollViewer x:Name="PageTelemetry" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <TextBlock Text="TELEMETRÍA DE HARDWARE EN TIEMPO REAL" FontSize="16" FontWeight="Bold" Margin="0,0,0,14" />

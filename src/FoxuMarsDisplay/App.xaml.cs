@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
+using System.IO.Pipes;
 using System.Security.Principal;
+using System.Text;
 using System.Windows;
 using FoxuMarsDisplay.Core.Config;
 using FoxuMarsDisplay.Core.Host;
@@ -40,11 +43,7 @@ public partial class App : System.Windows.Application
         _singleInstanceMutex = new Mutex(true, MutexName, out bool createdNew);
         if (!createdNew)
         {
-            System.Windows.MessageBox.Show(
-                "FoxuMarsDisplay ya está en ejecución en la bandeja del sistema.",
-                "FoxuMarsDisplay",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            TrySignalExistingInstanceShowWindow();
             Shutdown();
             return;
         }
@@ -57,11 +56,26 @@ public partial class App : System.Windows.Application
             ShowMainWindow();
     }
 
+    private static void TrySignalExistingInstanceShowWindow()
+    {
+        try
+        {
+            using var client = new NamedPipeClientStream(".", IpcPipeServer.PipeName, PipeDirection.InOut);
+            client.Connect(500);
+            using var writer = new StreamWriter(client, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
+            using var reader = new StreamReader(client, Encoding.UTF8, leaveOpen: true);
+            writer.WriteLine("{\"command\":\"show_window\"}");
+            reader.ReadLine();
+        }
+        catch { }
+    }
+
     private void StartHost()
     {
         var store = new FoxuDisplayConfigStore();
         var config = store.LoadOrImportSoeyi();
         _host = new DisplayHost(configStore: store, config: config);
+        _host.ShowWindowRequested += () => Dispatcher.BeginInvoke(ShowMainWindow);
         _host.Start(dryRun: false, enableIpc: true);
     }
 

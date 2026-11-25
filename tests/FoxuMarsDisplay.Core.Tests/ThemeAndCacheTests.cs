@@ -91,4 +91,42 @@ public sealed class ThemeAndCacheTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Fact]
+    public void ThemeLibraryScanner_ClassifiesOrientations_AndDetectsThumbAndSize()
+    {
+        Assert.Equal(ThemeOrientation.Vertical, ThemeLibraryScanner.ClassifyOrientation(240, 320));
+        Assert.Equal(ThemeOrientation.Vertical, ThemeLibraryScanner.ClassifyOrientation(360, 960));
+        Assert.Equal(ThemeOrientation.Vertical, ThemeLibraryScanner.ClassifyOrientation(379, 960));
+        Assert.Equal(ThemeOrientation.Horizontal, ThemeLibraryScanner.ClassifyOrientation(960, 360));
+        Assert.Equal(ThemeOrientation.Horizontal, ThemeLibraryScanner.ClassifyOrientation(1024, 600));
+        Assert.Equal(ThemeOrientation.Square, ThemeLibraryScanner.ClassifyOrientation(480, 480));
+        Assert.Equal(ThemeOrientation.Unknown, ThemeLibraryScanner.ClassifyOrientation(0, 0));
+
+        string root = Path.Combine(Path.GetTempPath(), "FoxuMarsScanTest_" + Guid.NewGuid().ToString("N"));
+        string themeDir = Path.Combine(root, "CyberSquare");
+        Directory.CreateDirectory(themeDir);
+        try
+        {
+            using (var bmp = new SKBitmap(480, 480, SKColorType.Bgra8888, SKAlphaType.Premul))
+            {
+                bmp.Erase(SKColors.DarkSlateBlue);
+                using var img = SKImage.FromBitmap(bmp);
+                using var data = img.Encode(SKEncodedImageFormat.Png, 90);
+                File.WriteAllBytes(Path.Combine(themeDir, "back.png"), data.ToArray());
+            }
+
+            var list = ThemeLibraryScanner.ScanAll([root]);
+            var found = list.FirstOrDefault(x => x.Name == "CyberSquare");
+            Assert.NotNull(found);
+            Assert.Equal(480, found!.Width);
+            Assert.Equal(480, found.Height);
+            Assert.Equal(ThemeOrientation.Square, found.Orientation);
+            Assert.False(string.IsNullOrEmpty(found.ThumbnailPath));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }
