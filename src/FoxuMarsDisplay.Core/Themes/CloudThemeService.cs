@@ -30,7 +30,8 @@ public sealed record CloudThemeItem(
     string FileName,
     long SizeBytes,
     string LocalFilePath,
-    bool IsDownloaded);
+    bool IsDownloaded,
+    ThemeFormFactor FormFactor = ThemeFormFactor.Unknown);
 
 public sealed record CloudCatalogResult(
     List<CloudThemeItem> Items,
@@ -240,8 +241,9 @@ public sealed class CloudThemeService
             string res = el.TryGetProperty("ext_type", out var extEl) ? (extEl.GetString() ?? "Auto") : "Auto";
             if (string.IsNullOrWhiteSpace(res)) res = "Auto";
 
-            ThemeLibraryScanner.TryParseResolution(res, out int w, out int h);
+            ThemeLibraryScanner.TryExtractResolution(res, title, null, out int w, out int h);
             var ori = ThemeLibraryScanner.ClassifyOrientation(w, h);
+            var ff = ThemeLibraryScanner.ClassifyFormFactor(w, h);
 
             string safeTitle = SanitizeFileName(title);
             string ext = Path.GetExtension(enclosure);
@@ -272,7 +274,8 @@ public sealed class CloudThemeService
                 FileName: fileName,
                 SizeBytes: 0,
                 LocalFilePath: localPath,
-                IsDownloaded: File.Exists(localPath)));
+                IsDownloaded: File.Exists(localPath),
+                FormFactor: ff));
         }
 
         return (items, rowTotal);
@@ -312,15 +315,25 @@ public sealed class CloudThemeService
             string downloadRel = el.TryGetProperty("download", out var dlEl) ? (dlEl.GetString() ?? "") : "";
             if (string.IsNullOrWhiteSpace(downloadRel)) continue;
 
+            string type = el.TryGetProperty("type", out var tyEl) ? (tyEl.GetString() ?? "photo") : "photo";
+            if (type.Equals("video", StringComparison.OrdinalIgnoreCase)) continue;
+
             string id = el.TryGetProperty("id", out var idEl) ? idEl.ToString() : Guid.NewGuid().ToString("N")[..8];
             string name = el.TryGetProperty("name", out var nEl) ? (nEl.GetString() ?? id) : id;
+            if (name.Length <= 2 && name.All(char.IsDigit))
+                name = Path.GetFileNameWithoutExtension(downloadRel);
+
             string previewRel = el.TryGetProperty("preview", out var pEl) ? (pEl.GetString() ?? "") : "";
             string res = el.TryGetProperty("resolution", out var rEl) ? (rEl.GetString() ?? "Auto") : "Auto";
-            string type = el.TryGetProperty("type", out var tyEl) ? (tyEl.GetString() ?? "photo") : "photo";
             long size = el.TryGetProperty("size", out var sEl) && sEl.TryGetInt64(out var sv) ? sv : 0;
 
-            ThemeLibraryScanner.TryParseResolution(res, out int w, out int h);
+            List<string>? tags = null;
+            if (el.TryGetProperty("tags", out var tagsEl) && tagsEl.ValueKind == JsonValueKind.Array)
+                tags = tagsEl.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+
+            ThemeLibraryScanner.TryExtractResolution(res, $"{name} {downloadRel}", tags, out int w, out int h);
             var ori = ThemeLibraryScanner.ClassifyOrientation(w, h);
+            var ff = ThemeLibraryScanner.ClassifyFormFactor(w, h);
 
             string rawName = Path.GetFileName(downloadRel);
             if (string.IsNullOrWhiteSpace(rawName))
@@ -341,7 +354,8 @@ public sealed class CloudThemeService
                 FileName: rawName,
                 SizeBytes: size,
                 LocalFilePath: localPath,
-                IsDownloaded: File.Exists(localPath)));
+                IsDownloaded: File.Exists(localPath),
+                FormFactor: ff));
         }
 
         return items;

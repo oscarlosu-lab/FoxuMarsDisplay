@@ -3,21 +3,37 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-        <SolidColorBrush x:Key="BgObsidian" Color="#07090E" />
-        <SolidColorBrush x:Key="BgCard" Color="#0E131D" />
-        <SolidColorBrush x:Key="BgElevated" Color="#161E2E" />
-        <SolidColorBrush x:Key="BorderHairline" Color="#1F293D" />
-        <SolidColorBrush x:Key="MarsCrimson" Color="#FF1E42" />
-        <SolidColorBrush x:Key="FoxuCyan" Color="#00E5FF" />
-        <SolidColorBrush x:Key="EmeraldLive" Color="#10B981" />
-        <SolidColorBrush x:Key="AmberWarn" Color="#F59E0B" />
-        <SolidColorBrush x:Key="TextPrimary" Color="#F1F5F9" />
-        <SolidColorBrush x:Key="TextMuted" Color="#8A99B0" />
+        <!-- Foxu x Mars: Volcanic Carbon / Ember / Solar Gold / Plasma Violet -->
+        <SolidColorBrush x:Key="BgObsidian" Color="#0B0A0F" />
+        <SolidColorBrush x:Key="BgSurface" Color="#13111A" />
+        <SolidColorBrush x:Key="BgCard" Color="#171421" />
+        <SolidColorBrush x:Key="BgElevated" Color="#211C2E" />
+        <SolidColorBrush x:Key="BorderHairline" Color="#2E273F" />
+
+        <SolidColorBrush x:Key="FoxuEmber" Color="#FF6419" />
+        <SolidColorBrush x:Key="MarsCrimson" Color="#FF1F4B" />
+        <SolidColorBrush x:Key="SolarGold" Color="#FFB820" />
+        <SolidColorBrush x:Key="PlasmaViolet" Color="#B57BFF" />
+        <SolidColorBrush x:Key="EmeraldLive" Color="#22E58B" />
+        <SolidColorBrush x:Key="AmberWarn" Color="#FFB820" />
+        <SolidColorBrush x:Key="TextPrimary" Color="#F7F5FC" />
+        <SolidColorBrush x:Key="TextMuted" Color="#988FAD" />
+
+        <LinearGradientBrush x:Key="FoxuMarsGradient" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#FF1F4B" Offset="0.0" />
+            <GradientStop Color="#FF6419" Offset="0.55" />
+            <GradientStop Color="#FFB820" Offset="1.0" />
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="FoxuButtonGradient" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#FF1F4B" Offset="0.0" />
+            <GradientStop Color="#FF6419" Offset="1.0" />
+        </LinearGradientBrush>
 
         <Style x:Key="CyberButton" TargetType="Button">
-            <Setter Property="Background" Value="#161E2E" />
-            <Setter Property="Foreground" Value="#F1F5F9" />
-            <Setter Property="BorderBrush" Value="#26334D" />
+            <Setter Property="Background" Value="#211C2E" />
+            <Setter Property="Foreground" Value="#F7F5FC" />
+            <Setter Property="BorderBrush" Value="#372F4B" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="12,7" />
             <Setter Property="FontSize" Value="12" />
@@ -36,11 +52,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#1E293E" />
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00E5FF" />
+                                <Setter TargetName="Bd" Property="Background" Value="#2B243B" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF6419" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#0E131D" />
+                                <Setter TargetName="Bd" Property="Background" Value="#171421" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
@@ -52,13 +68,13 @@
         </Style>
 
         <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource CyberButton}">
-            <Setter Property="Background" Value="#FF1E42" />
-            <Setter Property="BorderBrush" Value="#FF4D6A" />
+            <Setter Property="Background" Value="{StaticResource FoxuButtonGradient}" />
+            <Setter Property="BorderBrush" Value="#FF7A2F" />
             <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
 
         <Style x:Key="NavTabRadio" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#8A99B0" />
+            <Setter Property="Foreground" Value="#988FAD" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -78,13 +94,13 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#131B29" />
-                                <Setter Property="Foreground" Value="#F1F5F9" />
+                                <Setter TargetName="Bd" Property="Background" Value="#1B1726" />
+                                <Setter Property="Foreground" Value="#F7F5FC" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#161E2E" />
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF1E42" />
-                                <Setter Property="Foreground" Value="#00E5FF" />
+                                <Setter TargetName="Bd" Property="Background" Value="#211C2E" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF6419" />
+                                <Setter Property="Foreground" Value="#FFB820" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -93,9 +109,9 @@
         </Style>
 
         <Style x:Key="FilterPillRadio" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#8A99B0" />
-            <Setter Property="Background" Value="#0E131D" />
-            <Setter Property="BorderBrush" Value="#1F293D" />
+            <Setter Property="Foreground" Value="#988FAD" />
+            <Setter Property="Background" Value="#171421" />
+            <Setter Property="BorderBrush" Value="#2E273F" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Padding" Value="11,6" />
@@ -114,14 +130,14 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#161E2E" />
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#334568" />
-                                <Setter Property="Foreground" Value="#F1F5F9" />
+                                <Setter TargetName="Bd" Property="Background" Value="#211C2E" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4B3E66" />
+                                <Setter Property="Foreground" Value="#F7F5FC" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#162236" />
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00E5FF" />
-                                <Setter Property="Foreground" Value="#00E5FF" />
+                                <Setter TargetName="Bd" Property="Background" Value="#261A28" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF6419" />
+                                <Setter Property="Foreground" Value="#FFB820" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -129,9 +145,81 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ThemeCardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#171421" />
+            <Setter Property="BorderBrush" Value="#2E273F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="#FF6419" />
+                    <Setter Property="Background" Value="#1C1828" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#12101A" />
+            <Setter Property="Foreground" Value="#F7F5FC" />
+            <Setter Property="CaretBrush" Value="#FF6419" />
+            <Setter Property="BorderBrush" Value="#2E273F" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF6419" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="MinWidth" Value="8" />
+            <Setter Property="Background" Value="#110F18" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="{TemplateBinding Background}">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="ThumbBd" Background="#352D48" CornerRadius="4" Margin="1" />
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbBd" Property="Background" Value="#FF6419" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="ComboBoxItem">
-            <Setter Property="Background" Value="#0E131D" />
-            <Setter Property="Foreground" Value="#F1F5F9" />
+            <Setter Property="Background" Value="#171421" />
+            <Setter Property="Foreground" Value="#F7F5FC" />
             <Setter Property="Padding" Value="10,7" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Template">
@@ -142,12 +230,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#1B2840" />
-                                <Setter Property="Foreground" Value="#00E5FF" />
+                                <Setter TargetName="Bd" Property="Background" Value="#2A223B" />
+                                <Setter Property="Foreground" Value="#FFB820" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#162236" />
-                                <Setter Property="Foreground" Value="#00E5FF" />
+                                <Setter TargetName="Bd" Property="Background" Value="#261A28" />
+                                <Setter Property="Foreground" Value="#FF6419" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -156,9 +244,9 @@
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#0E131D" />
-            <Setter Property="Foreground" Value="#F1F5F9" />
-            <Setter Property="BorderBrush" Value="#26334D" />
+            <Setter Property="Background" Value="#171421" />
+            <Setter Property="Foreground" Value="#F7F5FC" />
+            <Setter Property="BorderBrush" Value="#2E273F" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="10,5" />
             <Setter Property="FontSize" Value="12" />
@@ -174,8 +262,8 @@
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border x:Name="Bd"
-                                                Background="#0E131D"
-                                                BorderBrush="#26334D"
+                                                Background="#171421"
+                                                BorderBrush="#2E273F"
                                                 BorderThickness="1"
                                                 CornerRadius="6"
                                                 Padding="10,5">
@@ -184,12 +272,12 @@
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="18" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="1" Text="▾" Foreground="#00E5FF" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" />
+                                                <TextBlock Grid.Column="1" Text="▾" Foreground="#FF6419" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" />
                                             </Grid>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00E5FF" />
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF6419" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -209,8 +297,8 @@
                                    AllowsTransparency="True"
                                    Focusable="False"
                                    PopupAnimation="None">
-                                <Border Background="#0E131D"
-                                        BorderBrush="#00E5FF"
+                                <Border Background="#171421"
+                                        BorderBrush="#FF6419"
                                         BorderThickness="1"
                                         CornerRadius="6"
                                         Margin="0,2,0,0"

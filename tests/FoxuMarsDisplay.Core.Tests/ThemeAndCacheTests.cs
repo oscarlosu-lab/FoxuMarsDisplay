@@ -103,6 +103,30 @@ public sealed class ThemeAndCacheTests
         Assert.Equal(ThemeOrientation.Square, ThemeLibraryScanner.ClassifyOrientation(480, 480));
         Assert.Equal(ThemeOrientation.Unknown, ThemeLibraryScanner.ClassifyOrientation(0, 0));
 
+        // Form-factor classification
+        Assert.Equal(ThemeFormFactor.VerticalCompact, ThemeLibraryScanner.ClassifyFormFactor(240, 320));
+        Assert.Equal(ThemeFormFactor.VerticalStrip, ThemeLibraryScanner.ClassifyFormFactor(360, 960));
+        Assert.Equal(ThemeFormFactor.VerticalStrip, ThemeLibraryScanner.ClassifyFormFactor(320, 1480));
+        Assert.Equal(ThemeFormFactor.HorizontalCompact, ThemeLibraryScanner.ClassifyFormFactor(320, 240));
+        Assert.Equal(ThemeFormFactor.HorizontalCompact, ThemeLibraryScanner.ClassifyFormFactor(1024, 600));
+        Assert.Equal(ThemeFormFactor.HorizontalStrip, ThemeLibraryScanner.ClassifyFormFactor(960, 360));
+        Assert.Equal(ThemeFormFactor.HorizontalStrip, ThemeLibraryScanner.ClassifyFormFactor(1920, 462));
+        Assert.Equal(ThemeFormFactor.Square, ThemeLibraryScanner.ClassifyFormFactor(480, 480));
+
+        // Compatibility checks
+        Assert.Equal(ThemeCompatibility.Exact, ThemeLibraryScanner.EvaluateCompatibility(360, 960, 360, 960));
+        Assert.Equal(ThemeCompatibility.Proportional, ThemeLibraryScanner.EvaluateCompatibility(320, 960, 360, 960));
+        Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(240, 320, 360, 960));
+        Assert.Equal(ThemeCompatibility.Incompatible, ThemeLibraryScanner.EvaluateCompatibility(0, 0, 360, 960));
+
+        // Concatenated filename resolution extraction
+        Assert.True(ThemeLibraryScanner.TryExtractResolution(null, "TURZX_1_7201280.smtheme", null, out int w1, out int h1));
+        Assert.Equal((720, 1280), (w1, h1));
+        Assert.True(ThemeLibraryScanner.TryExtractResolution(null, "TURZX_24_480480r.smtheme", null, out int w2, out int h2));
+        Assert.Equal((480, 480), (w2, h2));
+        Assert.True(ThemeLibraryScanner.TryExtractResolution(null, "Example_0.96Inch_1.smtheme", null, out int w3, out int h3));
+        Assert.Equal((160, 80), (w3, h3));
+
         string root = Path.Combine(Path.GetTempPath(), "FoxuMarsScanTest_" + Guid.NewGuid().ToString("N"));
         string themeDir = Path.Combine(root, "CyberSquare");
         Directory.CreateDirectory(themeDir);

@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using SharpCompress.Archives;
 using SharpCompress.Readers;
 using SkiaSharp;
@@ -14,6 +15,23 @@ public enum ThemeOrientation
     Square
 }
 
+public enum ThemeFormFactor
+{
+    Unknown,
+    Square,
+    VerticalCompact,
+    VerticalStrip,
+    HorizontalCompact,
+    HorizontalStrip
+}
+
+public enum ThemeCompatibility
+{
+    Incompatible = 0,
+    Proportional = 2,
+    Exact = 3
+}
+
 public sealed record ThemeLibraryEntry(
     string Name,
     string Format,
@@ -23,11 +41,42 @@ public sealed record ThemeLibraryEntry(
     string? ThumbnailPath,
     int Width = 0,
     int Height = 0,
-    ThemeOrientation Orientation = ThemeOrientation.Unknown);
+    ThemeOrientation Orientation = ThemeOrientation.Unknown,
+    ThemeFormFactor FormFactor = ThemeFormFactor.Unknown);
 
 public static class ThemeLibraryScanner
 {
     private const string PhotoPassword = "vmax2025";
+
+    private static readonly Regex ResRegex = new(
+        @"(?<!\d)(\d{3,4})\s*[xX×*]\s*(\d{3,4})(?!\d)",
+        RegexOptions.Compiled);
+
+    private static readonly (string Token, int W, int H)[] KnownConcatTokens =
+    [
+        ("480480", 480, 480),
+        ("7201280", 720, 1280),
+        ("8001280", 800, 1280),
+        ("360960", 360, 960),
+        ("960360", 960, 360),
+        ("240320", 240, 320),
+        ("320240", 320, 240),
+        ("320480", 320, 480),
+        ("480320", 480, 320),
+        ("480800", 480, 800),
+        ("800480", 800, 480),
+        ("1024600", 1024, 600),
+        ("4621920", 462, 1920),
+        ("1920462", 1920, 462),
+        ("4801920", 480, 1920),
+        ("1920480", 1920, 480),
+        ("3201480", 320, 1480),
+        ("1480320", 1480, 320),
+        ("0.96inch", 160, 80),
+        ("3.5inch", 320, 480),
+        ("5inch", 800, 480),
+        ("8.8inch", 480, 1920)
+    ];
 
     public static ThemeOrientation ClassifyOrientation(int width, int height)
     {
@@ -36,6 +85,82 @@ public static class ThemeLibraryScanner
         if (Math.Abs(width - height) <= max * 0.08)
             return ThemeOrientation.Square;
         return height > width ? ThemeOrientation.Vertical : ThemeOrientation.Horizontal;
+    }
+
+    public static ThemeFormFactor ClassifyFormFactor(int width, int height)
+    {
+        if (width <= 0 || height <= 0) return ThemeFormFactor.Unknown;
+        double r = (double)width / height;
+        if (r >= 0.88 && r <= 1.14) return ThemeFormFactor.Square;
+        if (r < 0.48) return ThemeFormFactor.VerticalStrip;
+        if (r < 0.88) return ThemeFormFactor.VerticalCompact;
+        if (r > 2.10) return ThemeFormFactor.HorizontalStrip;
+        return ThemeFormFactor.HorizontalCompact;
+    }
+
+    public static ThemeCompatibility EvaluateCompatibility(int themeW, int themeH, int screenW, int screenH)
+    {
+        if (themeW <= 0 || themeH <= 0 || screenW <= 0 || screenH <= 0)
+            return ThemeCompatibility.Incompatible;
+
+        if (themeW == screenW && themeH == screenH)
+            return ThemeCompatibility.Exact;
+
+        if (ClassifyFormFactor(themeW, themeH) != ClassifyFormFactor(screenW, screenH))
+            return ThemeCompatibility.Incompatible;
+
+        double tr = (double)themeW / themeH;
+        double sr = (double)screenW / screenH;
+        return Math.Abs(tr - sr) / sr <= 0.22
+            ? ThemeCompatibility.Proportional
+            : ThemeCompatibility.Incompatible;
+    }
+
+    public static bool TryExtractResolution(
+        string? resField,
+        string? nameOrPath,
+        IEnumerable<string>? tags,
+        out int width,
+        out int height)
+    {
+        if (TryParseResolution(resField, out width, out height))
+            return true;
+
+        if (tags != null)
+        {
+            foreach (var tag in tags)
+            {
+                if (TryParseResolution(tag, out width, out height))
+                    return true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(nameOrPath))
+        {
+            var m = ResRegex.Match(nameOrPath);
+            if (m.Success &&
+                int.TryParse(m.Groups[1].Value, out width) &&
+                int.TryParse(m.Groups[2].Value, out height) &&
+                width >= 64 && height >= 64)
+            {
+                return true;
+            }
+
+            string lower = nameOrPath.ToLowerInvariant();
+            foreach (var (token, w, h) in KnownConcatTokens)
+            {
+                if (lower.Contains(token, StringComparison.Ordinal))
+                {
+                    width = w;
+                    height = h;
+                    return true;
+                }
+            }
+        }
+
+        width = 0;
+        height = 0;
+        return false;
     }
 
     public static bool TryParseResolution(string? res, out int width, out int height)
@@ -56,14 +181,20 @@ public static class ThemeLibraryScanner
         string? schemeJsonPath,
         string? thumbPath)
     {
-        if (!TryParseResolution(res, out int w, out int h) && !string.IsNullOrEmpty(thumbPath) && File.Exists(thumbPath))
+        if (!TryExtractResolution(res, $"{name} {themePath}", null, out int w, out int h) &&
+            !string.IsNullOrEmpty(thumbPath) && File.Exists(thumbPath))
         {
             if (TryReadImageDimensions(thumbPath, out w, out h))
                 res = $"{w}x{h}";
         }
+        else if (w > 0 && h > 0)
+        {
+            res = $"{w}x{h}";
+        }
 
         var orientation = ClassifyOrientation(w, h);
-        return new ThemeLibraryEntry(name, format, res, themePath, schemeJsonPath, thumbPath, w, h, orientation);
+        var formFactor = ClassifyFormFactor(w, h);
+        return new ThemeLibraryEntry(name, format, res, themePath, schemeJsonPath, thumbPath, w, h, orientation, formFactor);
     }
 
     public static List<ThemeLibraryEntry> ScanAll(IEnumerable<string>? extraFolders = null)

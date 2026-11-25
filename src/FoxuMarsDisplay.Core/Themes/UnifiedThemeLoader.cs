@@ -664,7 +664,7 @@ public static class UnifiedThemeLoader
         theme.TextWidgets.Add(new TextWidgetSpec
         {
             X = pad, Y = pad, ZIndex = 1, FontSize = 14f * scale,
-            Color = SKColor.Parse("#00E5FF"), IsStaticText = true, StaticContent = "FOXU // MARS"
+            Color = SKColor.Parse("#FF6419"), IsStaticText = true, StaticContent = "FOXU // MARS"
         });
         theme.TextWidgets.Add(new TextWidgetSpec
         {
@@ -677,7 +677,7 @@ public static class UnifiedThemeLoader
         theme.TextWidgets.Add(new TextWidgetSpec
         {
             X = pad, Y = cpuY, ZIndex = 1, FontSize = 12f * scale,
-            Color = SKColor.Parse("#FF1E42"), IsStaticText = true, StaticContent = "CPU"
+            Color = SKColor.Parse("#FF1F4B"), IsStaticText = true, StaticContent = "CPU"
         });
         theme.TextWidgets.Add(new TextWidgetSpec
         {
@@ -687,13 +687,13 @@ public static class UnifiedThemeLoader
         theme.TextWidgets.Add(new TextWidgetSpec
         {
             X = w * 0.56f, Y = cpuY + 20f * scale, ZIndex = 1, FontSize = 18f * scale,
-            Color = SKColor.Parse("#8A99B0"), SensorKey = "CpuUsage", Unit = "%"
+            Color = SKColor.Parse("#988FAD"), SensorKey = "CpuUsage", Unit = "%"
         });
         theme.BarWidgets.Add(new BarWidgetSpec
         {
             X = pad, Y = cpuY + 50f * scale, ZIndex = 1, MaxWidth = barW, MaxHeight = barH,
-            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#FF1E42"),
-            BackColor = SKColor.Parse("#1F293D"), SensorKey = "CpuUsage"
+            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#FF1F4B"),
+            BackColor = SKColor.Parse("#261F33"), SensorKey = "CpuUsage"
         });
 
         // GPU
@@ -701,7 +701,7 @@ public static class UnifiedThemeLoader
         theme.TextWidgets.Add(new TextWidgetSpec
         {
             X = pad, Y = gpuY, ZIndex = 1, FontSize = 12f * scale,
-            Color = SKColor.Parse("#00E5FF"), IsStaticText = true, StaticContent = "GPU"
+            Color = SKColor.Parse("#FFB820"), IsStaticText = true, StaticContent = "GPU"
         });
         theme.TextWidgets.Add(new TextWidgetSpec
         {
@@ -711,13 +711,13 @@ public static class UnifiedThemeLoader
         theme.TextWidgets.Add(new TextWidgetSpec
         {
             X = w * 0.56f, Y = gpuY + 20f * scale, ZIndex = 1, FontSize = 18f * scale,
-            Color = SKColor.Parse("#8A99B0"), SensorKey = "GpuUsage", Unit = "%"
+            Color = SKColor.Parse("#988FAD"), SensorKey = "GpuUsage", Unit = "%"
         });
         theme.BarWidgets.Add(new BarWidgetSpec
         {
             X = pad, Y = gpuY + 50f * scale, ZIndex = 1, MaxWidth = barW, MaxHeight = barH,
-            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#00E5FF"),
-            BackColor = SKColor.Parse("#1F293D"), SensorKey = "GpuUsage"
+            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#FFB820"),
+            BackColor = SKColor.Parse("#261F33"), SensorKey = "GpuUsage"
         });
 
         // RAM
@@ -725,7 +725,7 @@ public static class UnifiedThemeLoader
         theme.TextWidgets.Add(new TextWidgetSpec
         {
             X = pad, Y = ramY, ZIndex = 1, FontSize = 12f * scale,
-            Color = SKColor.Parse("#10B981"), IsStaticText = true, StaticContent = "RAM"
+            Color = SKColor.Parse("#B57BFF"), IsStaticText = true, StaticContent = "RAM"
         });
         theme.TextWidgets.Add(new TextWidgetSpec
         {
@@ -735,8 +735,8 @@ public static class UnifiedThemeLoader
         theme.BarWidgets.Add(new BarWidgetSpec
         {
             X = pad, Y = ramY + 20f * scale, ZIndex = 1, MaxWidth = barW, MaxHeight = barH,
-            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#10B981"),
-            BackColor = SKColor.Parse("#1F293D"), SensorKey = "MemoryUsage"
+            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#B57BFF"),
+            BackColor = SKColor.Parse("#261F33"), SensorKey = "MemoryUsage"
         });
 
         return theme;

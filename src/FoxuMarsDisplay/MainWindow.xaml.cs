@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -111,9 +112,12 @@ public sealed class ScreenItemVm : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
+public sealed record ResolutionFilterItem(string Key, string Label);
+
 public sealed class GalleryItemVm : INotifyPropertyChanged
 {
     private BitmapImage? _thumbnailImage;
+    private Visibility _exactVisibility = Visibility.Collapsed;
 
     public string Name { get; init; } = string.Empty;
     public string FullPath { get; init; } = string.Empty;
@@ -122,9 +126,16 @@ public sealed class GalleryItemVm : INotifyPropertyChanged
     public int Width { get; init; }
     public int Height { get; init; }
     public ThemeOrientation Orientation { get; init; }
+    public ThemeFormFactor FormFactor { get; init; }
     public string OrientationBadge { get; init; } = "AUTO";
     public System.Windows.Media.Brush OrientationBrush { get; init; } = System.Windows.Media.Brushes.Gray;
     public string MetaText { get; init; } = string.Empty;
+
+    public Visibility ExactVisibility
+    {
+        get => _exactVisibility;
+        set { if (_exactVisibility != value) { _exactVisibility = value; OnPropertyChanged(); } }
+    }
 
     public BitmapImage? ThumbnailImage
     {
@@ -142,13 +153,21 @@ public sealed class CloudItemVm : INotifyPropertyChanged
     private BitmapImage? _thumbnailImage;
     private string _actionText = "⬇ Descargar y Aplicar";
     private bool _canClick = true;
+    private Visibility _exactVisibility = Visibility.Collapsed;
 
     public required CloudThemeItem Model { get; init; }
     public string Name => Model.Name;
     public string Source => Model.Source;
+    public string? CachedThumbPath { get; set; }
     public string OrientationBadge { get; init; } = "AUTO";
     public System.Windows.Media.Brush OrientationBrush { get; init; } = System.Windows.Media.Brushes.Gray;
     public string MetaText { get; init; } = string.Empty;
+
+    public Visibility ExactVisibility
+    {
+        get => _exactVisibility;
+        set { if (_exactVisibility != value) { _exactVisibility = value; OnPropertyChanged(); } }
+    }
 
     public BitmapImage? ThumbnailImage
     {
@@ -175,10 +194,10 @@ public sealed class CloudItemVm : INotifyPropertyChanged
 
 public partial class MainWindow : Window
 {
-    private static readonly System.Windows.Media.Brush BrushVertical = CreateFrozenBrush(0x00, 0xE5, 0xFF);
-    private static readonly System.Windows.Media.Brush BrushHorizontal = CreateFrozenBrush(0xF5, 0x9E, 0x0B);
-    private static readonly System.Windows.Media.Brush BrushSquare = CreateFrozenBrush(0x10, 0xB9, 0x81);
-    private static readonly System.Windows.Media.Brush BrushUnknown = CreateFrozenBrush(0x8A, 0x99, 0xB0);
+    private static readonly System.Windows.Media.Brush BrushVertical = CreateFrozenBrush(0xFF, 0x7A, 0x2F);
+    private static readonly System.Windows.Media.Brush BrushHorizontal = CreateFrozenBrush(0xFF, 0xB8, 0x20);
+    private static readonly System.Windows.Media.Brush BrushSquare = CreateFrozenBrush(0xB5, 0x7B, 0xFF);
+    private static readonly System.Windows.Media.Brush BrushUnknown = CreateFrozenBrush(0x98, 0x8F, 0xAD);
 
     private readonly DisplayHost _host;
     private readonly DispatcherTimer _uiTimer;
@@ -231,6 +250,16 @@ public partial class MainWindow : Window
         _ => ("AUTO", "AUTO", BrushUnknown)
     };
 
+    private static (string Badge, System.Windows.Media.Brush Brush) GetFormFactorMeta(ThemeFormFactor ff) => ff switch
+    {
+        ThemeFormFactor.VerticalCompact => ("VERTICAL", BrushVertical),
+        ThemeFormFactor.VerticalStrip => ("BARRA V", BrushVertical),
+        ThemeFormFactor.HorizontalCompact => ("HORIZONTAL", BrushHorizontal),
+        ThemeFormFactor.HorizontalStrip => ("BARRA H", BrushHorizontal),
+        ThemeFormFactor.Square => ("CUADRADO", BrushSquare),
+        _ => ("AUTO", BrushUnknown)
+    };
+
     public void ForceClose()
     {
         _forceClose = true;
@@ -272,7 +301,7 @@ public partial class MainWindow : Window
         var entries = ThemeLibraryScanner.ScanAll(_host.Config.ExtraThemeFolders);
         foreach (var e in entries)
         {
-            var (badge, _, brush) = GetOrientationMeta(e.Orientation);
+            var (badge, brush) = GetFormFactorMeta(e.FormFactor);
             string resLabel = e.Width > 0 && e.Height > 0 ? $"{e.Width}×{e.Height}" : e.Resolution;
             _allGalleryItems.Add(new GalleryItemVm
             {
@@ -283,28 +312,70 @@ public partial class MainWindow : Window
                 Width = e.Width,
                 Height = e.Height,
                 Orientation = e.Orientation,
+                FormFactor = e.FormFactor,
                 OrientationBadge = badge,
                 OrientationBrush = brush,
                 MetaText = $"{resLabel} • {e.Format}"
             });
         }
 
-        UpdateFilterCounts();
+        UpdateGalleryFilterCounts();
+        PopulateResolutionCombo(
+            CmbGalleryResolution,
+            _allGalleryItems.Select(x => (x.Width, x.Height)),
+            CmbTargetScreen.SelectedItem as ScreenTargetItem);
         ApplyGalleryFilter();
         _ = LoadThumbnailsAsync(_allGalleryItems.ToList(), ct);
     }
 
-    private void UpdateFilterCounts()
+    private void UpdateGalleryFilterCounts()
     {
         int total = _allGalleryItems.Count;
-        int vert = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Vertical);
-        int horiz = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Horizontal);
-        int sq = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Square);
+        int vert = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.VerticalCompact);
+        int vertStrip = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.VerticalStrip);
+        int horiz = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.HorizontalCompact);
+        int horizStrip = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.HorizontalStrip);
+        int sq = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.Square);
+
+        var target = CmbTargetScreen.SelectedItem as ScreenTargetItem;
+        int compat = target is null ? 0 : _allGalleryItems.Count(x =>
+            ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
 
         FilterAll.Content = $"Todos ({total})";
+        FilterCompatible.Content = $"🎯 Para mi pantalla ({compat})";
         FilterVertical.Content = $"↕ Vertical ({vert})";
+        FilterVerticalStrip.Content = $"📏 Barra V ({vertStrip})";
         FilterHorizontal.Content = $"↔ Horizontal ({horiz})";
+        FilterHorizontalStrip.Content = $"📐 Barra H ({horizStrip})";
         FilterSquare.Content = $"▢ Cuadrado ({sq})";
+    }
+
+    private static void PopulateResolutionCombo(
+        System.Windows.Controls.ComboBox combo,
+        IEnumerable<(int W, int H)> sizes,
+        ScreenTargetItem? target)
+    {
+        string? prevKey = (combo.SelectedItem as ResolutionFilterItem)?.Key;
+        string? targetKey = target is not null ? $"{target.EffectiveWidth}x{target.EffectiveHeight}" : null;
+
+        var grouped = sizes
+            .Where(s => s.W > 0 && s.H > 0)
+            .GroupBy(s => $"{s.W}x{s.H}")
+            .Select(g => new { Key = g.Key, W = g.First().W, H = g.First().H, Count = g.Count() })
+            .OrderByDescending(x => x.Key == targetKey)
+            .ThenByDescending(x => x.Count)
+            .ThenBy(x => x.W)
+            .ToList();
+
+        combo.Items.Clear();
+        combo.Items.Add(new ResolutionFilterItem("ALL", "Todas las res."));
+        foreach (var g in grouped)
+            combo.Items.Add(new ResolutionFilterItem(g.Key, $"{g.W}×{g.H} ({g.Count})"));
+
+        var restore = prevKey != null
+            ? combo.Items.OfType<ResolutionFilterItem>().FirstOrDefault(i => i.Key == prevKey)
+            : null;
+        combo.SelectedItem = restore ?? combo.Items[0];
     }
 
     private async Task LoadThumbnailsAsync(List<GalleryItemVm> items, CancellationToken ct)
@@ -338,32 +409,60 @@ public partial class MainWindow : Window
         }, ct).ConfigureAwait(false);
     }
 
+    private static double AspectDelta(int w, int h, ScreenTargetItem target)
+    {
+        if (w <= 0 || h <= 0 || target.EffectiveWidth <= 0 || target.EffectiveHeight <= 0) return 999.0;
+        double tr = (double)w / h;
+        double sr = (double)target.EffectiveWidth / target.EffectiveHeight;
+        return Math.Abs(tr - sr) / sr;
+    }
+
     private void ApplyGalleryFilter()
     {
         if (GalleryList is null) return;
         string q = (TxtGallerySearch.Text ?? string.Empty).Trim();
+        var target = CmbTargetScreen.SelectedItem as ScreenTargetItem;
+        string resKey = (CmbGalleryResolution.SelectedItem as ResolutionFilterItem)?.Key ?? "ALL";
+
+        foreach (var item in _allGalleryItems)
+        {
+            bool exact = target is not null &&
+                         ThemeLibraryScanner.EvaluateCompatibility(item.Width, item.Height, target.EffectiveWidth, target.EffectiveHeight) == ThemeCompatibility.Exact;
+            item.ExactVisibility = exact ? Visibility.Visible : Visibility.Collapsed;
+        }
 
         IEnumerable<GalleryItemVm> seq = _allGalleryItems;
 
-        if (FilterVertical.IsChecked == true)
-            seq = seq.Where(x => x.Orientation == ThemeOrientation.Vertical);
-        else if (FilterHorizontal.IsChecked == true)
-            seq = seq.Where(x => x.Orientation == ThemeOrientation.Horizontal);
-        else if (FilterSquare.IsChecked == true)
-            seq = seq.Where(x => x.Orientation == ThemeOrientation.Square);
-        else if (FilterCompatible.IsChecked == true && CmbTargetScreen.SelectedItem is ScreenTargetItem target)
+        if (FilterCompatible.IsChecked == true && target is not null)
         {
-            seq = seq
-                .Where(x => x.Orientation == target.EffectiveOrientation || x.Orientation == ThemeOrientation.Unknown)
-                .OrderByDescending(x => (x.Width == target.EffectiveWidth && x.Height == target.EffectiveHeight) ||
-                                         (x.Width == target.NativeWidth && x.Height == target.NativeHeight))
-                .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
+            seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
         }
+        else if (FilterVertical.IsChecked == true)
+            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.VerticalCompact);
+        else if (FilterVerticalStrip.IsChecked == true)
+            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.VerticalStrip);
+        else if (FilterHorizontal.IsChecked == true)
+            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.HorizontalCompact);
+        else if (FilterHorizontalStrip.IsChecked == true)
+            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.HorizontalStrip);
+        else if (FilterSquare.IsChecked == true)
+            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.Square);
+
+        if (resKey != "ALL")
+            seq = seq.Where(x => $"{x.Width}x{x.Height}" == resKey);
 
         if (!string.IsNullOrEmpty(q))
         {
             seq = seq.Where(i => i.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
                                  i.MetaText.Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (target is not null)
+        {
+            seq = seq
+                .OrderByDescending(x => (int)ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target.EffectiveWidth, target.EffectiveHeight))
+                .ThenBy(x => AspectDelta(x.Width, x.Height, target))
+                .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
         }
 
         GalleryList.ItemsSource = seq.ToList();
@@ -480,6 +579,14 @@ public partial class MainWindow : Window
                     ? targetItems.FirstOrDefault(x => x.SerialNumber.Equals(prevCloudSn, StringComparison.OrdinalIgnoreCase))
                     : null;
                 CmbCloudTargetScreen.SelectedItem = restoredCloud ?? targetItems.FirstOrDefault();
+
+                UpdateGalleryFilterCounts();
+                UpdateCloudFilterCounts();
+                if (!_isInitializing)
+                {
+                    ApplyGalleryFilter();
+                    if (_cloudLoadedOnce) ApplyCloudFilter();
+                }
             }
 
             TxtNoScreens.Visibility = statuses.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -565,10 +672,18 @@ public partial class MainWindow : Window
         if (!_isInitializing) ApplyGalleryFilter();
     }
 
+    private void OnGalleryResolutionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_isInitializing && !_isRefreshingUi) ApplyGalleryFilter();
+    }
+
     private void OnTargetScreenChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_isInitializing && !_isRefreshingUi && FilterCompatible.IsChecked == true)
+        if (!_isInitializing && !_isRefreshingUi)
+        {
+            UpdateGalleryFilterCounts();
             ApplyGalleryFilter();
+        }
     }
 
     private void OnRescanGalleryClick(object sender, RoutedEventArgs e) => LoadGallery();
@@ -647,7 +762,7 @@ public partial class MainWindow : Window
         _allCloudItems.Clear();
         foreach (var item in result.Items)
         {
-            var (badge, _, brush) = GetOrientationMeta(item.Orientation);
+            var (badge, brush) = GetFormFactorMeta(item.FormFactor);
             string resLabel = item.Width > 0 && item.Height > 0 ? $"{item.Width}×{item.Height}" : item.Resolution;
             _allCloudItems.Add(new CloudItemVm
             {
@@ -659,14 +774,48 @@ public partial class MainWindow : Window
             });
         }
 
-        CloudFilterAll.Content = $"Todos ({_allCloudItems.Count})";
-        CloudFilterVertical.Content = $"↕ Vertical ({_allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Vertical)})";
-        CloudFilterHorizontal.Content = $"↔ Horizontal ({_allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Horizontal)})";
-        CloudFilterSquare.Content = $"▢ Cuadrado ({_allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Square)})";
+        UpdateCloudFilterCounts();
+        var cloudTarget = CmbCloudTargetScreen.SelectedItem as ScreenTargetItem;
+        PopulateResolutionCombo(
+            CmbCloudResolution,
+            _allCloudItems.Select(x => (x.Model.Width, x.Model.Height)),
+            cloudTarget);
+
+        if (cloudTarget is not null &&
+            _allCloudItems.Any(x => ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, cloudTarget.EffectiveWidth, cloudTarget.EffectiveHeight) != ThemeCompatibility.Incompatible))
+        {
+            CloudFilterCompatible.IsChecked = true;
+        }
+        else
+        {
+            CloudFilterAll.IsChecked = true;
+        }
 
         TxtCloudStatus.Text = $"{result.ActiveSourceLabel} · {_allCloudItems.Count} temas";
         ApplyCloudFilter();
         _ = LoadCloudThumbnailsAsync(_allCloudItems.ToList(), ct);
+    }
+
+    private void UpdateCloudFilterCounts()
+    {
+        int total = _allCloudItems.Count;
+        int vert = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.VerticalCompact);
+        int vertStrip = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.VerticalStrip);
+        int horiz = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.HorizontalCompact);
+        int horizStrip = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.HorizontalStrip);
+        int sq = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.Square);
+
+        var target = CmbCloudTargetScreen.SelectedItem as ScreenTargetItem;
+        int compat = target is null ? 0 : _allCloudItems.Count(x =>
+            ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
+
+        CloudFilterAll.Content = $"Todos ({total})";
+        CloudFilterCompatible.Content = $"🎯 Para mi pantalla ({compat})";
+        CloudFilterVertical.Content = $"↕ Vertical ({vert})";
+        CloudFilterVerticalStrip.Content = $"📏 Barra V ({vertStrip})";
+        CloudFilterHorizontal.Content = $"↔ Horizontal ({horiz})";
+        CloudFilterHorizontalStrip.Content = $"📐 Barra H ({horizStrip})";
+        CloudFilterSquare.Content = $"▢ Cuadrado ({sq})";
     }
 
     private async Task LoadCloudThumbnailsAsync(List<CloudItemVm> items, CancellationToken ct)
@@ -681,7 +830,8 @@ public partial class MainWindow : Window
                 string? localThumb = await _cloudService.GetOrDownloadThumbnailAsync(vm.Model, ct).ConfigureAwait(false);
                 if (localThumb is null || ct.IsCancellationRequested) return;
 
-                BitmapImage? bmp = DecodeBitmapWithSkiaFallback(localThumb);
+                vm.CachedThumbPath = localThumb;
+                BitmapImage? bmp = DecodeBitmapWithSkiaFallback(localThumb, 162);
                 if (bmp is null) return;
 
                 _ = Dispatcher.BeginInvoke(() =>
@@ -700,14 +850,15 @@ public partial class MainWindow : Window
         try { await Task.WhenAll(tasks).ConfigureAwait(false); } catch { }
     }
 
-    private static BitmapImage? DecodeBitmapWithSkiaFallback(string path)
+    private static BitmapImage? DecodeBitmapWithSkiaFallback(string path, int decodeHeight = 162)
     {
         try
         {
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.UriSource = new Uri(path, UriKind.Absolute);
-            bmp.DecodePixelHeight = 140;
+            if (decodeHeight > 0)
+                bmp.DecodePixelHeight = decodeHeight;
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.EndInit();
             bmp.Freeze();
@@ -724,7 +875,8 @@ public partial class MainWindow : Window
                 using var ms = new MemoryStream(data.ToArray());
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
-                bmp.DecodePixelHeight = 140;
+                if (decodeHeight > 0)
+                    bmp.DecodePixelHeight = decodeHeight;
                 bmp.CacheOption = BitmapCacheOption.OnLoad;
                 bmp.StreamSource = ms;
                 bmp.EndInit();
@@ -742,25 +894,45 @@ public partial class MainWindow : Window
     {
         if (CloudList is null) return;
         string q = (TxtCloudSearch.Text ?? string.Empty).Trim();
+        var target = CmbCloudTargetScreen.SelectedItem as ScreenTargetItem;
+        string resKey = (CmbCloudResolution.SelectedItem as ResolutionFilterItem)?.Key ?? "ALL";
+
+        foreach (var item in _allCloudItems)
+        {
+            bool exact = target is not null &&
+                         ThemeLibraryScanner.EvaluateCompatibility(item.Model.Width, item.Model.Height, target.EffectiveWidth, target.EffectiveHeight) == ThemeCompatibility.Exact;
+            item.ExactVisibility = exact ? Visibility.Visible : Visibility.Collapsed;
+        }
 
         IEnumerable<CloudItemVm> seq = _allCloudItems;
-        if (CloudFilterVertical.IsChecked == true)
-            seq = seq.Where(x => x.Model.Orientation == ThemeOrientation.Vertical);
-        else if (CloudFilterHorizontal.IsChecked == true)
-            seq = seq.Where(x => x.Model.Orientation == ThemeOrientation.Horizontal);
-        else if (CloudFilterSquare.IsChecked == true)
-            seq = seq.Where(x => x.Model.Orientation == ThemeOrientation.Square);
-        else if (CloudFilterCompatible.IsChecked == true && CmbCloudTargetScreen.SelectedItem is ScreenTargetItem target)
+        if (CloudFilterCompatible.IsChecked == true && target is not null)
         {
-            seq = seq
-                .Where(x => x.Model.Orientation == target.EffectiveOrientation || x.Model.Orientation == ThemeOrientation.Unknown)
-                .OrderByDescending(x => (x.Model.Width == target.EffectiveWidth && x.Model.Height == target.EffectiveHeight) ||
-                                         (x.Model.Width == target.NativeWidth && x.Model.Height == target.NativeHeight))
-                .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
+            seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
         }
+        else if (CloudFilterVertical.IsChecked == true)
+            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.VerticalCompact);
+        else if (CloudFilterVerticalStrip.IsChecked == true)
+            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.VerticalStrip);
+        else if (CloudFilterHorizontal.IsChecked == true)
+            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.HorizontalCompact);
+        else if (CloudFilterHorizontalStrip.IsChecked == true)
+            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.HorizontalStrip);
+        else if (CloudFilterSquare.IsChecked == true)
+            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.Square);
+
+        if (resKey != "ALL")
+            seq = seq.Where(x => $"{x.Model.Width}x{x.Model.Height}" == resKey);
 
         if (!string.IsNullOrEmpty(q))
             seq = seq.Where(x => x.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || x.MetaText.Contains(q, StringComparison.OrdinalIgnoreCase));
+
+        if (target is not null)
+        {
+            seq = seq
+                .OrderByDescending(x => (int)ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight))
+                .ThenBy(x => AspectDelta(x.Model.Width, x.Model.Height, target))
+                .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
+        }
 
         CloudList.ItemsSource = seq.ToList();
     }
@@ -775,10 +947,17 @@ public partial class MainWindow : Window
     {
         if (!_isInitializing) ApplyCloudFilter();
     }
+    private void OnCloudResolutionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_isInitializing && !_isRefreshingUi) ApplyCloudFilter();
+    }
     private void OnCloudTargetScreenChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_isInitializing && !_isRefreshingUi && CloudFilterCompatible.IsChecked == true)
+        if (!_isInitializing && !_isRefreshingUi)
+        {
+            UpdateCloudFilterCounts();
             ApplyCloudFilter();
+        }
     }
     private void OnReloadCloudClick(object sender, RoutedEventArgs e) => _ = LoadCloudCatalogAsync();
 
@@ -818,5 +997,78 @@ public partial class MainWindow : Window
         {
             vm.CanClick = true;
         }
+    }
+
+    private void OnPreviewImageClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement fe) return;
+
+        ImageSource? fullImg = null;
+        string title = "";
+        string meta = "";
+
+        if (fe.Tag is GalleryItemVm g)
+        {
+            title = g.Name;
+            meta = g.MetaText;
+            if (!string.IsNullOrWhiteSpace(g.ThumbnailPath) && File.Exists(g.ThumbnailPath))
+                fullImg = DecodeBitmapWithSkiaFallback(g.ThumbnailPath, 0);
+            fullImg ??= g.ThumbnailImage;
+        }
+        else if (fe.Tag is CloudItemVm c)
+        {
+            title = c.Name;
+            meta = $"{c.Source} · {c.MetaText}";
+            if (!string.IsNullOrWhiteSpace(c.CachedThumbPath) && File.Exists(c.CachedThumbPath))
+                fullImg = DecodeBitmapWithSkiaFallback(c.CachedThumbPath, 0);
+            fullImg ??= c.ThumbnailImage;
+        }
+        else if (fe.Tag is ScreenItemVm s)
+        {
+            title = s.ScreenTitle;
+            meta = $"{s.ResolutionText} · {s.ThemeSummary}";
+            byte[]? png = _host.CapturePreviewPng(s.SerialNumber, 600);
+            if (png is not null && png.Length > 0)
+            {
+                var bmp = new BitmapImage();
+                using var ms = new MemoryStream(png);
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.StreamSource = ms;
+                bmp.EndInit();
+                bmp.Freeze();
+                fullImg = bmp;
+            }
+            fullImg ??= s.PreviewImage;
+        }
+
+        if (fullImg is null) return;
+
+        TxtLightboxTitle.Text = title;
+        TxtLightboxMeta.Text = meta;
+        ImgLightbox.Source = fullImg;
+        LightboxOverlay.Visibility = Visibility.Visible;
+        e.Handled = true;
+    }
+
+    private void OnLightboxClick(object sender, MouseButtonEventArgs e)
+    {
+        CloseLightbox();
+        e.Handled = true;
+    }
+
+    private void OnWindowPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && LightboxOverlay.Visibility == Visibility.Visible)
+        {
+            CloseLightbox();
+            e.Handled = true;
+        }
+    }
+
+    private void CloseLightbox()
+    {
+        LightboxOverlay.Visibility = Visibility.Collapsed;
+        ImgLightbox.Source = null;
     }
 }

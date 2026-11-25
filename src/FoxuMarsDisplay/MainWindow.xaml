@@ -7,7 +7,8 @@
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgObsidian}"
         Foreground="{StaticResource TextPrimary}"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI"
+        PreviewKeyDown="OnWindowPreviewKeyDown">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="46" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" />
     </shell:WindowChrome.WindowChrome>
@@ -15,12 +16,16 @@
     <Border BorderBrush="{StaticResource BorderHairline}" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="2" />
                 <RowDefinition Height="46" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
+            <!-- Top 2px Foxu x Mars Laser Accent Bar -->
+            <Border Grid.Row="0" Background="{StaticResource FoxuMarsGradient}" />
+
             <!-- Cyber-HUD Header -->
-            <Border Grid.Row="0" Background="#0A0E16" BorderBrush="{StaticResource BorderHairline}" BorderThickness="0,0,0,1" Padding="16,0">
+            <Border Grid.Row="1" Background="{StaticResource BgSurface}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="0,0,0,1" Padding="16,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -29,23 +34,22 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource MarsCrimson}" Margin="0,0,10,0" />
-                        <TextBlock Text="FOXU" FontSize="15" FontWeight="Bold" Foreground="{StaticResource FoxuCyan}" />
-                        <TextBlock Text=" // " FontSize="15" FontWeight="Bold" Foreground="{StaticResource MarsCrimson}" />
+                        <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource FoxuEmber}" Margin="0,0,10,0" />
+                        <TextBlock Text="FOXU" FontSize="15" FontWeight="Bold" Foreground="{StaticResource FoxuEmber}" />
+                        <TextBlock Text=" // " FontSize="15" FontWeight="Bold" Foreground="{StaticResource SolarGold}" />
                         <TextBlock Text="MARS DISPLAY" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
-                        <Border Background="#161E2E" BorderBrush="#26334D" BorderThickness="1" CornerRadius="4" Padding="7,2" Margin="12,0,0,0">
+                        <Border Background="#15121F" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="4" Padding="7,2" Margin="12,0,0,0">
                             <TextBlock x:Name="TxtHeaderStatus" Text="MOTOR ACTIVO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
                         </Border>
                     </StackPanel>
 
-                    <TextBlock x:Name="TxtQuickTelemetry"
-                               Grid.Column="1"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
-                               FontFamily="Consolas"
-                               FontSize="12"
-                               Foreground="{StaticResource TextMuted}"
-                               Text="CPU --°C | GPU --°C | RAM --%" />
+                    <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#15121F" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Padding="12,4">
+                        <TextBlock x:Name="TxtQuickTelemetry"
+                                   FontFamily="Consolas"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextPrimary}"
+                                   Text="CPU --°C | GPU --°C | RAM --%" />
+                    </Border>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True">
                         <Button x:Name="BtnElevate" Content="🛡️ Admin (PawnIO)" Height="28" Margin="0,0,8,0" Style="{StaticResource CyberButton}" Padding="10,0" Click="OnElevateClick" ToolTip="Reiniciar como Administrador para lectura completa de CPU (PawnIO)" />
@@ -57,14 +61,14 @@
             </Border>
 
             <!-- Body: Nav Rail + Content -->
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="196" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <!-- Left Nav Rail -->
-                <Border Grid.Column="0" Background="#0A0E16" BorderBrush="{StaticResource BorderHairline}" BorderThickness="0,0,1,0" Padding="0,14,0,14">
+                <Border Grid.Column="0" Background="{StaticResource BgSurface}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="0,0,1,0" Padding="0,14,0,14">
                     <DockPanel LastChildFill="False">
                         <StackPanel DockPanel.Dock="Top">
                             <RadioButton x:Name="NavScreens" Content="🖥️  Pantallas" IsChecked="True" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
@@ -76,7 +80,7 @@
 
                         <Border DockPanel.Dock="Bottom" Margin="12,0" Padding="10" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="6">
                             <StackPanel>
-                                <TextBlock Text="IPC NAMED PIPE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource FoxuCyan}" />
+                                <TextBlock Text="IPC NAMED PIPE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource FoxuEmber}" />
                                 <TextBlock Text="FoxuMarsDisplay_IPC_v1" FontSize="10" FontFamily="Consolas" Foreground="{StaticResource TextMuted}" Margin="0,2,0,0" />
                             </StackPanel>
                         </Border>
@@ -104,7 +108,7 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <!-- Live Hardware Bezel Preview -->
-                                                <Border Width="136" Height="164" Background="#05070B" BorderBrush="#26334D" BorderThickness="2" CornerRadius="6" Padding="4" Margin="0,0,16,0">
+                                                <Border Width="136" Height="164" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="2" CornerRadius="6" Padding="4" Margin="0,0,16,0" Cursor="Hand" ToolTip="Clic para ampliar" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
                                                     <Image Source="{Binding PreviewImage}" Stretch="Uniform" />
                                                 </Border>
 
@@ -112,10 +116,10 @@
                                                     <DockPanel Margin="0,0,0,6">
                                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding ScreenTitle}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
-                                                            <Border Background="#162236" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="10,0,0,0">
-                                                                <TextBlock Text="{Binding ResolutionText}" FontSize="12" FontWeight="Bold" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" />
+                                                            <Border Background="#211C2E" BorderBrush="{StaticResource FoxuEmber}" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="10,0,0,0">
+                                                                <TextBlock Text="{Binding ResolutionText}" FontSize="12" FontWeight="Bold" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" />
                                                             </Border>
-                                                            <Border Background="#161E2E" BorderBrush="#26334D" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="8,0,0,0">
+                                                            <Border Background="#1E182B" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="8,0,0,0">
                                                                 <TextBlock Text="{Binding OrientationLabel}" FontSize="11" FontWeight="Bold" Foreground="{Binding OrientationBrush}" />
                                                             </Border>
                                                         </StackPanel>
@@ -178,12 +182,13 @@
 
                         <DockPanel Margin="0,0,0,10">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="GALERÍA UNIFICADA" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,16,0" />
-                                <TextBox x:Name="TxtGallerySearch" Width="240" Padding="8,5" Background="#0E131D" Foreground="#F1F5F9" BorderBrush="#26334D" TextChanged="OnGallerySearchChanged" />
+                                <TextBlock Text="GALERÍA UNIFICADA" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <TextBox x:Name="TxtGallerySearch" Width="190" TextChanged="OnGallerySearchChanged" Margin="0,0,8,0" />
+                                <ComboBox x:Name="CmbGalleryResolution" Width="150" DisplayMemberPath="Label" SelectionChanged="OnGalleryResolutionChanged" />
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <TextBlock Text="Destino:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
-                                <ComboBox x:Name="CmbTargetScreen" Width="280" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnTargetScreenChanged">
+                                <ComboBox x:Name="CmbTargetScreen" Width="260" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnTargetScreenChanged">
                                     <ComboBox.ItemContainerStyle>
                                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                                             <Setter Property="ToolTip" Value="{Binding ToolTipText}" />
@@ -194,14 +199,16 @@
                             </StackPanel>
                         </DockPanel>
 
-                        <!-- Orientation Filter Pills -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
-                            <RadioButton x:Name="FilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
-                            <RadioButton x:Name="FilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
-                            <RadioButton x:Name="FilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
-                            <RadioButton x:Name="FilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
-                            <RadioButton x:Name="FilterCompatible" Content="🎯 Para pantalla destino" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" />
-                        </StackPanel>
+                        <!-- Form-Factor & Compatibility Filter Pills -->
+                        <WrapPanel Grid.Row="1" Margin="0,0,0,10">
+                            <RadioButton x:Name="FilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                            <RadioButton x:Name="FilterCompatible" Content="🎯 Para mi pantalla (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                            <RadioButton x:Name="FilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                            <RadioButton x:Name="FilterVerticalStrip" Content="📏 Barra V (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                            <RadioButton x:Name="FilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                            <RadioButton x:Name="FilterHorizontalStrip" Content="📐 Barra H (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                            <RadioButton x:Name="FilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                        </WrapPanel>
 
                         <ListBox x:Name="GalleryList" Grid.Row="2" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemsPanel>
@@ -226,19 +233,22 @@
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="216" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="10">
+                                    <Border Width="216" Style="{StaticResource ThemeCardBorder}">
                                         <StackPanel>
-                                            <Border Height="136" Background="#05070B" BorderBrush="#1F293D" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True">
+                                            <Border Height="162" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True" Cursor="Hand" ToolTip="Clic para ampliar" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
                                                 <Grid>
-                                                    <TextBlock Text="{Binding MetaText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="#475569" TextWrapping="Wrap" TextAlignment="Center" Margin="8" />
+                                                    <TextBlock Text="{Binding MetaText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="#4A3F63" TextWrapping="Wrap" TextAlignment="Center" Margin="8" />
                                                     <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" />
-                                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0A0E16" BorderBrush="#26334D" BorderThickness="1">
+                                                    <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0F291E" BorderBrush="{StaticResource EmeraldLive}" BorderThickness="1" Visibility="{Binding ExactVisibility}">
+                                                        <TextBlock Text="★ EXACTO" FontSize="9" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
+                                                    </Border>
+                                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC13111A" BorderBrush="#2E273F" BorderThickness="1">
                                                         <TextBlock Text="{Binding OrientationBadge}" FontSize="9" FontWeight="Bold" Foreground="{Binding OrientationBrush}" />
                                                     </Border>
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding MetaText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" Margin="0,3,0,8" />
+                                            <TextBlock Text="{Binding MetaText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Margin="0,3,0,8" />
                                             <Button Content="Aplicar en Pantalla" Style="{StaticResource CyberButton}" Tag="{Binding}" Click="OnApplyGalleryThemeClick" />
                                         </StackPanel>
                                     </Border>
@@ -257,17 +267,18 @@
 
                         <DockPanel Margin="0,0,0,10">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="TIENDA DE TEMAS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
-                                <TextBox x:Name="TxtCloudSearch" Width="200" Padding="8,5" Background="#0E131D" Foreground="#F1F5F9" BorderBrush="#26334D" TextChanged="OnCloudSearchChanged" Margin="0,0,8,0" />
-                                <ComboBox x:Name="CmbCloudSource" Width="210" SelectionChanged="OnCloudSourceChanged">
-                                    <ComboBoxItem Content="SOEYI Oficial (Auto + Fallback HF)" IsSelected="True" />
+                                <TextBlock Text="TIENDA DE TEMAS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <TextBox x:Name="TxtCloudSearch" Width="150" TextChanged="OnCloudSearchChanged" Margin="0,0,8,0" />
+                                <ComboBox x:Name="CmbCloudSource" Width="195" SelectionChanged="OnCloudSourceChanged" Margin="0,0,8,0">
+                                    <ComboBoxItem Content="SOEYI Oficial (Auto + HF)" IsSelected="True" />
                                     <ComboBoxItem Content="HuggingFace (SnakeFoxu)" />
                                     <ComboBoxItem Content="Ambas fuentes (SOEYI + HF)" />
                                 </ComboBox>
+                                <ComboBox x:Name="CmbCloudResolution" Width="145" DisplayMemberPath="Label" SelectionChanged="OnCloudResolutionChanged" />
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <TextBlock Text="Destino:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
-                                <ComboBox x:Name="CmbCloudTargetScreen" Width="250" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnCloudTargetScreenChanged">
+                                <TextBlock Text="Destino:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0" />
+                                <ComboBox x:Name="CmbCloudTargetScreen" Width="225" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnCloudTargetScreenChanged">
                                     <ComboBox.ItemContainerStyle>
                                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                                             <Setter Property="ToolTip" Value="{Binding ToolTipText}" />
@@ -278,15 +289,17 @@
                             </StackPanel>
                         </DockPanel>
 
-                        <DockPanel Grid.Row="1" Margin="0,0,0,12">
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton x:Name="CloudFilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
-                                <RadioButton x:Name="CloudFilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
-                                <RadioButton x:Name="CloudFilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
-                                <RadioButton x:Name="CloudFilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
-                                <RadioButton x:Name="CloudFilterCompatible" Content="🎯 Para pantalla destino" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" />
-                            </StackPanel>
-                            <TextBlock x:Name="TxtCloudStatus" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" Text="Listo" />
+                        <DockPanel Grid.Row="1" Margin="0,0,0,10">
+                            <TextBlock x:Name="TxtCloudStatus" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Text="Listo" Margin="10,0,0,0" />
+                            <WrapPanel>
+                                <RadioButton x:Name="CloudFilterCompatible" Content="🎯 Para mi pantalla (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                                <RadioButton x:Name="CloudFilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                                <RadioButton x:Name="CloudFilterVerticalStrip" Content="📏 Barra V (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                                <RadioButton x:Name="CloudFilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                                <RadioButton x:Name="CloudFilterHorizontalStrip" Content="📐 Barra H (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                                <RadioButton x:Name="CloudFilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                                <RadioButton x:Name="CloudFilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                            </WrapPanel>
                         </DockPanel>
 
                         <ListBox x:Name="CloudList" Grid.Row="2" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -312,22 +325,27 @@
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="216" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="10">
+                                    <Border Width="216" Style="{StaticResource ThemeCardBorder}">
                                         <StackPanel>
-                                            <Border Height="136" Background="#05070B" BorderBrush="#1F293D" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True">
+                                            <Border Height="162" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True" Cursor="Hand" ToolTip="Clic para ampliar" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
                                                 <Grid>
-                                                    <TextBlock Text="{Binding MetaText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="#475569" TextWrapping="Wrap" TextAlignment="Center" Margin="8" />
+                                                    <TextBlock Text="{Binding MetaText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="#4A3F63" TextWrapping="Wrap" TextAlignment="Center" Margin="8" />
                                                     <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" />
-                                                    <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0A0E16" BorderBrush="#26334D" BorderThickness="1">
-                                                        <TextBlock Text="{Binding Source}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource MarsCrimson}" />
-                                                    </Border>
-                                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0A0E16" BorderBrush="#26334D" BorderThickness="1">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6">
+                                                        <Border Padding="6,2" CornerRadius="4" Background="#CC13111A" BorderBrush="#2E273F" BorderThickness="1">
+                                                            <TextBlock Text="{Binding Source}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource MarsCrimson}" />
+                                                        </Border>
+                                                        <Border Margin="4,0,0,0" Padding="6,2" CornerRadius="4" Background="#CC0F291E" BorderBrush="{StaticResource EmeraldLive}" BorderThickness="1" Visibility="{Binding ExactVisibility}">
+                                                            <TextBlock Text="★ EXACTO" FontSize="9" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC13111A" BorderBrush="#2E273F" BorderThickness="1">
                                                         <TextBlock Text="{Binding OrientationBadge}" FontSize="9" FontWeight="Bold" Foreground="{Binding OrientationBrush}" />
                                                     </Border>
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding MetaText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource FoxuCyan}" Margin="0,3,0,8" />
+                                            <TextBlock Text="{Binding MetaText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Margin="0,3,0,8" />
                                             <Button Content="{Binding ActionText}" IsEnabled="{Binding CanClick}" Style="{StaticResource CyberButton}" Tag="{Binding}" Click="OnDownloadAndApplyCloudClick" />
                                         </StackPanel>
                                     </Border>
@@ -350,14 +368,14 @@
                                 </Border>
                                 <Border Width="260" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,12,12">
                                     <StackPanel>
-                                        <TextBlock Text="GPU (NVML)" FontSize="12" FontWeight="Bold" Foreground="{StaticResource FoxuCyan}" />
+                                        <TextBlock Text="GPU (NVML)" FontSize="12" FontWeight="Bold" Foreground="{StaticResource SolarGold}" />
                                         <TextBlock x:Name="TxtTelGpuTemp" Text="-- °C" FontSize="28" FontWeight="Bold" FontFamily="Consolas" Foreground="{StaticResource TextPrimary}" Margin="0,6,0,2" />
                                         <TextBlock x:Name="TxtTelGpuSub" Text="Uso: --% | Potencia: -- W" FontSize="12" Foreground="{StaticResource TextMuted}" />
                                     </StackPanel>
                                 </Border>
                                 <Border Width="260" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,12,12">
                                     <StackPanel>
-                                        <TextBlock Text="MEMORIA &amp; RED" FontSize="12" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
+                                        <TextBlock Text="MEMORIA &amp; RED" FontSize="12" FontWeight="Bold" Foreground="{StaticResource PlasmaViolet}" />
                                         <TextBlock x:Name="TxtTelRam" Text="-- %" FontSize="28" FontWeight="Bold" FontFamily="Consolas" Foreground="{StaticResource TextPrimary}" Margin="0,6,0,2" />
                                         <TextBlock x:Name="TxtTelNet" Text="↓ -- KB/s | ↑ -- KB/s" FontSize="12" Foreground="{StaticResource TextMuted}" />
                                     </StackPanel>
@@ -389,6 +407,46 @@
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
+            </Grid>
+
+            <!-- Click-to-Zoom Full-Resolution Lightbox Overlay -->
+            <Grid x:Name="LightboxOverlay"
+                  Grid.Row="1" Grid.RowSpan="2"
+                  Background="#E60B0A0F"
+                  Visibility="Collapsed"
+                  Cursor="Hand"
+                  MouseLeftButtonUp="OnLightboxClick">
+                <Border Background="#171421"
+                        BorderBrush="{StaticResource FoxuEmber}"
+                        BorderThickness="2"
+                        CornerRadius="10"
+                        Padding="14"
+                        MaxWidth="960"
+                        MaxHeight="680"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtLightboxTitle" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
+                                <TextBlock x:Name="TxtLightboxMeta" FontSize="12" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Text="Clic en la imagen o Esc para cerrar"
+                                       FontSize="11"
+                                       Foreground="{StaticResource TextMuted}" />
+                        </DockPanel>
+
+                        <Border Grid.Row="1" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Padding="6">
+                            <Image x:Name="ImgLightbox" Stretch="Uniform" MaxHeight="580" MaxWidth="900" />
+                        </Border>
+                    </Grid>
+                </Border>
             </Grid>
         </Grid>
     </Border>
