@@ -310,22 +310,21 @@ public sealed class DisplayHost : IDisposable
         var profile = FoxuDisplayConfigStore.GetOrCreateProfile(Config, device.SerialNumber);
         var session = new ScreenSession(device, profile);
 
+        DisplayTheme? theme = null;
         if (!string.IsNullOrWhiteSpace(profile.ThemePath))
-        {
-            var theme = UnifiedThemeLoader.Load(profile.ThemePath, profile.SchemeJsonPath);
-            if (theme is not null)
-            {
-                session.Theme = theme;
-                session.Renderer = new SkiaThemeRenderer(
-                    theme,
-                    device.NativeWidth,
-                    device.NativeHeight,
-                    _targetFps,
-                    profile.Brightness,
-                    profile.Rotation,
-                    _customCacheDir);
-            }
-        }
+            theme = UnifiedThemeLoader.Load(profile.ThemePath, profile.SchemeJsonPath);
+
+        theme ??= UnifiedThemeLoader.CreateBuiltInDefaultTheme(device.NativeWidth, device.NativeHeight);
+
+        session.Theme = theme;
+        session.Renderer = new SkiaThemeRenderer(
+            theme,
+            device.NativeWidth,
+            device.NativeHeight,
+            _targetFps,
+            profile.Brightness,
+            profile.Rotation,
+            _customCacheDir);
 
         _sessions[device.Handle] = session;
         StateChanged?.Invoke();

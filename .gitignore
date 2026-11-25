@@ -9,3 +9,4 @@ cache/
 WinUsbDisplay/
 dist/
 payload.zip
+vendor/

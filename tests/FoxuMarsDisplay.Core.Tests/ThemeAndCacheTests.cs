@@ -129,4 +129,20 @@ public sealed class ThemeAndCacheTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    [Fact]
+    public void BuiltInDefaultTheme_RendersCleanlyForBothResolutions()
+    {
+        foreach (var (w, h) in new[] { (240, 320), (360, 960) })
+        {
+            var theme = UnifiedThemeLoader.CreateBuiltInDefaultTheme(w, h);
+            Assert.Equal("FoxuCyberHUD", theme.Name);
+            using var renderer = new SkiaThemeRenderer(theme, w, h);
+            var snap = new SensorSnapshot { CpuTemp = 41.5f, CpuUsage = 18f, GpuTemp = 32f, GpuUsage = 10f, MemoryUsagePct = 40f, Now = DateTime.Now };
+            Assert.True(renderer.RenderIfDirty(snap, 100));
+            byte[]? png = renderer.CopyPreviewPngBytes(120);
+            Assert.NotNull(png);
+            Assert.True(png!.Length > 100);
+        }
+    }
 }

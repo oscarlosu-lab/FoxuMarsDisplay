@@ -641,4 +641,104 @@ public static class UnifiedThemeLoader
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return Path.Combine(localAppData, "FoxuMarsDisplay", "cache", kind, hash);
     }
+
+    public static DisplayTheme CreateBuiltInDefaultTheme(int width, int height)
+    {
+        float w = Math.Max(160, width);
+        float h = Math.Max(160, height);
+        float scale = Math.Min(w / 240f, h / 320f);
+        scale = Math.Clamp(scale, 0.85f, 1.8f);
+        float pad = 14f * scale;
+        float barW = w - (pad * 2f);
+        float barH = Math.Max(6f, 8f * scale);
+
+        var theme = new DisplayTheme
+        {
+            Name = "FoxuCyberHUD",
+            CanvasWidth = w,
+            CanvasHeight = h,
+            DisplayDirection = 0
+        };
+
+        // Header
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = pad, Y = pad, ZIndex = 1, FontSize = 14f * scale,
+            Color = SKColor.Parse("#00E5FF"), IsStaticText = true, StaticContent = "FOXU // MARS"
+        });
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = pad, Y = pad + 22f * scale, ZIndex = 1, FontSize = 24f * scale,
+            Color = SKColors.White, SensorKey = "Time"
+        });
+
+        // CPU
+        float cpuY = h * 0.28f;
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = pad, Y = cpuY, ZIndex = 1, FontSize = 12f * scale,
+            Color = SKColor.Parse("#FF1E42"), IsStaticText = true, StaticContent = "CPU"
+        });
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = pad, Y = cpuY + 16f * scale, ZIndex = 1, FontSize = 26f * scale,
+            Color = SKColors.White, SensorKey = "CpuTemp", Unit = "°C"
+        });
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = w * 0.56f, Y = cpuY + 20f * scale, ZIndex = 1, FontSize = 18f * scale,
+            Color = SKColor.Parse("#8A99B0"), SensorKey = "CpuUsage", Unit = "%"
+        });
+        theme.BarWidgets.Add(new BarWidgetSpec
+        {
+            X = pad, Y = cpuY + 50f * scale, ZIndex = 1, MaxWidth = barW, MaxHeight = barH,
+            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#FF1E42"),
+            BackColor = SKColor.Parse("#1F293D"), SensorKey = "CpuUsage"
+        });
+
+        // GPU
+        float gpuY = h * 0.53f;
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = pad, Y = gpuY, ZIndex = 1, FontSize = 12f * scale,
+            Color = SKColor.Parse("#00E5FF"), IsStaticText = true, StaticContent = "GPU"
+        });
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = pad, Y = gpuY + 16f * scale, ZIndex = 1, FontSize = 26f * scale,
+            Color = SKColors.White, SensorKey = "GpuTemp", Unit = "°C"
+        });
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = w * 0.56f, Y = gpuY + 20f * scale, ZIndex = 1, FontSize = 18f * scale,
+            Color = SKColor.Parse("#8A99B0"), SensorKey = "GpuUsage", Unit = "%"
+        });
+        theme.BarWidgets.Add(new BarWidgetSpec
+        {
+            X = pad, Y = gpuY + 50f * scale, ZIndex = 1, MaxWidth = barW, MaxHeight = barH,
+            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#00E5FF"),
+            BackColor = SKColor.Parse("#1F293D"), SensorKey = "GpuUsage"
+        });
+
+        // RAM
+        float ramY = h * 0.78f;
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = pad, Y = ramY, ZIndex = 1, FontSize = 12f * scale,
+            Color = SKColor.Parse("#10B981"), IsStaticText = true, StaticContent = "RAM"
+        });
+        theme.TextWidgets.Add(new TextWidgetSpec
+        {
+            X = w * 0.56f, Y = ramY - 2f * scale, ZIndex = 1, FontSize = 16f * scale,
+            Color = SKColors.White, SensorKey = "MemoryUsage", Unit = "%"
+        });
+        theme.BarWidgets.Add(new BarWidgetSpec
+        {
+            X = pad, Y = ramY + 20f * scale, ZIndex = 1, MaxWidth = barW, MaxHeight = barH,
+            MaxNum = 100f, CornerRadius = 3f, FillColor = SKColor.Parse("#10B981"),
+            BackColor = SKColor.Parse("#1F293D"), SensorKey = "MemoryUsage"
+        });
+
+        return theme;
+    }
 }

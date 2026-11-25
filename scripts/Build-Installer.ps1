@@ -23,6 +23,16 @@ try {
     Copy-Item "$appOut\*" $stage -Recurse -Force
     Copy-Item "$launcherOut\FoxuMarsDisplay.Launcher.*" $stage -Force
 
+    $stageNative = Join-Path $stage "native\x64"
+    $vendorNative = Join-Path $root "vendor\native\x64"
+    if (Test-Path $vendorNative) {
+        New-Item -ItemType Directory -Path $stageNative -Force | Out-Null
+        Copy-Item "$vendorNative\*.dll" $stageNative -Force
+    }
+    if (!(Test-Path (Join-Path $stageNative "MSDISPLAYSDKWRRAPER.dll"))) {
+        throw "MSDISPLAYSDKWRRAPER.dll missing from $stageNative"
+    }
+
     if (Test-Path $payloadZip) { Remove-Item $payloadZip -Force }
     Compress-Archive -Path "$stage\*" -DestinationPath $payloadZip -CompressionLevel Optimal
 
