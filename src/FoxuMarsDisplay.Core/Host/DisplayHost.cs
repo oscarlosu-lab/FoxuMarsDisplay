@@ -312,7 +312,16 @@ public sealed class DisplayHost : IDisposable
 
         DisplayTheme? theme = null;
         if (!string.IsNullOrWhiteSpace(profile.ThemePath))
-            theme = UnifiedThemeLoader.Load(profile.ThemePath, profile.SchemeJsonPath);
+        {
+            try
+            {
+                theme = UnifiedThemeLoader.Load(profile.ThemePath, profile.SchemeJsonPath);
+            }
+            catch
+            {
+                theme = null;
+            }
+        }
 
         theme ??= UnifiedThemeLoader.CreateBuiltInDefaultTheme(device.NativeWidth, device.NativeHeight);
 

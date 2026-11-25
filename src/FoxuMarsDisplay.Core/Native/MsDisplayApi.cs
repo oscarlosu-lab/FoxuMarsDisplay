@@ -18,10 +18,11 @@ public static class MsDisplayApi
 
     private static IntPtr ResolveNativeLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (!string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(libraryName, "AicUsbDisplay.dll", StringComparison.OrdinalIgnoreCase))
             return IntPtr.Zero;
 
-        foreach (var candidate in GetCandidateDllPaths(DllName))
+        foreach (var candidate in GetCandidateDllPaths(libraryName))
         {
             if (File.Exists(candidate) && NativeLibrary.TryLoad(candidate, out var handle))
                 return handle;

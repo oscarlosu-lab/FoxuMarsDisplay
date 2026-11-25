@@ -12,21 +12,8 @@ public static class AicDisplayApi
 
     static AicDisplayApi()
     {
-        NativeLibrary.SetDllImportResolver(typeof(AicDisplayApi).Assembly, ResolveNativeLibrary);
-    }
-
-    private static IntPtr ResolveNativeLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
-    {
-        if (!string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
-            return IntPtr.Zero;
-
-        foreach (var candidate in MsDisplayApi.GetCandidateDllPaths(DllName))
-        {
-            if (File.Exists(candidate) && NativeLibrary.TryLoad(candidate, out var handle))
-                return handle;
-        }
-
-        return IntPtr.Zero;
+        // Ensure MsDisplayApi's single assembly-level DllImportResolver is initialized.
+        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(MsDisplayApi).TypeHandle);
     }
 
     [StructLayout(LayoutKind.Sequential)]
