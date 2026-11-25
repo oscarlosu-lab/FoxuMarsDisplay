@@ -13,7 +13,7 @@ Every feature or fix passes four mandatory gates before release:
 1. **Build Gate**: `dotnet build FoxuMarsDisplay.slnx -c Release` must complete with `0` errors across all 5 projects (`Core`, `Cli`, `FoxuMarsDisplay`, `Launcher`, `Setup`).
 2. **Test Gate**: `dotnet test tests/FoxuMarsDisplay.Core.Tests/FoxuMarsDisplay.Core.Tests.csproj -c Release` must achieve `100%` pass rate (unit, theme parser, config, i18n, and renderer tests).
 3. **Hardware Verification Gate**: Dual-screen USB stability test (`240×320` AIO + `360×960` vertical panel) targeting `< 1%` CPU, `~60 MB` RAM, and `0` USB send errors with 2 Hz keep-alive active.
-4. **Release & Security Gate**: Zero-Leak audit (`git grep` clean), `.\scripts\Build-Installer.ps1` producing `FoxuMarsDisplay_Setup.exe`, and SHA-256 verification.
+4. **Release & Security Gate**: Clean-source verification, `.\scripts\Build-Installer.ps1` producing `FoxuMarsDisplay_Setup.exe`, and SHA-256 checksums.
 
 ---
 
