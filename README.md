@@ -1,21 +1,21 @@
 <p align="center">
-  <img src="docs/images/hero-banner.png" alt="FoxuMarsDisplay - open-source SOEYI replacement for Mars Gaming VMAX USB LCD screens" width="100%">
+  <img src="docs/images/hero-banner.png" alt="FoxuMarsDisplay - source-available SOEYI replacement for Mars Gaming VMAX USB LCD screens" width="100%">
 </p>
 
-# FoxuMarsDisplay — Open-Source SOEYI Alternative for Mars Gaming VMAX & USB LCD PC Case Screens
+# FoxuMarsDisplay — Source-Available SOEYI Alternative for Mars Gaming VMAX & USB LCD PC Case Screens
 
 🌐 **Language:** **English** | [Español](README_ES.md)
 
 [![Release](https://img.shields.io/github/v/release/oscarlosu-lab/FoxuMarsDisplay?color=FF6419&label=release)](https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/oscarlosu-lab/FoxuMarsDisplay/total?color=FF1F4B)](https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-FFB820)](LICENSE)
+[![License: Proprietary v1.0](https://img.shields.io/badge/license-Proprietary%20v1.0-FFB820)](LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)](#download--install)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](#build--test-from-source)
 [![SkiaSharp](https://img.shields.io/badge/render-SkiaSharp-B57BFF)](#key-features)
 [![Languages](https://img.shields.io/badge/languages-5%20auto--detected-3EE08F)](#key-features)
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/oscarlosu)
 
-> **FoxuMarsDisplay** is a free, open-source, ultra-lightweight Windows engine that drives **Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132** and **AIC** USB LCD / IPS screens (PC case displays, AIO cooler screens) — with a built-in **cloud theme store (233+ official themes)**, **zero-UAC permanent install**, **~0.6 % CPU**, **~60 MB RAM** and **5 auto-detected languages**. No SOEYI software required.
+> **FoxuMarsDisplay** is a free for personal use, source-available, ultra-lightweight Windows engine that drives **Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132** and **AIC** USB LCD / IPS screens (PC case displays, AIO cooler screens) — with a built-in **cloud theme store (233+ official themes)**, **zero-UAC permanent install**, **~0.6 % CPU**, **~60 MB RAM** and **5 auto-detected languages**. No SOEYI software required.
 
 ---
 
@@ -58,7 +58,7 @@
 | Built-in theme store | no | **233+ official + HuggingFace mirror** |
 | Orientation / resolution filters + zoom preview | no | **Yes** |
 | UI languages | limited | **5, auto-detected from Windows** |
-| Open source | no | **Yes (MIT)** |
+| Source-available | no | **Yes (Proprietary v1.0)** |
 
 *Measured on a real dual-screen setup (240×320 AIO + 360×960 vertical panel), 0 USB send errors.*
 
@@ -122,4 +122,4 @@ If this saved you from the stock software, consider supporting development:
 
 ## License & Disclaimer
 
-[LICENSE](LICENSE). Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX; all trademarks belong to their owners. Official themes are downloaded from their public source at the user's request.
+[FoxuMarsDisplay Proprietary License v1.0](LICENSE) — Source-available, free for personal non-commercial use. **NOT Open Source.** Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX; all trademarks belong to their owners. Official themes are downloaded from their public source at the user's request.

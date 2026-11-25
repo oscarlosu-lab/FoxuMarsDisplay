@@ -1,21 +1,21 @@
 <p align="center">
-  <img src="docs/images/hero-banner.png" alt="FoxuMarsDisplay - alternativa open source a SOEYI para pantallas USB LCD Mars Gaming VMAX" width="100%">
+  <img src="docs/images/hero-banner.png" alt="FoxuMarsDisplay - alternativa source-available a SOEYI para pantallas USB LCD Mars Gaming VMAX" width="100%">
 </p>
 
-# FoxuMarsDisplay — Alternativa Open Source a SOEYI para Mars Gaming VMAX y Pantallas LCD USB de Caja de PC
+# FoxuMarsDisplay — Alternativa Source-Available a SOEYI para Mars Gaming VMAX y Pantallas LCD USB de Caja de PC
 
 🌐 **Idioma:** [English](README.md) | **Español**
 
 [![Release](https://img.shields.io/github/v/release/oscarlosu-lab/FoxuMarsDisplay?color=FF6419&label=release)](https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases/latest)
 [![Descargas](https://img.shields.io/github/downloads/oscarlosu-lab/FoxuMarsDisplay/total?color=FF1F4B)](https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases)
-[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-FFB820)](LICENSE)
+[![Licencia: Propietaria v1.0](https://img.shields.io/badge/licencia-Propietaria%20v1.0-FFB820)](LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)](#descarga-e-instalación)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](#compilar-y-probar-desde-el-código)
 [![SkiaSharp](https://img.shields.io/badge/render-SkiaSharp-B57BFF)](#características)
 [![Idiomas](https://img.shields.io/badge/idiomas-5%20autodetectados-3EE08F)](#características)
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/oscarlosu)
 
-> **FoxuMarsDisplay** es un motor gratuito, open source y ultra ligero para Windows que controla pantallas USB LCD / IPS **Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132** y **AIC** (pantallas de caja de PC y de refrigeración líquida AIO) — con **tienda de temas integrada (233+ temas oficiales)**, **instalación permanente sin UAC**, **~0,6 % de CPU**, **~60 MB de RAM** y **5 idiomas autodetectados**. No necesitas el software de SOEYI.
+> **FoxuMarsDisplay** es un motor gratuito para uso personal, source-available y ultra ligero para Windows que controla pantallas USB LCD / IPS **Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132** y **AIC** (pantallas de caja de PC y de refrigeración líquida AIO) — con **tienda de temas integrada (233+ temas oficiales)**, **instalación permanente sin UAC**, **~0,6 % de CPU**, **~60 MB de RAM** y **5 idiomas autodetectados**. No necesitas el software de SOEYI.
 
 ---
 
@@ -58,7 +58,7 @@
 | Tienda de temas integrada | no | **233+ oficiales + espejo HuggingFace** |
 | Filtros de orientación / resolución y zoom | no | **Sí** |
 | Idiomas | limitados | **5, autodetectados del sistema** |
-| Código abierto | no | **Sí (MIT)** |
+| Código visible (Source-Available) | no | **Sí (Propietaria v1.0)** |
 
 *Medido en un equipo real con dos pantallas (AIO 240×320 + panel vertical 360×960), 0 errores de envío USB.*
 
@@ -122,4 +122,4 @@ Si te ha librado del software original, puedes apoyar el desarrollo:
 
 ## Licencia y aviso legal
 
-[MIT](LICENSE). Sin afiliación con Mars Gaming, SOEYI, MacroSilicon ni TURZX; todas las marcas pertenecen a sus propietarios. Los temas oficiales se descargan de su fuente pública a petición del usuario.
+[FoxuMarsDisplay Proprietary License v1.0](LICENSE) — Source-available, gratuito para uso personal no comercial. **NO es Open Source.** Sin afiliación con Mars Gaming, SOEYI, MacroSilicon ni TURZX; todas las marcas pertenecen a sus propietarios. Los temas oficiales se descargan de su fuente pública a petición del usuario.
