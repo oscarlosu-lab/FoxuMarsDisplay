@@ -1,4 +1,7 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
+using System.Security.Principal;
 using System.Windows;
 using FoxuMarsDisplay.Core.Config;
 using FoxuMarsDisplay.Core.Host;
@@ -17,6 +20,19 @@ public partial class App : System.Windows.Application
 
     public DisplayHost Host => _host ?? throw new InvalidOperationException("DisplayHost not initialized.");
 
+    public static bool IsElevated()
+    {
+        try
+        {
+            using var id = WindowsIdentity.GetCurrent();
+            return new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -33,16 +49,58 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        var store = new FoxuDisplayConfigStore();
-        var config = store.LoadOrImportSoeyi();
-        _host = new DisplayHost(configStore: store, config: config);
-        _host.Start(dryRun: false, enableIpc: true);
-
+        StartHost();
         InitTrayIcon();
 
         bool startInTray = e.Args.Any(a => a.Equals("--tray", StringComparison.OrdinalIgnoreCase));
         if (!startInTray)
             ShowMainWindow();
+    }
+
+    private void StartHost()
+    {
+        var store = new FoxuDisplayConfigStore();
+        var config = store.LoadOrImportSoeyi();
+        _host = new DisplayHost(configStore: store, config: config);
+        _host.Start(dryRun: false, enableIpc: true);
+    }
+
+    public void RestartElevated()
+    {
+        string? exePath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(exePath)) return;
+
+        // Release USB handles and single-instance mutex so the elevated child can take over cleanly.
+        try { _host?.Stop(); _host?.Dispose(); } catch { }
+        _host = null;
+        try { _singleInstanceMutex?.ReleaseMutex(); _singleInstanceMutex?.Dispose(); } catch { }
+        _singleInstanceMutex = null;
+
+        try
+        {
+            var proc = Process.Start(new ProcessStartInfo
+            {
+                FileName = exePath,
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+
+            if (proc is not null)
+            {
+                try { _mainWindow?.ForceClose(); } catch { }
+                try { _trayIcon?.Dispose(); } catch { }
+                _trayIcon = null;
+                Shutdown();
+                return;
+            }
+        }
+        catch (Win32Exception)
+        {
+            // User canceled UAC prompt: recover mutex and host so screens keep running.
+        }
+
+        _singleInstanceMutex = new Mutex(true, MutexName, out _);
+        StartHost();
     }
 
     public void ShowMainWindow()

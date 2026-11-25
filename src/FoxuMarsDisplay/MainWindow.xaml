@@ -48,6 +48,7 @@
                                Text="CPU --°C | GPU --°C | RAM --%" />
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button x:Name="BtnElevate" Content="🛡️ Admin (PawnIO)" Height="28" Margin="0,0,8,0" Style="{StaticResource CyberButton}" Padding="10,0" Click="OnElevateClick" ToolTip="Reiniciar como Administrador para lectura completa de CPU (PawnIO)" />
                         <Button Content="─" Width="34" Height="28" Margin="0,0,4,0" Style="{StaticResource CyberButton}" Padding="0" Click="OnMinimizeClick" ToolTip="Minimizar a bandeja" />
                         <Button Content="□" Width="34" Height="28" Margin="0,0,4,0" Style="{StaticResource CyberButton}" Padding="0" Click="OnMaximizeClick" ToolTip="Maximizar / Restaurar" />
                         <Button Content="✕" Width="34" Height="28" Style="{StaticResource AccentButton}" Padding="0" Click="OnCloseClick" ToolTip="Cerrar a bandeja" />

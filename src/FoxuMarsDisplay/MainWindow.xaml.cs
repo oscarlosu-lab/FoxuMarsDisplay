@@ -94,6 +94,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         _host = host;
 
+        BtnElevate.Visibility = App.IsElevated() ? Visibility.Collapsed : Visibility.Visible;
         ScreensList.ItemsSource = _screenItems;
 
         LoadSystemSettings();
@@ -255,6 +256,11 @@ public partial class MainWindow : Window
         PageGallery.Visibility = NavGallery.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageTelemetry.Visibility = NavTelemetry.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageSystem.Visibility = NavSystem.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnElevateClick(object sender, RoutedEventArgs e)
+    {
+        ((App)System.Windows.Application.Current).RestartElevated();
     }
 
     private void OnMinimizeClick(object sender, RoutedEventArgs e) => Hide();
