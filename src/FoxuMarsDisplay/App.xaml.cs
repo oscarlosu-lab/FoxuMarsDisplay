@@ -19,6 +19,7 @@ public partial class App : System.Windows.Application
 
     private Mutex? _singleInstanceMutex;
     private WinForms.NotifyIcon? _trayIcon;
+    private Icon? _trayCustomIcon;
     private DisplayHost? _host;
     private MainWindow? _mainWindow;
 
@@ -146,14 +147,36 @@ public partial class App : System.Windows.Application
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(LocalizationService.T("Str_TrayExit"), null, (_, _) => Dispatcher.Invoke(ExitApplication));
 
+        _trayCustomIcon = LoadAppIcon();
         _trayIcon = new WinForms.NotifyIcon
         {
             Text = "FoxuMarsDisplay — Cyber-HUD USB Engine",
-            Icon = SystemIcons.Application,
+            Icon = _trayCustomIcon ?? SystemIcons.Application,
             ContextMenuStrip = menu,
             Visible = true
         };
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowMainWindow);
+    }
+
+    private static Icon? LoadAppIcon()
+    {
+        try
+        {
+            var sri = GetResourceStream(new Uri("pack://application:,,,/FoxuMarsDisplay;component/Resources/foxu_mars_icon.ico", UriKind.Absolute));
+            if (sri?.Stream is not null)
+                return new Icon(sri.Stream);
+        }
+        catch { }
+
+        try
+        {
+            string? exe = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exe) && File.Exists(exe))
+                return Icon.ExtractAssociatedIcon(exe);
+        }
+        catch { }
+
+        return null;
     }
 
     public void ExitApplication()
@@ -161,6 +184,8 @@ public partial class App : System.Windows.Application
         try { _mainWindow?.ForceClose(); } catch { }
         try { _trayIcon?.Dispose(); } catch { }
         _trayIcon = null;
+        try { _trayCustomIcon?.Dispose(); } catch { }
+        _trayCustomIcon = null;
         try { _host?.Stop(); _host?.Dispose(); } catch { }
         _host = null;
         try { _singleInstanceMutex?.ReleaseMutex(); _singleInstanceMutex?.Dispose(); } catch { }

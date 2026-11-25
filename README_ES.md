@@ -90,9 +90,9 @@ Crea y edita temas con **[SnakeMarsTheme](https://github.com/Snakefoxu/marsmaker
 ## Hoja de ruta
 
 Consulta **[ROADMAP.md](ROADMAP.md)** y el **[plan de compatibilidad TURZX](docs/TURZX_COMPATIBILITY_PLAN.md)**. Próximamente:
-1. Calibración automática de orientación en paneles verticales.
-2. Temas TURZX nativos + paneles USB-serie.
-3. Compatibilidad total con Theme Maker y un creador de temas integrado de nueva generación.
+1. Temas TURZX nativos + paneles USB-serie.
+2. Compatibilidad total con Theme Maker y un creador de temas integrado de nueva generación.
+3. Fondos de vídeo (MP4/WebM), UI de carrusel por pantalla y CI/CD.
 
 ## Compilar y probar desde el código
 
@@ -112,7 +112,7 @@ Las librerías nativas del SDK USB no se redistribuyen en este repositorio; colo
 
 **¿Pide permisos de administrador cada vez?** No. Solo el instalador, una vez. La temperatura de CPU en algunos equipos necesita el botón opcional *Admin (PawnIO)*.
 
-**Problema conocido:** en algunos paneles verticales 360×960 la imagen puede verse al revés; pon la rotación en **180°** en *Pantallas*. La calibración automática está en la hoja de ruta.
+**Orientación vertical 360×960:** Desde `v1.0.1`, los paneles verticales `VMAXC` se calibran automáticamente (`+180°` por hardware) manteniendo la vista previa siempre al derecho en *Pantallas*, con ajuste manual `0° / 90° / 180° / 270°` disponible.
 
 ## Apoya el proyecto
 

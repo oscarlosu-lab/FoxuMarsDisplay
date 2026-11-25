@@ -23,7 +23,8 @@ public sealed record ScreenRuntimeStatus(
     long FramesSkipped,
     long KeepAlivesSent,
     long BusyDrops,
-    long SendErrors);
+    long SendErrors,
+    int HardwareRotationOffset = 0);
 
 /// <summary>
 /// Central orchestrator for USB LCD displays: manages device attach/detach,
@@ -181,7 +182,8 @@ public sealed class DisplayHost : IDisposable
                 Interlocked.Read(ref s.FramesSkipped),
                 Interlocked.Read(ref s.KeepAlivesSent),
                 Interlocked.Read(ref s.BusyDrops),
-                Interlocked.Read(ref s.SendErrors)));
+                Interlocked.Read(ref s.SendErrors),
+                s.Renderer?.HardwareRotationOffset ?? ResolveHardwareOffset(s.Device, s.Profile)));
         }
         return list;
     }
@@ -207,7 +209,8 @@ public sealed class DisplayHost : IDisposable
                 _targetFps,
                 session.Profile.Brightness,
                 session.Profile.Rotation,
-                _customCacheDir);
+                _customCacheDir,
+                ResolveHardwareOffset(session.Device, session.Profile));
             session.BlackSent = false;
             session.LastSendMs = 0; // force immediate send
         }
@@ -302,12 +305,25 @@ public sealed class DisplayHost : IDisposable
             s.Device.SerialNumber.Equals(serialNumber, StringComparison.OrdinalIgnoreCase));
     }
 
+    private static int ResolveHardwareOffset(DisplayDeviceInfo device, ScreenProfile profile) =>
+        (((profile.HardwareRotationOffset ?? device.HardwareRotationOffset) % 4) + 4) % 4;
+
     private void OnDeviceAttached(DisplayDeviceInfo device)
     {
         if (!_dryRun)
             _backend.SetResolution(device.Handle, device.NativeWidth, device.NativeHeight, device.RefreshHz);
 
         var profile = FoxuDisplayConfigStore.GetOrCreateProfile(Config, device.SerialNumber);
+        int hwOffset = ResolveHardwareOffset(device, profile);
+        bool configMigrated = false;
+        if (profile.CalibrationVersion < 1)
+        {
+            if (hwOffset != 0 && profile.Rotation >= 0)
+                profile.Rotation = (((profile.Rotation - hwOffset) % 4) + 4) % 4;
+            profile.CalibrationVersion = 1;
+            configMigrated = true;
+        }
+
         var session = new ScreenSession(device, profile);
 
         DisplayTheme? theme = null;
@@ -333,9 +349,14 @@ public sealed class DisplayHost : IDisposable
             _targetFps,
             profile.Brightness,
             profile.Rotation,
-            _customCacheDir);
+            _customCacheDir,
+            hwOffset);
 
         _sessions[device.Handle] = session;
+        if (configMigrated)
+        {
+            try { SaveConfig(); } catch { }
+        }
         StateChanged?.Invoke();
     }
 
@@ -430,7 +451,8 @@ public sealed class DisplayHost : IDisposable
                         _targetFps,
                         session.Profile.Brightness,
                         session.Profile.Rotation,
-                        _customCacheDir);
+                        _customCacheDir,
+                        ResolveHardwareOffset(session.Device, session.Profile));
                     session.Renderer = renderer;
                     session.LastSendMs = 0;
                 }

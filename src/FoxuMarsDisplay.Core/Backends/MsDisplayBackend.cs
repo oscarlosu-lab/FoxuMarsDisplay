@@ -99,7 +99,8 @@ public sealed class MsDisplayBackend : IDisplayBackend
             if (w > 0 && h > 0)
                 SetResolution(handle, w, h, hz > 0 ? hz : 60);
 
-            var info = new DisplayDeviceInfo(handle, sn, w, h, hz > 0 ? hz : 60);
+            int hwOffset = ResolveHardwareRotationOffset(sn, w, h);
+            var info = new DisplayDeviceInfo(handle, sn, w, h, hz > 0 ? hz : 60, hwOffset);
             _devices[handle] = info;
             DeviceAttached?.Invoke(info);
         }
@@ -143,6 +144,17 @@ public sealed class MsDisplayBackend : IDisplayBackend
             while (actual < len && buf[actual] != 0) actual++;
             return actual > 0 ? Encoding.ASCII.GetString(buf, actual).Trim() : $"MS_{handle:X}";
         }
+    }
+
+    public static int ResolveHardwareRotationOffset(string serialNumber, int width, int height)
+    {
+        if (!string.IsNullOrWhiteSpace(serialNumber) &&
+            serialNumber.StartsWith("VMAXC", StringComparison.OrdinalIgnoreCase) &&
+            height > width)
+        {
+            return 2; // 180° inverted glass scan on VMAXC vertical chassis panels
+        }
+        return 0;
     }
 
     private static (int Width, int Height, int Refresh) ResolvePanelSize(

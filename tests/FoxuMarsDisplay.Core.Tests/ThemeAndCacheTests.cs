@@ -1,3 +1,4 @@
+using FoxuMarsDisplay.Core.Backends;
 using FoxuMarsDisplay.Core.Rendering;
 using FoxuMarsDisplay.Core.Sensors;
 using FoxuMarsDisplay.Core.Themes;
@@ -21,7 +22,7 @@ public sealed class ThemeAndCacheTests
                 bmp.Erase(new SKColor(16, 24, 48, 255));
                 using var img = SKImage.FromBitmap(bmp);
                 using var data = img.Encode(SKEncodedImageFormat.Png, 100);
-                File.WriteAllBytes(Path.Combine(dir, "bg.png"), data.ToArray());
+                File.WriteAllBytes(Path.Combine(dir, "back.png"), data.ToArray());
             }
 
             File.WriteAllText(Path.Combine(dir, "Setting.txt"), """
@@ -167,6 +168,102 @@ public sealed class ThemeAndCacheTests
             byte[]? png = renderer.CopyPreviewPngBytes(120);
             Assert.NotNull(png);
             Assert.True(png!.Length > 100);
+        }
+    }
+
+    [Fact]
+    public void MsDisplayBackend_ResolveHardwareRotationOffset_ClassifiesPanels()
+    {
+        Assert.Equal(2, MsDisplayBackend.ResolveHardwareRotationOffset("VMAXC230360*0960S00000001", 360, 960));
+        Assert.Equal(2, MsDisplayBackend.ResolveHardwareRotationOffset("VMAXC230462*1920S00000002", 462, 1920));
+        Assert.Equal(0, MsDisplayBackend.ResolveHardwareRotationOffset("VMAXA180240*0320S00000003", 240, 320));
+        Assert.Equal(0, MsDisplayBackend.ResolveHardwareRotationOffset("VMAXC230960*0360S00000004", 960, 360));
+        Assert.Equal(0, MsDisplayBackend.ResolveHardwareRotationOffset("AIC_0001", 480, 480));
+    }
+
+    [Fact]
+    public void SkiaThemeRenderer_HardwareRotationOffset180_FlipsOutputAndKeepsPreviewUpright()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "FoxuMarsRotTest_" + Guid.NewGuid().ToString("N"));
+        string cacheDir = Path.Combine(dir, "cache");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            using (var bmp = new SKBitmap(60, 120, SKColorType.Bgra8888, SKAlphaType.Premul))
+            {
+                using var c = new SKCanvas(bmp);
+                using var redPaint = new SKPaint { Color = SKColors.Red };
+                using var bluePaint = new SKPaint { Color = SKColors.Blue };
+                c.DrawRect(0, 0, 60, 60, redPaint);
+                c.DrawRect(0, 60, 60, 60, bluePaint);
+
+                using var img = SKImage.FromBitmap(bmp);
+                using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+                File.WriteAllBytes(Path.Combine(dir, "back.png"), data.ToArray());
+            }
+
+            File.WriteAllText(Path.Combine(dir, "Setting.txt"), """
+                name:SplitOrient
+                width:60
+                height:120
+                """);
+
+            var theme = UnifiedThemeLoader.Load(dir);
+            var snap = new SensorSnapshot { Now = DateTime.Now };
+
+            // 1. Offset 0, user rotation 0 => Output top RED, bottom BLUE
+            using (var r0 = new SkiaThemeRenderer(theme, 60, 120, rotationOverride: 0, customCacheDir: cacheDir, hardwareRotationOffset: 0))
+            {
+                Assert.True(r0.RenderIfDirty(snap, 100));
+                Assert.Equal(SKColors.Red, r0.OutputBitmap.GetPixel(30, 15));
+                Assert.Equal(SKColors.Blue, r0.OutputBitmap.GetPixel(30, 105));
+            }
+
+            // 2. Offset 2 (180° VMAXC), user rotation 0 => Output top BLUE, bottom RED; Preview stays upright (top RED, bottom BLUE)
+            using (var r180 = new SkiaThemeRenderer(theme, 60, 120, rotationOverride: 0, customCacheDir: cacheDir, hardwareRotationOffset: 2))
+            {
+                Assert.Equal(0, r180.EffectiveRotation);
+                Assert.Equal(2, r180.PhysicalRotation);
+                Assert.True(r180.RenderIfDirty(snap, 100));
+                Assert.Equal(SKColors.Blue, r180.OutputBitmap.GetPixel(30, 15));
+                Assert.Equal(SKColors.Red, r180.OutputBitmap.GetPixel(30, 105));
+
+                byte[]? previewBytes = r180.CopyPreviewPngBytes(120);
+                Assert.NotNull(previewBytes);
+                using var previewBmp = SKBitmap.Decode(previewBytes!);
+                Assert.Equal(60, previewBmp.Width);
+                Assert.Equal(120, previewBmp.Height);
+                Assert.Equal(SKColors.Red, previewBmp.GetPixel(30, 15));
+                Assert.Equal(SKColors.Blue, previewBmp.GetPixel(30, 105));
+            }
+
+            // 3. Offset 2, user rotation 2 => PhysicalRotation 0 => Output top RED
+            using (var rDouble = new SkiaThemeRenderer(theme, 60, 120, rotationOverride: 2, customCacheDir: cacheDir, hardwareRotationOffset: 2))
+            {
+                Assert.Equal(0, rDouble.PhysicalRotation);
+                Assert.True(rDouble.RenderIfDirty(snap, 100));
+                Assert.Equal(SKColors.Red, rDouble.OutputBitmap.GetPixel(30, 15));
+            }
+
+            // 4. AIO 270° (offset 0, user rotation 3) => Output left RED, right BLUE; Preview horizontal (120x60) with top RED
+            using (var r270 = new SkiaThemeRenderer(theme, 60, 120, rotationOverride: 3, customCacheDir: cacheDir, hardwareRotationOffset: 0))
+            {
+                Assert.Equal(3, r270.PhysicalRotation);
+                Assert.True(r270.RenderIfDirty(snap, 100));
+                Assert.Equal(SKColors.Red, r270.OutputBitmap.GetPixel(15, 60));
+                Assert.Equal(SKColors.Blue, r270.OutputBitmap.GetPixel(45, 60));
+
+                byte[]? previewBytes = r270.CopyPreviewPngBytes(120);
+                Assert.NotNull(previewBytes);
+                using var previewBmp = SKBitmap.Decode(previewBytes!);
+                Assert.Equal(120, previewBmp.Width);
+                Assert.Equal(60, previewBmp.Height);
+                Assert.Equal(SKColors.Red, previewBmp.GetPixel(60, 10));
+            }
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
         }
     }
 }

@@ -19,13 +19,12 @@ Every feature or fix passes four mandatory gates before release:
 
 ## 2. Prioritized Pending Workstreams
 
-### 🔴 P0 — Automatic 180° Orientation Calibration for Vertical Panels
-* **Status:** Pending (Known issue in `v1.0.0`)
-* **Problem:** Some vertical `360×960` chassis panels (e.g., Mars Gaming VMAX vertical units) have a 180° inverted physical scan direction compared to `DisplayDirection = 0`. Users currently select `180°` manually in the Screens tab (`270°` for `240×320` AIO).
-* **Plan:**
-  - Detect hardware panel orientation quirks by serial prefix / EDID / SOEYI `Isup` + `DisplayDirection` semantics.
-  - Apply automatic upright orientation calibration on first attach while preserving manual user overrides.
-  - Add pixel-coordinate SkiaSharp orientation regression tests (`0° / 90° / 180° / 270°`).
+### ✅ P0 — Automatic 180° Orientation Calibration for Vertical Panels *(Completed for v1.0.1)*
+* **Status:** Implemented & verified (unit tests + upright preview rendering)
+* **What changed:**
+  - `MsDisplayBackend` detects `VMAXC` vertical chassis panels (`height > width`) and applies a `+180°` (`HardwareRotationOffset = 2`) hardware scan offset automatically.
+  - `DisplayHost` performs a one-time `CalibrationVersion` migration on legacy `v1.0.0` profiles so existing `Rotation = 2` settings migrate cleanly to `Rotation = 0` without flipping the screen again.
+  - `SkiaThemeRenderer.CopyPreviewPngBytes` renders upright live bezel previews from the logical canvas regardless of physical panel rotation.
 
 ---
 

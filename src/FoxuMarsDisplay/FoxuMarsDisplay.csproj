@@ -9,10 +9,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\branding\foxu_mars_icon.ico</ApplicationIcon>
     <AssemblyName>FoxuMarsDisplay</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>FoxuMarsDisplay</Product>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\..\assets\branding\foxu_mars_icon.ico" Link="Resources\foxu_mars_icon.ico" />
+    <Resource Include="..\..\assets\branding\foxu_mars_icon_256.png" Link="Resources\foxu_mars_icon_256.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />

@@ -21,6 +21,8 @@ public sealed class ScreenProfile
     public string? SchemeJsonPath { get; set; }
     public int Brightness { get; set; } = 100;
     public int Rotation { get; set; } = -1;
+    public int? HardwareRotationOffset { get; set; }
+    public int CalibrationVersion { get; set; } = 0;
     public bool IsEnabled { get; set; } = true;
     public bool SlideshowEnabled { get; set; } = false;
     public int SlideshowIntervalSec { get; set; } = 300;

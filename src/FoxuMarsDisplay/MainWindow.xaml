@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="FOXU // MARS DISPLAY"
+        Icon="pack://application:,,,/FoxuMarsDisplay;component/Resources/foxu_mars_icon.ico"
         Width="1160" Height="760" MinWidth="960" MinHeight="620"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgObsidian}"
@@ -34,7 +35,9 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource FoxuEmber}" Margin="0,0,10,0" />
+                        <Image Source="pack://application:,,,/FoxuMarsDisplay;component/Resources/foxu_mars_icon_256.png"
+                               Width="28" Height="28" Margin="0,0,10,0"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
                         <TextBlock Text="FOXU" FontSize="15" FontWeight="Bold" Foreground="{StaticResource FoxuEmber}" />
                         <TextBlock Text=" // " FontSize="15" FontWeight="Bold" Foreground="{StaticResource SolarGold}" />
                         <TextBlock Text="MARS DISPLAY" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />

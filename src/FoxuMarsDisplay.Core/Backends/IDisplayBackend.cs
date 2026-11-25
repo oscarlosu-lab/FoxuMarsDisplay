@@ -7,7 +7,8 @@ public sealed record DisplayDeviceInfo(
     string SerialNumber,
     int NativeWidth,
     int NativeHeight,
-    int RefreshHz);
+    int RefreshHz,
+    int HardwareRotationOffset = 0);
 
 public interface IDisplayBackend : IDisposable
 {

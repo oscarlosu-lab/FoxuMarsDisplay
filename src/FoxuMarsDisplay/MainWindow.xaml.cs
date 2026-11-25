@@ -542,9 +542,12 @@ public partial class MainWindow : Window
                 vm.ResolutionText = $"{effW} × {effH} px";
                 vm.OrientationLabel = oriLabel;
                 vm.OrientationBrush = oriBrush;
+                string calSuffix = s.HardwareRotationOffset != 0
+                    ? $" · auto-cal {s.HardwareRotationOffset * 90}°"
+                    : string.Empty;
                 vm.HardwareSubline = swapped
-                    ? $"{LocalizationService.T("Str_NativePanel")} {s.Width}×{s.Height} ({LocalizationService.T("Str_Rotated")} {rot * 90}°) · SN: {s.SerialNumber}"
-                    : $"{LocalizationService.T("Str_NativePanel")} {s.Width}×{s.Height} · SN: {s.SerialNumber}";
+                    ? $"{LocalizationService.T("Str_NativePanel")} {s.Width}×{s.Height} ({LocalizationService.T("Str_Rotated")} {rot * 90}°){calSuffix} · SN: {s.SerialNumber}"
+                    : $"{LocalizationService.T("Str_NativePanel")} {s.Width}×{s.Height}{calSuffix} · SN: {s.SerialNumber}";
                 vm.ThemeSummary = $"{LocalizationService.T("Str_ActiveTheme")}: {s.ThemeName}";
                 vm.StatsText = LocalizationService.Format("Str_StatsFmt", s.FramesSent, s.KeepAlivesSent, s.BusyDrops, s.SendErrors);
                 vm.Brightness = s.Brightness;

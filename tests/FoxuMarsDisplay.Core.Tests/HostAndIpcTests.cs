@@ -131,4 +131,58 @@ public sealed class HostAndIpcTests
         Assert.NotNull(line);
         Assert.Contains("pong", line, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void DisplayHost_CalibrationMigration_PreservesPhysicalOrientation()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "FoxuCalTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            string cfgPath = Path.Combine(tempDir, "config.json");
+            string cacheDir = Path.Combine(tempDir, "cache");
+            var store = new FoxuDisplayConfigStore(cfgPath);
+            var cfg = new FoxuDisplayConfig
+            {
+                Screens =
+                [
+                    new ScreenProfile
+                    {
+                        SerialNumber = "VMAXC230360*0960S00000001",
+                        Rotation = 2,
+                        CalibrationVersion = 0
+                    }
+                ]
+            };
+            store.Save(cfg);
+
+            using var backend = new FakeBackend();
+            backend.AddFakeDevice(new DisplayDeviceInfo(10, "VMAXC230360*0960S00000001", 360, 960, 60, HardwareRotationOffset: 2));
+            backend.AddFakeDevice(new DisplayDeviceInfo(11, "VMAXC230360*0960S00000002", 360, 960, 60, HardwareRotationOffset: 2));
+
+            using var host = new DisplayHost(backend: backend, configStore: store, customCacheDir: cacheDir);
+            host.Start(dryRun: false, enableIpc: false);
+
+            var statuses = host.GetStatuses();
+            var legacy = statuses.First(s => s.SerialNumber.EndsWith("00001", StringComparison.Ordinal));
+            var fresh = statuses.First(s => s.SerialNumber.EndsWith("00002", StringComparison.Ordinal));
+
+            Assert.Equal(0, legacy.Rotation);
+            Assert.Equal(2, legacy.HardwareRotationOffset);
+            Assert.Equal(0, fresh.Rotation);
+            Assert.Equal(2, fresh.HardwareRotationOffset);
+
+            var reloaded = store.LoadOrImportSoeyi();
+            var legacyProfile = FoxuDisplayConfigStore.FindProfile(reloaded, "VMAXC230360*0960S00000001");
+            Assert.NotNull(legacyProfile);
+            Assert.Equal(1, legacyProfile!.CalibrationVersion);
+            Assert.Equal(0, legacyProfile.Rotation);
+
+            host.Stop();
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
 }

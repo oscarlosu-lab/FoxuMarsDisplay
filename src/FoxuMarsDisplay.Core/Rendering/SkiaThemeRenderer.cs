@@ -23,6 +23,7 @@ public sealed class SkiaThemeRenderer : IDisposable
     private readonly int _panelHeight;
     private readonly int _targetFps;
     private readonly string _animCacheRoot;
+    private readonly int _hardwareRotationOffset;
     private int _brightness;
     private int _rotationOverride = -1;
 
@@ -61,6 +62,8 @@ public sealed class SkiaThemeRenderer : IDisposable
     }
 
     public int EffectiveRotation => _rotationOverride >= 0 ? _rotationOverride : (_theme.DisplayDirection & 3);
+    public int HardwareRotationOffset => _hardwareRotationOffset;
+    public int PhysicalRotation => (EffectiveRotation + _hardwareRotationOffset) & 3;
 
     public SkiaThemeRenderer(
         DisplayTheme theme,
@@ -69,7 +72,8 @@ public sealed class SkiaThemeRenderer : IDisposable
         int targetFps = 12,
         int brightness = 100,
         int rotationOverride = -1,
-        string? customCacheDir = null)
+        string? customCacheDir = null,
+        int hardwareRotationOffset = 0)
     {
         _theme = theme;
         _panelWidth = panelWidth;
@@ -77,6 +81,7 @@ public sealed class SkiaThemeRenderer : IDisposable
         _targetFps = Math.Clamp(targetFps, 1, 60);
         _brightness = Math.Clamp(brightness, 0, 100);
         _rotationOverride = rotationOverride >= 0 ? (rotationOverride & 3) : -1;
+        _hardwareRotationOffset = ((hardwareRotationOffset % 4) + 4) % 4;
 
         if (!string.IsNullOrWhiteSpace(customCacheDir))
         {
@@ -91,7 +96,7 @@ public sealed class SkiaThemeRenderer : IDisposable
         _outputBitmap = new SKBitmap(panelWidth, panelHeight, SKColorType.Bgra8888, SKAlphaType.Premul);
         _outputCanvas = new SKCanvas(_outputBitmap);
 
-        var (logW, logH) = GetLogicalDimensions(EffectiveRotation);
+        var (logW, logH) = GetLogicalDimensions(PhysicalRotation);
         _logicalBitmap = new SKBitmap(logW, logH, SKColorType.Bgra8888, SKAlphaType.Premul);
         _logicalCanvas = new SKCanvas(_logicalBitmap);
 
@@ -107,14 +112,16 @@ public sealed class SkiaThemeRenderer : IDisposable
 
     public void SetRotation(int direction)
     {
-        int newRot = direction < 0 ? (_theme.DisplayDirection & 3) : (direction & 3);
-        int oldRot = EffectiveRotation;
-        _rotationOverride = direction < 0 ? -1 : newRot;
+        int newUser = direction < 0 ? (_theme.DisplayDirection & 3) : (direction & 3);
+        int oldUser = EffectiveRotation;
+        int oldPhys = PhysicalRotation;
+        _rotationOverride = direction < 0 ? -1 : newUser;
+        int newPhys = PhysicalRotation;
 
-        if (newRot == oldRot)
+        if (newUser == oldUser && newPhys == oldPhys)
             return;
 
-        var (newW, newH) = GetLogicalDimensions(newRot);
+        var (newW, newH) = GetLogicalDimensions(newPhys);
         if (newW != _logicalBitmap.Width || newH != _logicalBitmap.Height)
         {
             _logicalCanvas.Dispose();
@@ -147,13 +154,18 @@ public sealed class SkiaThemeRenderer : IDisposable
         if (_disposed || !_hasRenderedOnce)
             return null;
 
-        float scale = Math.Min(1f, (float)maxHeight / Math.Max(1, _panelHeight));
-        int pw = Math.Max(1, (int)Math.Round(_panelWidth * scale));
-        int ph = Math.Max(1, (int)Math.Round(_panelHeight * scale));
+        int srcW = Math.Max(1, _logicalBitmap.Width);
+        int srcH = Math.Max(1, _logicalBitmap.Height);
+        float scale = Math.Min(1f, (float)maxHeight / Math.Max(srcW, srcH));
+        int pw = Math.Max(1, (int)Math.Round(srcW * scale));
+        int ph = Math.Max(1, (int)Math.Round(srcH * scale));
 
-        using var resized = _outputBitmap.Resize(new SKImageInfo(pw, ph, SKColorType.Bgra8888, SKAlphaType.Premul), SKFilterQuality.Low);
-        if (resized == null) return null;
-        using var img = SKImage.FromBitmap(resized);
+        using var previewBmp = new SKBitmap(pw, ph, SKColorType.Bgra8888, SKAlphaType.Premul);
+        using var previewCanvas = new SKCanvas(previewBmp);
+        using var paint = new SKPaint { FilterQuality = SKFilterQuality.Low, ColorFilter = _brightnessFilter };
+        previewCanvas.DrawBitmap(_logicalBitmap, new SKRect(0, 0, pw, ph), paint);
+
+        using var img = SKImage.FromBitmap(previewBmp);
         using var data = img.Encode(SKEncodedImageFormat.Png, 85);
         return data?.ToArray();
     }
@@ -410,7 +422,7 @@ public sealed class SkiaThemeRenderer : IDisposable
         _lastAnimIndex = animIdx;
         _hasRenderedOnce = true;
 
-        int rot = EffectiveRotation;
+        int rot = PhysicalRotation;
         int logW = _logicalBitmap.Width;
         int logH = _logicalBitmap.Height;
         float sx = logW / Math.Max(1f, _theme.CanvasWidth);
@@ -551,7 +563,7 @@ public sealed class SkiaThemeRenderer : IDisposable
         ulong h = 14695981039346656037UL;
         h = FnvAdd(h, (uint)animIdx);
         h = FnvAdd(h, (uint)_brightness);
-        h = FnvAdd(h, (uint)EffectiveRotation);
+        h = FnvAdd(h, (uint)PhysicalRotation);
 
         foreach (var txt in _theme.TextWidgets)
         {

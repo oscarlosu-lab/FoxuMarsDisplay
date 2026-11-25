@@ -21,7 +21,7 @@ public sealed class InstallOptions
 public static class InstallerEngine
 {
     public const string AppDisplayName = "FoxuMarsDisplay";
-    public const string AppVersion = "1.0.0";
+    public const string AppVersion = "1.0.1";
     public const string Publisher = "FoxuLabs";
     public const string BootTaskName = "FoxuMarsDisplayPowerBoot";
     public const string LaunchTaskName = "FoxuMarsDisplayLaunch";
@@ -269,6 +269,7 @@ public static class InstallerEngine
             sc.TargetPath = targetPath;
             sc.WorkingDirectory = workingDir;
             sc.Description = description;
+            sc.IconLocation = $"{targetPath},0";
             if (!string.IsNullOrEmpty(arguments))
                 sc.Arguments = arguments;
             sc.Save();
