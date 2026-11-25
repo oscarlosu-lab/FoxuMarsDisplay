@@ -52,10 +52,10 @@
                     </Border>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                        <Button x:Name="BtnElevate" Content="🛡️ Admin (PawnIO)" Height="28" Margin="0,0,8,0" Style="{StaticResource CyberButton}" Padding="10,0" Click="OnElevateClick" ToolTip="Reiniciar como Administrador para lectura completa de CPU (PawnIO)" />
-                        <Button Content="─" Width="34" Height="28" Margin="0,0,4,0" Style="{StaticResource CyberButton}" Padding="0" Click="OnMinimizeClick" ToolTip="Minimizar a bandeja" />
-                        <Button Content="□" Width="34" Height="28" Margin="0,0,4,0" Style="{StaticResource CyberButton}" Padding="0" Click="OnMaximizeClick" ToolTip="Maximizar / Restaurar" />
-                        <Button Content="✕" Width="34" Height="28" Style="{StaticResource AccentButton}" Padding="0" Click="OnCloseClick" ToolTip="Cerrar a bandeja" />
+                        <Button x:Name="BtnElevate" Content="{DynamicResource Str_AdminPawnIO}" Height="28" Margin="0,0,8,0" Style="{StaticResource CyberButton}" Padding="10,0" Click="OnElevateClick" />
+                        <Button Content="─" Width="34" Height="28" Margin="0,0,4,0" Style="{StaticResource CyberButton}" Padding="0" Click="OnMinimizeClick" />
+                        <Button Content="□" Width="34" Height="28" Margin="0,0,4,0" Style="{StaticResource CyberButton}" Padding="0" Click="OnMaximizeClick" />
+                        <Button Content="✕" Width="34" Height="28" Style="{StaticResource AccentButton}" Padding="0" Click="OnCloseClick" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -71,11 +71,11 @@
                 <Border Grid.Column="0" Background="{StaticResource BgSurface}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="0,0,1,0" Padding="0,14,0,14">
                     <DockPanel LastChildFill="False">
                         <StackPanel DockPanel.Dock="Top">
-                            <RadioButton x:Name="NavScreens" Content="🖥️  Pantallas" IsChecked="True" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
-                            <RadioButton x:Name="NavGallery" Content="🎨  Galería Unificada" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
-                            <RadioButton x:Name="NavCloud" Content="☁️  Descargar Temas" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
-                            <RadioButton x:Name="NavTelemetry" Content="📊  Telemetría" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
-                            <RadioButton x:Name="NavSystem" Content="⚙️  Sistema" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
+                            <RadioButton x:Name="NavScreens" Content="{DynamicResource Str_NavScreens}" IsChecked="True" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
+                            <RadioButton x:Name="NavGallery" Content="{DynamicResource Str_NavGallery}" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
+                            <RadioButton x:Name="NavCloud" Content="{DynamicResource Str_NavCloud}" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
+                            <RadioButton x:Name="NavTelemetry" Content="{DynamicResource Str_NavTelemetry}" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
+                            <RadioButton x:Name="NavSystem" Content="{DynamicResource Str_NavSystem}" Style="{StaticResource NavTabRadio}" Checked="OnNavChecked" />
                         </StackPanel>
 
                         <Border DockPanel.Dock="Bottom" Margin="12,0" Padding="10" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="6">
@@ -93,8 +93,8 @@
                     <ScrollViewer x:Name="PageScreens" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,14">
-                                <TextBlock Text="PANTALLAS USB CONECTADAS" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
-                                <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Content="🔄 Refrescar" Style="{StaticResource CyberButton}" Click="OnRefreshScreensClick" />
+                                <TextBlock Text="{DynamicResource Str_ScreensTitle}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" />
+                                <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Content="{DynamicResource Str_Refresh}" Style="{StaticResource CyberButton}" Click="OnRefreshScreensClick" />
                             </DockPanel>
 
                             <ItemsControl x:Name="ScreensList">
@@ -108,7 +108,7 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <!-- Live Hardware Bezel Preview -->
-                                                <Border Width="136" Height="164" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="2" CornerRadius="6" Padding="4" Margin="0,0,16,0" Cursor="Hand" ToolTip="Clic para ampliar" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
+                                                <Border Width="136" Height="164" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="2" CornerRadius="6" Padding="4" Margin="0,0,16,0" Cursor="Hand" ToolTip="{DynamicResource Str_ClickToZoom}" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
                                                     <Image Source="{Binding PreviewImage}" Stretch="Uniform" />
                                                 </Border>
 
@@ -124,7 +124,7 @@
                                                             </Border>
                                                         </StackPanel>
                                                         <CheckBox DockPanel.Dock="Right" HorizontalAlignment="Right"
-                                                                  Content="Pantalla Encendida"
+                                                                  Content="{DynamicResource Str_ScreenOn}"
                                                                   IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                                                   Foreground="{StaticResource TextPrimary}"
                                                                   Tag="{Binding SerialNumber}"
@@ -142,9 +142,9 @@
                                                             <ColumnDefinition Width="Auto" />
                                                             <ColumnDefinition Width="120" />
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="Brillo:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
+                                                        <TextBlock Text="{DynamicResource Str_Brightness}" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
                                                         <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Brightness, Mode=OneWay}" Tag="{Binding SerialNumber}" ValueChanged="OnBrightnessChanged" VerticalAlignment="Center" />
-                                                        <TextBlock Grid.Column="2" Text="Rotación:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="18,0,8,0" />
+                                                        <TextBlock Grid.Column="2" Text="{DynamicResource Str_Rotation}" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="18,0,8,0" />
                                                         <ComboBox Grid.Column="3" SelectedIndex="{Binding Rotation, Mode=OneWay}" Tag="{Binding SerialNumber}" SelectionChanged="OnRotationChanged">
                                                             <ComboBoxItem Content="0°" />
                                                             <ComboBoxItem Content="90°" />
@@ -154,7 +154,7 @@
                                                     </Grid>
 
                                                     <StackPanel Orientation="Horizontal">
-                                                        <Button Content="📁 Aplicar Tema (.photo / .smtheme / Carpeta)" Style="{StaticResource AccentButton}" Tag="{Binding SerialNumber}" Click="OnPickThemeForScreenClick" />
+                                                        <Button Content="{DynamicResource Str_PickTheme}" Style="{StaticResource AccentButton}" Tag="{Binding SerialNumber}" Click="OnPickThemeForScreenClick" />
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Grid>
@@ -165,7 +165,7 @@
 
                             <TextBlock x:Name="TxtNoScreens"
                                        Visibility="Collapsed"
-                                       Text="No se detectaron pantallas USB activas. Conecta tu pantalla Mars Gaming / SOEYI / TURZX."
+                                       Text="{DynamicResource Str_NoScreens}"
                                        Foreground="{StaticResource AmberWarn}"
                                        FontSize="13"
                                        Margin="0,12,0,0" />
@@ -182,12 +182,12 @@
 
                         <DockPanel Margin="0,0,0,10">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="GALERÍA UNIFICADA" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <TextBlock Text="{DynamicResource Str_GalleryTitle}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
                                 <TextBox x:Name="TxtGallerySearch" Width="190" TextChanged="OnGallerySearchChanged" Margin="0,0,8,0" />
                                 <ComboBox x:Name="CmbGalleryResolution" Width="150" DisplayMemberPath="Label" SelectionChanged="OnGalleryResolutionChanged" />
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <TextBlock Text="Destino:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
+                                <TextBlock Text="{DynamicResource Str_Target}" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,8,0" />
                                 <ComboBox x:Name="CmbTargetScreen" Width="260" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnTargetScreenChanged">
                                     <ComboBox.ItemContainerStyle>
                                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
@@ -195,18 +195,16 @@
                                         </Style>
                                     </ComboBox.ItemContainerStyle>
                                 </ComboBox>
-                                <Button Content="🔄 Escanear" Style="{StaticResource CyberButton}" Click="OnRescanGalleryClick" />
+                                <Button Content="{DynamicResource Str_Scan}" Style="{StaticResource CyberButton}" Click="OnRescanGalleryClick" />
                             </StackPanel>
                         </DockPanel>
 
-                        <!-- Form-Factor & Compatibility Filter Pills -->
+                        <!-- 3-Category Orientation & Compatibility Filter Pills -->
                         <WrapPanel Grid.Row="1" Margin="0,0,0,10">
                             <RadioButton x:Name="FilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
-                            <RadioButton x:Name="FilterCompatible" Content="🎯 Para mi pantalla (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
+                            <RadioButton x:Name="FilterCompatible" Content="🎯 Compatible (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
                             <RadioButton x:Name="FilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
-                            <RadioButton x:Name="FilterVerticalStrip" Content="📏 Barra V (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
                             <RadioButton x:Name="FilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
-                            <RadioButton x:Name="FilterHorizontalStrip" Content="📐 Barra H (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
                             <RadioButton x:Name="FilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnOrientationFilterChanged" Margin="0,0,6,6" />
                         </WrapPanel>
 
@@ -235,12 +233,12 @@
                                 <DataTemplate>
                                     <Border Width="216" Style="{StaticResource ThemeCardBorder}">
                                         <StackPanel>
-                                            <Border Height="162" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True" Cursor="Hand" ToolTip="Clic para ampliar" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
+                                            <Border Height="162" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True" Cursor="Hand" ToolTip="{DynamicResource Str_ClickToZoom}" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
                                                 <Grid>
                                                     <TextBlock Text="{Binding MetaText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="#4A3F63" TextWrapping="Wrap" TextAlignment="Center" Margin="8" />
                                                     <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" />
                                                     <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC0F291E" BorderBrush="{StaticResource EmeraldLive}" BorderThickness="1" Visibility="{Binding ExactVisibility}">
-                                                        <TextBlock Text="★ EXACTO" FontSize="9" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
+                                                        <TextBlock Text="{DynamicResource Str_BadgeExact}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
                                                     </Border>
                                                     <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC13111A" BorderBrush="#2E273F" BorderThickness="1">
                                                         <TextBlock Text="{Binding OrientationBadge}" FontSize="9" FontWeight="Bold" Foreground="{Binding OrientationBrush}" />
@@ -249,7 +247,7 @@
                                             </Border>
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Text="{Binding MetaText}" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Margin="0,3,0,8" />
-                                            <Button Content="Aplicar en Pantalla" Style="{StaticResource CyberButton}" Tag="{Binding}" Click="OnApplyGalleryThemeClick" />
+                                            <Button Content="{DynamicResource Str_ApplyOnScreen}" Style="{StaticResource CyberButton}" Tag="{Binding}" Click="OnApplyGalleryThemeClick" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -267,17 +265,17 @@
 
                         <DockPanel Margin="0,0,0,10">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="TIENDA DE TEMAS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <TextBlock Text="{DynamicResource Str_CloudTitle}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0" />
                                 <TextBox x:Name="TxtCloudSearch" Width="150" TextChanged="OnCloudSearchChanged" Margin="0,0,8,0" />
                                 <ComboBox x:Name="CmbCloudSource" Width="195" SelectionChanged="OnCloudSourceChanged" Margin="0,0,8,0">
-                                    <ComboBoxItem Content="SOEYI Oficial (Auto + HF)" IsSelected="True" />
-                                    <ComboBoxItem Content="HuggingFace (SnakeFoxu)" />
-                                    <ComboBoxItem Content="Ambas fuentes (SOEYI + HF)" />
+                                    <ComboBoxItem Content="{DynamicResource Str_SourceAuto}" IsSelected="True" />
+                                    <ComboBoxItem Content="{DynamicResource Str_SourceHF}" />
+                                    <ComboBoxItem Content="{DynamicResource Str_SourceBoth}" />
                                 </ComboBox>
                                 <ComboBox x:Name="CmbCloudResolution" Width="145" DisplayMemberPath="Label" SelectionChanged="OnCloudResolutionChanged" />
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <TextBlock Text="Destino:" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0" />
+                                <TextBlock Text="{DynamicResource Str_Target}" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0" />
                                 <ComboBox x:Name="CmbCloudTargetScreen" Width="225" Margin="0,0,8,0" DisplayMemberPath="DisplayLabel" SelectionChanged="OnCloudTargetScreenChanged">
                                     <ComboBox.ItemContainerStyle>
                                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
@@ -285,18 +283,16 @@
                                         </Style>
                                     </ComboBox.ItemContainerStyle>
                                 </ComboBox>
-                                <Button Content="🔄 Actualizar" Style="{StaticResource CyberButton}" Click="OnReloadCloudClick" />
+                                <Button Content="{DynamicResource Str_Update}" Style="{StaticResource CyberButton}" Click="OnReloadCloudClick" />
                             </StackPanel>
                         </DockPanel>
 
                         <DockPanel Grid.Row="1" Margin="0,0,0,10">
-                            <TextBlock x:Name="TxtCloudStatus" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Text="Listo" Margin="10,0,0,0" />
+                            <TextBlock x:Name="TxtCloudStatus" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Text="{DynamicResource Str_Ready}" Margin="10,0,0,0" />
                             <WrapPanel>
-                                <RadioButton x:Name="CloudFilterCompatible" Content="🎯 Para mi pantalla (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
+                                <RadioButton x:Name="CloudFilterCompatible" Content="🎯 Compatible (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
                                 <RadioButton x:Name="CloudFilterVertical" Content="↕ Vertical (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
-                                <RadioButton x:Name="CloudFilterVerticalStrip" Content="📏 Barra V (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
                                 <RadioButton x:Name="CloudFilterHorizontal" Content="↔ Horizontal (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
-                                <RadioButton x:Name="CloudFilterHorizontalStrip" Content="📐 Barra H (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
                                 <RadioButton x:Name="CloudFilterSquare" Content="▢ Cuadrado (0)" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
                                 <RadioButton x:Name="CloudFilterAll" Content="Todos (0)" IsChecked="True" Style="{StaticResource FilterPillRadio}" Checked="OnCloudFilterChanged" Margin="0,0,6,6" />
                             </WrapPanel>
@@ -327,7 +323,7 @@
                                 <DataTemplate>
                                     <Border Width="216" Style="{StaticResource ThemeCardBorder}">
                                         <StackPanel>
-                                            <Border Height="162" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True" Cursor="Hand" ToolTip="Clic para ampliar" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
+                                            <Border Height="162" Background="#0D0B12" BorderBrush="#2E273F" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" ClipToBounds="True" Cursor="Hand" ToolTip="{DynamicResource Str_ClickToZoom}" Tag="{Binding}" MouseLeftButtonUp="OnPreviewImageClick">
                                                 <Grid>
                                                     <TextBlock Text="{Binding MetaText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontFamily="Consolas" Foreground="#4A3F63" TextWrapping="Wrap" TextAlignment="Center" Margin="8" />
                                                     <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" />
@@ -336,7 +332,7 @@
                                                             <TextBlock Text="{Binding Source}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource MarsCrimson}" />
                                                         </Border>
                                                         <Border Margin="4,0,0,0" Padding="6,2" CornerRadius="4" Background="#CC0F291E" BorderBrush="{StaticResource EmeraldLive}" BorderThickness="1" Visibility="{Binding ExactVisibility}">
-                                                            <TextBlock Text="★ EXACTO" FontSize="9" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
+                                                            <TextBlock Text="{DynamicResource Str_BadgeExact}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource EmeraldLive}" />
                                                         </Border>
                                                     </StackPanel>
                                                     <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Padding="6,2" CornerRadius="4" Background="#CC13111A" BorderBrush="#2E273F" BorderThickness="1">
@@ -357,7 +353,7 @@
                     <!-- TAB 4: TELEMETRIA -->
                     <ScrollViewer x:Name="PageTelemetry" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Text="TELEMETRÍA DE HARDWARE EN TIEMPO REAL" FontSize="16" FontWeight="Bold" Margin="0,0,0,14" />
+                            <TextBlock Text="{DynamicResource Str_TelTitle}" FontSize="16" FontWeight="Bold" Margin="0,0,0,14" />
                             <WrapPanel>
                                 <Border Width="260" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,12,12">
                                     <StackPanel>
@@ -375,7 +371,7 @@
                                 </Border>
                                 <Border Width="260" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,12,12">
                                     <StackPanel>
-                                        <TextBlock Text="MEMORIA &amp; RED" FontSize="12" FontWeight="Bold" Foreground="{StaticResource PlasmaViolet}" />
+                                        <TextBlock Text="{DynamicResource Str_MemNet}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource PlasmaViolet}" />
                                         <TextBlock x:Name="TxtTelRam" Text="-- %" FontSize="28" FontWeight="Bold" FontFamily="Consolas" Foreground="{StaticResource TextPrimary}" Margin="0,6,0,2" />
                                         <TextBlock x:Name="TxtTelNet" Text="↓ -- KB/s | ↑ -- KB/s" FontSize="12" Foreground="{StaticResource TextMuted}" />
                                     </StackPanel>
@@ -384,23 +380,34 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!-- TAB 4: SISTEMA -->
+                    <!-- TAB 5: SISTEMA -->
                     <ScrollViewer x:Name="PageSystem" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                         <StackPanel MaxWidth="620" HorizontalAlignment="Left">
-                            <TextBlock Text="CONFIGURACIÓN DEL MOTOR" FontSize="16" FontWeight="Bold" Margin="0,0,0,14" />
+                            <TextBlock Text="{DynamicResource Str_SysTitle}" FontSize="16" FontWeight="Bold" Margin="0,0,0,14" />
                             <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="8" Padding="16">
                                 <StackPanel>
+                                    <DockPanel Margin="0,0,0,12">
+                                        <TextBlock Text="{DynamicResource Str_LanguageLabel}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                        <ComboBox x:Name="CmbLanguage" Width="260" HorizontalAlignment="Right" SelectionChanged="OnLanguageChanged">
+                                            <ComboBoxItem Tag="auto" Content="{DynamicResource Str_LangAuto}" />
+                                            <ComboBoxItem Tag="es" Content="Español (ES)" />
+                                            <ComboBoxItem Tag="en" Content="English (EN)" />
+                                            <ComboBoxItem Tag="fr" Content="Français (FR)" />
+                                            <ComboBoxItem Tag="de" Content="Deutsch (DE)" />
+                                            <ComboBoxItem Tag="pt" Content="Português (PT)" />
+                                        </ComboBox>
+                                    </DockPanel>
                                     <DockPanel Margin="0,0,0,12">
                                         <TextBlock x:Name="TxtFpsLabel" Text="FPS Animación: 12 FPS" VerticalAlignment="Center" FontWeight="SemiBold" />
                                         <Slider x:Name="SldTargetFps" Minimum="5" Maximum="30" Width="260" HorizontalAlignment="Right" ValueChanged="OnTargetFpsChanged" />
                                     </DockPanel>
-                                    <CheckBox x:Name="ChkPauseFullscreen" Content="Pausar animaciones en juegos pantalla completa (Modo Juego)" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8" Click="OnSystemFlagsChanged" />
-                                    <CheckBox x:Name="ChkMinimizeToTray" Content="Minimizar a la bandeja del sistema al cerrar" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8" Click="OnSystemFlagsChanged" />
-                                    <CheckBox x:Name="ChkAutoStart" Content="Iniciar con Windows en modo bandeja (--tray)" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,16" Click="OnAutoStartChanged" />
+                                    <CheckBox x:Name="ChkPauseFullscreen" Content="{DynamicResource Str_PauseFullscreen}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8" Click="OnSystemFlagsChanged" />
+                                    <CheckBox x:Name="ChkMinimizeToTray" Content="{DynamicResource Str_MinimizeToTray}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8" Click="OnSystemFlagsChanged" />
+                                    <CheckBox x:Name="ChkAutoStart" Content="{DynamicResource Str_AutoStart}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,16" Click="OnAutoStartChanged" />
 
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Content="🧹 Limpiar caché .sdac" Style="{StaticResource CyberButton}" Margin="0,0,10,0" Click="OnClearCacheClick" />
-                                        <Button Content="⚡ Detener SOEYI.exe" Style="{StaticResource AccentButton}" Click="OnKillSoeyiClick" />
+                                        <Button Content="{DynamicResource Str_ClearCache}" Style="{StaticResource CyberButton}" Margin="0,0,10,0" Click="OnClearCacheClick" />
+                                        <Button Content="{DynamicResource Str_KillSoeyi}" Style="{StaticResource AccentButton}" Click="OnKillSoeyiClick" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -437,7 +444,7 @@
                                 <TextBlock x:Name="TxtLightboxMeta" FontSize="12" FontFamily="Consolas" Foreground="{StaticResource SolarGold}" Margin="12,0,0,0" VerticalAlignment="Center" />
                             </StackPanel>
                             <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                       Text="Clic en la imagen o Esc para cerrar"
+                                       Text="{DynamicResource Str_LightboxHint}"
                                        FontSize="11"
                                        Foreground="{StaticResource TextMuted}" />
                         </DockPanel>

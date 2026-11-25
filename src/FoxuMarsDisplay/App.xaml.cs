@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows;
 using FoxuMarsDisplay.Core.Config;
 using FoxuMarsDisplay.Core.Host;
+using FoxuMarsDisplay.Services;
 using WinForms = System.Windows.Forms;
 
 namespace FoxuMarsDisplay;
@@ -74,6 +75,7 @@ public partial class App : System.Windows.Application
     {
         var store = new FoxuDisplayConfigStore();
         var config = store.LoadOrImportSoeyi();
+        LocalizationService.ApplyLanguage(config.Language);
         _host = new DisplayHost(configStore: store, config: config);
         _host.ShowWindowRequested += () => Dispatcher.BeginInvoke(ShowMainWindow);
         _host.Start(dryRun: false, enableIpc: true);
@@ -135,14 +137,14 @@ public partial class App : System.Windows.Application
     private void InitTrayIcon()
     {
         var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("Abrir FoxuMarsDisplay", null, (_, _) => Dispatcher.Invoke(ShowMainWindow));
-        menu.Items.Add("Limpiar caché .sdac", null, (_, _) =>
+        menu.Items.Add(LocalizationService.T("Str_TrayOpen"), null, (_, _) => Dispatcher.Invoke(ShowMainWindow));
+        menu.Items.Add(LocalizationService.T("Str_TrayClearCache"), null, (_, _) =>
         {
             int count = DisplayHost.ClearAnimCache();
-            _trayIcon?.ShowBalloonTip(2000, "FoxuMarsDisplay", $"Caché limpiada ({count} archivos .sdac).", WinForms.ToolTipIcon.Info);
+            _trayIcon?.ShowBalloonTip(2000, "FoxuMarsDisplay", $"{LocalizationService.T("Str_TrayClearCache")}: {count}", WinForms.ToolTipIcon.Info);
         });
         menu.Items.Add(new WinForms.ToolStripSeparator());
-        menu.Items.Add("Salir", null, (_, _) => Dispatcher.Invoke(ExitApplication));
+        menu.Items.Add(LocalizationService.T("Str_TrayExit"), null, (_, _) => Dispatcher.Invoke(ExitApplication));
 
         _trayIcon = new WinForms.NotifyIcon
         {

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FoxuMarsDisplay — Open-Source SOEYI Alternative for Mars Gaming VMAX USB LCD Screens</title>
+<meta name="description" content="Free, ultra-lightweight Windows engine for Mars Gaming VMAX, SOEYI, MacroSilicon MS9132 and AIC USB LCD screens. 233+ cloud themes, ~0.6% CPU, ~60 MB RAM, zero-UAC install, 5 languages.">
+<meta name="keywords" content="Mars Gaming VMAX, SOEYI alternative, MS9132, MS912C, USB LCD PC case screen, AIO LCD, TURZX, theme store, hardware monitor, open source">
+<link rel="canonical" href="https://oscarlosu-lab.github.io/FoxuMarsDisplay/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="FoxuMarsDisplay — Open-Source SOEYI Alternative">
+<meta property="og:description" content="233+ cloud themes, ~0.6% CPU, zero-UAC install for Mars Gaming VMAX and USB LCD PC case screens.">
+<meta property="og:image" content="https://raw.githubusercontent.com/oscarlosu-lab/FoxuMarsDisplay/main/docs/images/hero-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"FoxuMarsDisplay","operatingSystem":"Windows 10, Windows 11","applicationCategory":"UtilitiesApplication","softwareVersion":"1.0.0","license":"https://opensource.org/licenses/MIT","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases/latest","description":"Open-source engine for Mars Gaming VMAX, SOEYI, MacroSilicon MS9132 and AIC USB LCD screens with a built-in theme store."}
+</script>
+<style>
+:root{--bg:#0b0a0f;--card:#171421;--line:#2e273f;--ember:#ff6419;--crimson:#ff1f4b;--gold:#ffb820;--text:#f2eefa;--muted:#988fad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;line-height:1.6}
+a{color:var(--gold)}header{padding:56px 20px 24px;text-align:center;background:radial-gradient(circle at 20% 0,#3a1708 0,transparent 55%),radial-gradient(circle at 90% 100%,#3a0a18 0,transparent 50%)}
+h1{font-size:clamp(2rem,5vw,3.4rem);margin:0 0 8px}h1 span{color:var(--ember)}
+.lead{color:var(--muted);max-width:760px;margin:0 auto 24px;font-size:1.1rem}
+.btn{display:inline-block;padding:14px 28px;border-radius:10px;font-weight:700;text-decoration:none;color:#fff;background:linear-gradient(90deg,var(--crimson),var(--ember));margin:6px}
+.btn.alt{background:var(--card);border:1px solid var(--line);color:var(--text)}
+main{max-width:1100px;margin:0 auto;padding:20px}
+.pills{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:18px 0}.pills span{border:1px solid var(--ember);border-radius:99px;padding:6px 16px;background:var(--card);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px}
+figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}figure img{width:100%;border-radius:8px;display:block}figcaption{color:var(--muted);padding:8px 4px 2px;font-size:.92rem}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden}th,td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--gold)}
+footer{text-align:center;color:var(--muted);padding:40px 20px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1><span>FOXU</span> // MARS DISPLAY</h1>
+<p class="lead">The free, open-source SOEYI alternative for <strong>Mars Gaming VMAX</strong>, <strong>MacroSilicon MS9132</strong> and AIC USB LCD screens — built-in theme store, ~0.6% CPU, zero UAC.</p>
+<a class="btn" href="https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases/latest">Download Setup v1.0.0</a>
+<a class="btn alt" href="https://github.com/oscarlosu-lab/FoxuMarsDisplay">View on GitHub</a>
+<a class="btn alt" href="https://ko-fi.com/oscarlosu">Support on Ko-fi</a>
+<div class="pills"><span>~0.6% CPU</span><span>~60 MB RAM</span><span>233+ cloud themes</span><span>Zero UAC</span><span>5 languages</span></div>
+</header>
+<main>
+<h2>Screenshots</h2>
+<div class="grid">
+<figure><img src="images/screens-dashboard.png" alt="Dashboard with two live USB LCD screens" loading="lazy"><figcaption>Connected USB displays with live preview, brightness and rotation.</figcaption></figure>
+<figure><img src="images/cloud-store.jpg" alt="Cloud theme store with 233+ official themes" loading="lazy"><figcaption>Cloud theme store with orientation and resolution filters.</figcaption></figure>
+<figure><img src="images/unified-gallery.jpg" alt="Unified theme gallery" loading="lazy"><figcaption>Unified gallery: filter, zoom and apply in one click.</figcaption></figure>
+<figure><img src="images/telemetry.png" alt="Real-time hardware telemetry" loading="lazy"><figcaption>Real-time CPU, GPU, RAM and network telemetry.</figcaption></figure>
+</div>
+<h2>FoxuMarsDisplay vs stock SOEYI</h2>
+<table>
+<tr><th></th><th>Stock SOEYI</th><th>FoxuMarsDisplay</th></tr>
+<tr><td>CPU (2 screens)</td><td>~6–12%</td><td>~0.6–0.9%</td></tr>
+<tr><td>RAM</td><td>~300–600 MB</td><td>~60 MB</td></tr>
+<tr><td>MS9132 8 s reboot</td><td>possible</td><td>Fixed (2 Hz keep-alive)</td></tr>
+<tr><td>UAC on every start</td><td>yes</td><td>No</td></tr>
+<tr><td>Theme store</td><td>no</td><td>233+ official + mirror</td></tr>
+<tr><td>Open source</td><td>no</td><td>MIT</td></tr>
+</table>
+</main>
+<footer>MIT licensed. Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX.</footer>
+</body>
+</html>

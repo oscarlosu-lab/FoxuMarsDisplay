@@ -1,0 +1,79 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="Str_EngineActive">ENGINE AKTIV</sys:String>
+    <sys:String x:Key="Str_GameModePaused">SPIELMODUS (PAUSIERT)</sys:String>
+    <sys:String x:Key="Str_AdminPawnIO">🛡️ Admin (PawnIO)</sys:String>
+    <sys:String x:Key="Str_NavScreens">🖥️  Displays</sys:String>
+    <sys:String x:Key="Str_NavGallery">🎨  Galerie</sys:String>
+    <sys:String x:Key="Str_NavCloud">☁️  Themes laden</sys:String>
+    <sys:String x:Key="Str_NavTelemetry">📊  Telemetrie</sys:String>
+    <sys:String x:Key="Str_NavSystem">⚙️  System</sys:String>
+
+    <sys:String x:Key="Str_ScreensTitle">VERBUNDENE USB-DISPLAYS</sys:String>
+    <sys:String x:Key="Str_Refresh">🔄 Aktualisieren</sys:String>
+    <sys:String x:Key="Str_ScreenOn">Display Ein</sys:String>
+    <sys:String x:Key="Str_Brightness">Helligkeit:</sys:String>
+    <sys:String x:Key="Str_Rotation">Drehung:</sys:String>
+    <sys:String x:Key="Str_PickTheme">📁 Theme anwenden (.photo / .smtheme / Ordner)</sys:String>
+    <sys:String x:Key="Str_NoScreens">Keine aktiven USB-Displays erkannt. Mars Gaming / SOEYI / TURZX verbinden.</sys:String>
+    <sys:String x:Key="Str_ScreenPrefix">DISPLAY</sys:String>
+    <sys:String x:Key="Str_ScreenTitleInline">Display</sys:String>
+    <sys:String x:Key="Str_NativePanel">Natives Panel</sys:String>
+    <sys:String x:Key="Str_Rotated">gedreht</sys:String>
+    <sys:String x:Key="Str_ActiveTheme">Aktives Theme</sys:String>
+    <sys:String x:Key="Str_StatsFmt">Gesendet: {0} | KeepAlive: {1} | Busy: {2} | Fehler: {3}</sys:String>
+
+    <sys:String x:Key="Str_GalleryTitle">EINHEITLICHE GALERIE</sys:String>
+    <sys:String x:Key="Str_Target">Ziel:</sys:String>
+    <sys:String x:Key="Str_Scan">🔄 Scannen</sys:String>
+    <sys:String x:Key="Str_ApplyOnScreen">Auf Display anwenden</sys:String>
+
+    <sys:String x:Key="Str_CloudTitle">THEME-STORE</sys:String>
+    <sys:String x:Key="Str_Update">🔄 Aktualisieren</sys:String>
+    <sys:String x:Key="Str_SourceAuto">SOEYI Offiziell (Auto + HF)</sys:String>
+    <sys:String x:Key="Str_SourceHF">HuggingFace (SnakeFoxu)</sys:String>
+    <sys:String x:Key="Str_SourceBoth">Beide Quellen (SOEYI + HF)</sys:String>
+    <sys:String x:Key="Str_DownloadAndApply">⬇ Laden &amp; Anwenden</sys:String>
+    <sys:String x:Key="Str_ApplyNow">▶ Jetzt anwenden</sys:String>
+    <sys:String x:Key="Str_DownloadingFmt">Lade {0}%</sys:String>
+    <sys:String x:Key="Str_Retry">⬇ Wiederholen</sys:String>
+    <sys:String x:Key="Str_LoadingCatalog">Lade Katalog...</sys:String>
+    <sys:String x:Key="Str_Ready">Bereit</sys:String>
+    <sys:String x:Key="Str_ThemesCountFmt">{0} · {1} Themes</sys:String>
+
+    <sys:String x:Key="Str_FilterAllFmt">Alle ({0})</sys:String>
+    <sys:String x:Key="Str_FilterCompatFmt">🎯 Kompatibel ({0})</sys:String>
+    <sys:String x:Key="Str_FilterVertFmt">↕ Vertikal ({0})</sys:String>
+    <sys:String x:Key="Str_FilterHorizFmt">↔ Horizontal ({0})</sys:String>
+    <sys:String x:Key="Str_FilterSquareFmt">▢ Quadrat ({0})</sys:String>
+    <sys:String x:Key="Str_AllResolutions">Alle Auflösungen</sys:String>
+
+    <sys:String x:Key="Str_BadgeExact">★ EXAKT</sys:String>
+    <sys:String x:Key="Str_OriVertical">VERTIKAL</sys:String>
+    <sys:String x:Key="Str_OriHorizontal">HORIZONTAL</sys:String>
+    <sys:String x:Key="Str_OriSquare">QUADRAT</sys:String>
+    <sys:String x:Key="Str_OriVerticalFull">Vertikal</sys:String>
+    <sys:String x:Key="Str_OriHorizontalFull">Horizontal</sys:String>
+    <sys:String x:Key="Str_OriSquareFull">Quadrat</sys:String>
+
+    <sys:String x:Key="Str_TelTitle">ECHTZEIT-HARDWARE-TELEMETRIE</sys:String>
+    <sys:String x:Key="Str_MemNet">SPEICHER &amp; NETZWERK</sys:String>
+    <sys:String x:Key="Str_UsagePowerFmt">Last: {0:F0}% | Leistung: {1:F1} W</sys:String>
+
+    <sys:String x:Key="Str_SysTitle">ENGINE-EINSTELLUNGEN</sys:String>
+    <sys:String x:Key="Str_FpsLabelFmt">Animations-FPS: {0} FPS</sys:String>
+    <sys:String x:Key="Str_LanguageLabel">Anwendungssprache:</sys:String>
+    <sys:String x:Key="Str_LangAuto">Automatisch (System)</sys:String>
+    <sys:String x:Key="Str_PauseFullscreen">Animationen im Vollbild-Spiel pausieren</sys:String>
+    <sys:String x:Key="Str_MinimizeToTray">Beim Schließen in den Tray minimieren</sys:String>
+    <sys:String x:Key="Str_AutoStart">Mit Windows im Tray starten (--tray)</sys:String>
+    <sys:String x:Key="Str_ClearCache">🧹 .sdac-Cache leeren</sys:String>
+    <sys:String x:Key="Str_KillSoeyi">⚡ SOEYI.exe beenden</sys:String>
+
+    <sys:String x:Key="Str_ClickToZoom">Zum Vergrößern klicken</sys:String>
+    <sys:String x:Key="Str_LightboxHint">Klicken oder Esc zum Schließen</sys:String>
+    <sys:String x:Key="Str_TrayOpen">FoxuMarsDisplay öffnen</sys:String>
+    <sys:String x:Key="Str_TrayClearCache">.sdac-Cache leeren</sys:String>
+    <sys:String x:Key="Str_TrayExit">Beenden</sys:String>
+</ResourceDictionary>

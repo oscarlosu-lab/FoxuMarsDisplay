@@ -9,21 +9,23 @@ $payloadZip = Join-Path $root "src\FoxuMarsDisplay.Setup\payload.zip"
 $distDir = Join-Path $root "dist"
 
 try {
+    $appOut = Join-Path $stage "app"
+    $launcherOut = Join-Path $stage "launcher"
+
     Write-Host "[1/4] Building FoxuMarsDisplay + Launcher (Release)..." -ForegroundColor Cyan
-    dotnet build $appProj -c Release | Out-Host
+    dotnet build $appProj -c Release -o $appOut | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "FoxuMarsDisplay build failed" }
-    dotnet build $launcherProj -c Release | Out-Host
+    dotnet build $launcherProj -c Release -o $launcherOut | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "FoxuMarsDisplay.Launcher build failed" }
 
     Write-Host "[2/4] Staging payload..." -ForegroundColor Cyan
-    New-Item -ItemType Directory -Path $stage -Force | Out-Null
-    $appOut = Join-Path $root "src\FoxuMarsDisplay\bin\Release\net8.0-windows"
-    $launcherOut = Join-Path $root "src\FoxuMarsDisplay.Launcher\bin\Release\net8.0-windows"
+    $payloadDir = Join-Path $stage "payload"
+    New-Item -ItemType Directory -Path $payloadDir -Force | Out-Null
 
-    Copy-Item "$appOut\*" $stage -Recurse -Force
-    Copy-Item "$launcherOut\FoxuMarsDisplay.Launcher.*" $stage -Force
+    Copy-Item "$appOut\*" $payloadDir -Recurse -Force
+    Copy-Item "$launcherOut\FoxuMarsDisplay.Launcher.*" $payloadDir -Force
 
-    $stageNative = Join-Path $stage "native\x64"
+    $stageNative = Join-Path $payloadDir "native\x64"
     $vendorNative = Join-Path $root "vendor\native\x64"
     if (Test-Path $vendorNative) {
         New-Item -ItemType Directory -Path $stageNative -Force | Out-Null
@@ -34,7 +36,7 @@ try {
     }
 
     if (Test-Path $payloadZip) { Remove-Item $payloadZip -Force }
-    Compress-Archive -Path "$stage\*" -DestinationPath $payloadZip -CompressionLevel Optimal
+    Compress-Archive -Path "$payloadDir\*" -DestinationPath $payloadZip -CompressionLevel Optimal
 
     Write-Host "[3/4] Publishing single-file FoxuMarsDisplay_Setup.exe..." -ForegroundColor Cyan
     $setupOut = Join-Path $stage "setup_pub"

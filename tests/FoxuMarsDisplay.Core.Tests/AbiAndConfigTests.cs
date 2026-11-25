@@ -35,6 +35,7 @@ public sealed class AbiAndConfigTests
             var loaded = store.LoadOrImportSoeyi();
             Assert.Equal(15, loaded.TargetFps);
             Assert.False(loaded.PauseOnFullscreen);
+            Assert.Equal("auto", loaded.Language);
 
             var found = FoxuDisplayConfigStore.FindProfile(loaded, "VMAXA180240*0320S252400400");
             Assert.NotNull(found);

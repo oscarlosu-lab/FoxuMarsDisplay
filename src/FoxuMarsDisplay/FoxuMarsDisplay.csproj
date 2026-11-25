@@ -10,6 +10,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>FoxuMarsDisplay</AssemblyName>
+    <Version>1.0.0</Version>
+    <Product>FoxuMarsDisplay</Product>
   </PropertyGroup>
 
   <ItemGroup>

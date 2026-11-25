@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FoxuMarsDisplay.Core.Host;
 using FoxuMarsDisplay.Core.Themes;
+using FoxuMarsDisplay.Services;
 
 namespace FoxuMarsDisplay;
 
@@ -244,20 +245,10 @@ public partial class MainWindow : Window
 
     private static (string Badge, string Label, System.Windows.Media.Brush Brush) GetOrientationMeta(ThemeOrientation o) => o switch
     {
-        ThemeOrientation.Vertical => ("VERTICAL", "↕ VERTICAL", BrushVertical),
-        ThemeOrientation.Horizontal => ("HORIZONTAL", "↔ HORIZONTAL", BrushHorizontal),
-        ThemeOrientation.Square => ("CUADRADO", "▢ CUADRADO", BrushSquare),
+        ThemeOrientation.Vertical => (LocalizationService.T("Str_OriVertical"), $"↕ {LocalizationService.T("Str_OriVertical")}", BrushVertical),
+        ThemeOrientation.Horizontal => (LocalizationService.T("Str_OriHorizontal"), $"↔ {LocalizationService.T("Str_OriHorizontal")}", BrushHorizontal),
+        ThemeOrientation.Square => (LocalizationService.T("Str_OriSquare"), $"▢ {LocalizationService.T("Str_OriSquare")}", BrushSquare),
         _ => ("AUTO", "AUTO", BrushUnknown)
-    };
-
-    private static (string Badge, System.Windows.Media.Brush Brush) GetFormFactorMeta(ThemeFormFactor ff) => ff switch
-    {
-        ThemeFormFactor.VerticalCompact => ("VERTICAL", BrushVertical),
-        ThemeFormFactor.VerticalStrip => ("BARRA V", BrushVertical),
-        ThemeFormFactor.HorizontalCompact => ("HORIZONTAL", BrushHorizontal),
-        ThemeFormFactor.HorizontalStrip => ("BARRA H", BrushHorizontal),
-        ThemeFormFactor.Square => ("CUADRADO", BrushSquare),
-        _ => ("AUTO", BrushUnknown)
     };
 
     public void ForceClose()
@@ -284,10 +275,22 @@ public partial class MainWindow : Window
     private void LoadSystemSettings()
     {
         SldTargetFps.Value = _host.Config.TargetFps;
-        TxtFpsLabel.Text = $"FPS Animación: {_host.Config.TargetFps} FPS";
+        TxtFpsLabel.Text = LocalizationService.Format("Str_FpsLabelFmt", _host.Config.TargetFps);
         ChkPauseFullscreen.IsChecked = _host.Config.PauseOnFullscreen;
         ChkMinimizeToTray.IsChecked = _host.Config.MinimizeToTray;
         ChkAutoStart.IsChecked = AutoStartHelper.IsEnabled();
+
+        string lang = string.IsNullOrWhiteSpace(_host.Config.Language) ? "auto" : _host.Config.Language;
+        foreach (ComboBoxItem item in CmbLanguage.Items)
+        {
+            if ((item.Tag as string)?.Equals(lang, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                CmbLanguage.SelectedItem = item;
+                break;
+            }
+        }
+        if (CmbLanguage.SelectedIndex < 0 && CmbLanguage.Items.Count > 0)
+            CmbLanguage.SelectedIndex = 0;
     }
 
     private void LoadGallery()
@@ -301,7 +304,7 @@ public partial class MainWindow : Window
         var entries = ThemeLibraryScanner.ScanAll(_host.Config.ExtraThemeFolders);
         foreach (var e in entries)
         {
-            var (badge, brush) = GetFormFactorMeta(e.FormFactor);
+            var (badge, _, brush) = GetOrientationMeta(e.Orientation);
             string resLabel = e.Width > 0 && e.Height > 0 ? $"{e.Width}×{e.Height}" : e.Resolution;
             _allGalleryItems.Add(new GalleryItemVm
             {
@@ -331,23 +334,19 @@ public partial class MainWindow : Window
     private void UpdateGalleryFilterCounts()
     {
         int total = _allGalleryItems.Count;
-        int vert = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.VerticalCompact);
-        int vertStrip = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.VerticalStrip);
-        int horiz = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.HorizontalCompact);
-        int horizStrip = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.HorizontalStrip);
-        int sq = _allGalleryItems.Count(x => x.FormFactor == ThemeFormFactor.Square);
+        int vert = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Vertical);
+        int horiz = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Horizontal);
+        int sq = _allGalleryItems.Count(x => x.Orientation == ThemeOrientation.Square);
 
         var target = CmbTargetScreen.SelectedItem as ScreenTargetItem;
         int compat = target is null ? 0 : _allGalleryItems.Count(x =>
             ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
 
-        FilterAll.Content = $"Todos ({total})";
-        FilterCompatible.Content = $"🎯 Para mi pantalla ({compat})";
-        FilterVertical.Content = $"↕ Vertical ({vert})";
-        FilterVerticalStrip.Content = $"📏 Barra V ({vertStrip})";
-        FilterHorizontal.Content = $"↔ Horizontal ({horiz})";
-        FilterHorizontalStrip.Content = $"📐 Barra H ({horizStrip})";
-        FilterSquare.Content = $"▢ Cuadrado ({sq})";
+        FilterAll.Content = LocalizationService.Format("Str_FilterAllFmt", total);
+        FilterCompatible.Content = LocalizationService.Format("Str_FilterCompatFmt", compat);
+        FilterVertical.Content = LocalizationService.Format("Str_FilterVertFmt", vert);
+        FilterHorizontal.Content = LocalizationService.Format("Str_FilterHorizFmt", horiz);
+        FilterSquare.Content = LocalizationService.Format("Str_FilterSquareFmt", sq);
     }
 
     private static void PopulateResolutionCombo(
@@ -368,7 +367,7 @@ public partial class MainWindow : Window
             .ToList();
 
         combo.Items.Clear();
-        combo.Items.Add(new ResolutionFilterItem("ALL", "Todas las res."));
+        combo.Items.Add(new ResolutionFilterItem("ALL", LocalizationService.T("Str_AllResolutions")));
         foreach (var g in grouped)
             combo.Items.Add(new ResolutionFilterItem(g.Key, $"{g.W}×{g.H} ({g.Count})"));
 
@@ -438,15 +437,11 @@ public partial class MainWindow : Window
             seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Width, x.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
         }
         else if (FilterVertical.IsChecked == true)
-            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.VerticalCompact);
-        else if (FilterVerticalStrip.IsChecked == true)
-            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.VerticalStrip);
+            seq = seq.Where(x => x.Orientation == ThemeOrientation.Vertical);
         else if (FilterHorizontal.IsChecked == true)
-            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.HorizontalCompact);
-        else if (FilterHorizontalStrip.IsChecked == true)
-            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.HorizontalStrip);
+            seq = seq.Where(x => x.Orientation == ThemeOrientation.Horizontal);
         else if (FilterSquare.IsChecked == true)
-            seq = seq.Where(x => x.FormFactor == ThemeFormFactor.Square);
+            seq = seq.Where(x => x.Orientation == ThemeOrientation.Square);
 
         if (resKey != "ALL")
             seq = seq.Where(x => $"{x.Width}x{x.Height}" == resKey);
@@ -475,12 +470,14 @@ public partial class MainWindow : Window
         {
             var snap = _host.CurrentSensors;
             TxtQuickTelemetry.Text = $"CPU {snap.CpuTemp:F0}°C ({snap.CpuUsage:F0}%) | GPU {snap.GpuTemp:F0}°C ({snap.GpuUsage:F0}%) | RAM {snap.MemoryUsagePct:F0}%";
-            TxtHeaderStatus.Text = _host.IsFullscreenPaused ? "MODO JUEGO (PAUSADO)" : "MOTOR ACTIVO";
+            TxtHeaderStatus.Text = _host.IsFullscreenPaused
+                ? LocalizationService.T("Str_GameModePaused")
+                : LocalizationService.T("Str_EngineActive");
 
             TxtTelCpuTemp.Text = $"{snap.CpuTemp:F1} °C";
-            TxtTelCpuSub.Text = $"Uso: {snap.CpuUsage:F0}% | Potencia: {snap.CpuPowerW:F1} W";
+            TxtTelCpuSub.Text = LocalizationService.Format("Str_UsagePowerFmt", snap.CpuUsage, snap.CpuPowerW);
             TxtTelGpuTemp.Text = $"{snap.GpuTemp:F1} °C";
-            TxtTelGpuSub.Text = $"Uso: {snap.GpuUsage:F0}% | Potencia: {snap.GpuPowerW:F1} W";
+            TxtTelGpuSub.Text = LocalizationService.Format("Str_UsagePowerFmt", snap.GpuUsage, snap.GpuPowerW);
             TxtTelRam.Text = $"{snap.MemoryUsagePct:F0} %";
             TxtTelNet.Text = $"↓ {snap.NetDownKbps:F0} KB/s | ↑ {snap.NetUpKbps:F0} KB/s";
 
@@ -506,15 +503,16 @@ public partial class MainWindow : Window
 
                 string shortOri = effOri switch
                 {
-                    ThemeOrientation.Vertical => "Vertical",
-                    ThemeOrientation.Horizontal => "Horizontal",
-                    ThemeOrientation.Square => "Cuadrado",
+                    ThemeOrientation.Vertical => LocalizationService.T("Str_OriVerticalFull"),
+                    ThemeOrientation.Horizontal => LocalizationService.T("Str_OriHorizontalFull"),
+                    ThemeOrientation.Square => LocalizationService.T("Str_OriSquareFull"),
                     _ => "Auto"
                 };
 
+                string inlineScreen = LocalizationService.T("Str_ScreenTitleInline");
                 string displayLabel = swapped
-                    ? $"Pantalla {idx} · {effW}×{effH} {shortOri} (Panel {s.Width}×{s.Height})"
-                    : $"Pantalla {idx} · {s.Width}×{s.Height} {shortOri}";
+                    ? $"{inlineScreen} {idx} · {effW}×{effH} {shortOri} ({s.Width}×{s.Height})"
+                    : $"{inlineScreen} {idx} · {s.Width}×{s.Height} {shortOri}";
 
                 targetItems.Add(new ScreenTargetItem(
                     idx, s.SerialNumber, s.Width, s.Height, effW, effH, effOri,
@@ -540,15 +538,15 @@ public partial class MainWindow : Window
                     _screenItems.Add(vm);
                 }
 
-                vm.ScreenTitle = $"PANTALLA {idx}";
+                vm.ScreenTitle = $"{LocalizationService.T("Str_ScreenPrefix")} {idx}";
                 vm.ResolutionText = $"{effW} × {effH} px";
                 vm.OrientationLabel = oriLabel;
                 vm.OrientationBrush = oriBrush;
                 vm.HardwareSubline = swapped
-                    ? $"Panel nativo {s.Width}×{s.Height} (rotado {rot * 90}°) · SN: {s.SerialNumber}"
-                    : $"Panel nativo {s.Width}×{s.Height} · SN: {s.SerialNumber}";
-                vm.ThemeSummary = $"Tema activo: {s.ThemeName}";
-                vm.StatsText = $"Enviados: {s.FramesSent} | KeepAlive: {s.KeepAlivesSent} | Busy: {s.BusyDrops} | Errores: {s.SendErrors}";
+                    ? $"{LocalizationService.T("Str_NativePanel")} {s.Width}×{s.Height} ({LocalizationService.T("Str_Rotated")} {rot * 90}°) · SN: {s.SerialNumber}"
+                    : $"{LocalizationService.T("Str_NativePanel")} {s.Width}×{s.Height} · SN: {s.SerialNumber}";
+                vm.ThemeSummary = $"{LocalizationService.T("Str_ActiveTheme")}: {s.ThemeName}";
+                vm.StatsText = LocalizationService.Format("Str_StatsFmt", s.FramesSent, s.KeepAlivesSent, s.BusyDrops, s.SendErrors);
                 vm.Brightness = s.Brightness;
                 vm.Rotation = rot;
                 vm.IsEnabled = s.IsEnabled;
@@ -704,8 +702,25 @@ public partial class MainWindow : Window
     {
         if (_isInitializing) return;
         int fps = (int)Math.Round(e.NewValue);
-        TxtFpsLabel.Text = $"FPS Animación: {fps} FPS";
+        TxtFpsLabel.Text = LocalizationService.Format("Str_FpsLabelFmt", fps);
         _host.SetTargetFps(fps);
+    }
+
+    private void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing || _isRefreshingUi) return;
+        if (CmbLanguage.SelectedItem is ComboBoxItem item && item.Tag is string code)
+        {
+            _host.Config.Language = code;
+            _host.SaveConfig();
+            LocalizationService.ApplyLanguage(code);
+
+            TxtFpsLabel.Text = LocalizationService.Format("Str_FpsLabelFmt", _host.Config.TargetFps);
+            LoadGallery();
+            if (_cloudLoadedOnce)
+                _ = LoadCloudCatalogAsync();
+            RefreshUi();
+        }
     }
 
     private void OnSystemFlagsChanged(object sender, RoutedEventArgs e)
@@ -755,14 +770,14 @@ public partial class MainWindow : Window
         _cloudCts = new CancellationTokenSource();
         var ct = _cloudCts.Token;
 
-        TxtCloudStatus.Text = "Cargando catálogo...";
+        TxtCloudStatus.Text = LocalizationService.T("Str_LoadingCatalog");
         var result = await _cloudService.FetchCatalogAsync(GetSelectedCloudMode(), ct);
         if (ct.IsCancellationRequested) return;
 
         _allCloudItems.Clear();
         foreach (var item in result.Items)
         {
-            var (badge, brush) = GetFormFactorMeta(item.FormFactor);
+            var (badge, _, brush) = GetOrientationMeta(item.Orientation);
             string resLabel = item.Width > 0 && item.Height > 0 ? $"{item.Width}×{item.Height}" : item.Resolution;
             _allCloudItems.Add(new CloudItemVm
             {
@@ -770,7 +785,7 @@ public partial class MainWindow : Window
                 OrientationBadge = badge,
                 OrientationBrush = brush,
                 MetaText = $"{resLabel} • {item.Format}",
-                ActionText = item.IsDownloaded ? "▶ Aplicar ahora" : "⬇ Descargar y Aplicar"
+                ActionText = item.IsDownloaded ? LocalizationService.T("Str_ApplyNow") : LocalizationService.T("Str_DownloadAndApply")
             });
         }
 
@@ -791,7 +806,7 @@ public partial class MainWindow : Window
             CloudFilterAll.IsChecked = true;
         }
 
-        TxtCloudStatus.Text = $"{result.ActiveSourceLabel} · {_allCloudItems.Count} temas";
+        TxtCloudStatus.Text = LocalizationService.Format("Str_ThemesCountFmt", result.ActiveSourceLabel, _allCloudItems.Count);
         ApplyCloudFilter();
         _ = LoadCloudThumbnailsAsync(_allCloudItems.ToList(), ct);
     }
@@ -799,23 +814,19 @@ public partial class MainWindow : Window
     private void UpdateCloudFilterCounts()
     {
         int total = _allCloudItems.Count;
-        int vert = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.VerticalCompact);
-        int vertStrip = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.VerticalStrip);
-        int horiz = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.HorizontalCompact);
-        int horizStrip = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.HorizontalStrip);
-        int sq = _allCloudItems.Count(x => x.Model.FormFactor == ThemeFormFactor.Square);
+        int vert = _allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Vertical);
+        int horiz = _allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Horizontal);
+        int sq = _allCloudItems.Count(x => x.Model.Orientation == ThemeOrientation.Square);
 
         var target = CmbCloudTargetScreen.SelectedItem as ScreenTargetItem;
         int compat = target is null ? 0 : _allCloudItems.Count(x =>
             ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
 
-        CloudFilterAll.Content = $"Todos ({total})";
-        CloudFilterCompatible.Content = $"🎯 Para mi pantalla ({compat})";
-        CloudFilterVertical.Content = $"↕ Vertical ({vert})";
-        CloudFilterVerticalStrip.Content = $"📏 Barra V ({vertStrip})";
-        CloudFilterHorizontal.Content = $"↔ Horizontal ({horiz})";
-        CloudFilterHorizontalStrip.Content = $"📐 Barra H ({horizStrip})";
-        CloudFilterSquare.Content = $"▢ Cuadrado ({sq})";
+        CloudFilterAll.Content = LocalizationService.Format("Str_FilterAllFmt", total);
+        CloudFilterCompatible.Content = LocalizationService.Format("Str_FilterCompatFmt", compat);
+        CloudFilterVertical.Content = LocalizationService.Format("Str_FilterVertFmt", vert);
+        CloudFilterHorizontal.Content = LocalizationService.Format("Str_FilterHorizFmt", horiz);
+        CloudFilterSquare.Content = LocalizationService.Format("Str_FilterSquareFmt", sq);
     }
 
     private async Task LoadCloudThumbnailsAsync(List<CloudItemVm> items, CancellationToken ct)
@@ -910,15 +921,11 @@ public partial class MainWindow : Window
             seq = seq.Where(x => ThemeLibraryScanner.EvaluateCompatibility(x.Model.Width, x.Model.Height, target.EffectiveWidth, target.EffectiveHeight) != ThemeCompatibility.Incompatible);
         }
         else if (CloudFilterVertical.IsChecked == true)
-            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.VerticalCompact);
-        else if (CloudFilterVerticalStrip.IsChecked == true)
-            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.VerticalStrip);
+            seq = seq.Where(x => x.Model.Orientation == ThemeOrientation.Vertical);
         else if (CloudFilterHorizontal.IsChecked == true)
-            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.HorizontalCompact);
-        else if (CloudFilterHorizontalStrip.IsChecked == true)
-            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.HorizontalStrip);
+            seq = seq.Where(x => x.Model.Orientation == ThemeOrientation.Horizontal);
         else if (CloudFilterSquare.IsChecked == true)
-            seq = seq.Where(x => x.Model.FormFactor == ThemeFormFactor.Square);
+            seq = seq.Where(x => x.Model.Orientation == ThemeOrientation.Square);
 
         if (resKey != "ALL")
             seq = seq.Where(x => $"{x.Model.Width}x{x.Model.Height}" == resKey);
@@ -978,11 +985,11 @@ public partial class MainWindow : Window
             string localPath = vm.Model.LocalFilePath;
             if (!File.Exists(localPath))
             {
-                var progress = new Progress<int>(pct => vm.ActionText = $"Descargando {pct}%");
+                var progress = new Progress<int>(pct => vm.ActionText = LocalizationService.Format("Str_DownloadingFmt", pct));
                 localPath = await _cloudService.DownloadThemeAsync(vm.Model, progress);
             }
 
-            vm.ActionText = "▶ Aplicar ahora";
+            vm.ActionText = LocalizationService.T("Str_ApplyNow");
             _host.ApplyTheme(target.SerialNumber, localPath);
             LoadGallery();
             NavScreens.IsChecked = true;
@@ -990,7 +997,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            vm.ActionText = "⬇ Reintentar";
+            vm.ActionText = LocalizationService.T("Str_Retry");
             System.Windows.MessageBox.Show($"Error al descargar '{vm.Name}':\n{ex.Message}", "FoxuMarsDisplay", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally

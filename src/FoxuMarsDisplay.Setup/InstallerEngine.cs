@@ -58,6 +58,7 @@ public static class InstallerEngine
         string userAccount = WindowsIdentity.GetCurrent().Name;
 
         CreateScheduledTask(LaunchTaskName, mainExe, "", opts.InstallDir, userAccount, withLogonTrigger: false);
+        DeleteScheduledTask("FoxuMarsDisplay");
         if (opts.EnableAutoBoot)
             CreateScheduledTask(BootTaskName, mainExe, "--tray", opts.InstallDir, userAccount, withLogonTrigger: true);
         else

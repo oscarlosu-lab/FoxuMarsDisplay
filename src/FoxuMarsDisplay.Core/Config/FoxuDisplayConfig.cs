@@ -9,6 +9,7 @@ public sealed class FoxuDisplayConfig
     public bool MinimizeToTray { get; set; } = true;
     public bool AutoStartWithWindows { get; set; } = false;
     public int NativeLogLevel { get; set; } = 0;
+    public string Language { get; set; } = "auto";
     public List<string> ExtraThemeFolders { get; set; } = [];
     public List<ScreenProfile> Screens { get; set; } = [];
 }

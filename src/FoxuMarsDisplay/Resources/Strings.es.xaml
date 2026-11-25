@@ -1,0 +1,79 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="Str_EngineActive">MOTOR ACTIVO</sys:String>
+    <sys:String x:Key="Str_GameModePaused">MODO JUEGO (PAUSADO)</sys:String>
+    <sys:String x:Key="Str_AdminPawnIO">🛡️ Admin (PawnIO)</sys:String>
+    <sys:String x:Key="Str_NavScreens">🖥️  Pantallas</sys:String>
+    <sys:String x:Key="Str_NavGallery">🎨  Galería Unificada</sys:String>
+    <sys:String x:Key="Str_NavCloud">☁️  Descargar Temas</sys:String>
+    <sys:String x:Key="Str_NavTelemetry">📊  Telemetría</sys:String>
+    <sys:String x:Key="Str_NavSystem">⚙️  Sistema</sys:String>
+
+    <sys:String x:Key="Str_ScreensTitle">PANTALLAS USB CONECTADAS</sys:String>
+    <sys:String x:Key="Str_Refresh">🔄 Refrescar</sys:String>
+    <sys:String x:Key="Str_ScreenOn">Pantalla Encendida</sys:String>
+    <sys:String x:Key="Str_Brightness">Brillo:</sys:String>
+    <sys:String x:Key="Str_Rotation">Rotación:</sys:String>
+    <sys:String x:Key="Str_PickTheme">📁 Aplicar Tema (.photo / .smtheme / Carpeta)</sys:String>
+    <sys:String x:Key="Str_NoScreens">No se detectaron pantallas USB activas. Conecta tu pantalla Mars Gaming / SOEYI / TURZX.</sys:String>
+    <sys:String x:Key="Str_ScreenPrefix">PANTALLA</sys:String>
+    <sys:String x:Key="Str_ScreenTitleInline">Pantalla</sys:String>
+    <sys:String x:Key="Str_NativePanel">Panel nativo</sys:String>
+    <sys:String x:Key="Str_Rotated">rotado</sys:String>
+    <sys:String x:Key="Str_ActiveTheme">Tema activo</sys:String>
+    <sys:String x:Key="Str_StatsFmt">Enviados: {0} | KeepAlive: {1} | Busy: {2} | Errores: {3}</sys:String>
+
+    <sys:String x:Key="Str_GalleryTitle">GALERÍA UNIFICADA</sys:String>
+    <sys:String x:Key="Str_Target">Destino:</sys:String>
+    <sys:String x:Key="Str_Scan">🔄 Escanear</sys:String>
+    <sys:String x:Key="Str_ApplyOnScreen">Aplicar en Pantalla</sys:String>
+
+    <sys:String x:Key="Str_CloudTitle">TIENDA DE TEMAS</sys:String>
+    <sys:String x:Key="Str_Update">🔄 Actualizar</sys:String>
+    <sys:String x:Key="Str_SourceAuto">SOEYI Oficial (Auto + HF)</sys:String>
+    <sys:String x:Key="Str_SourceHF">HuggingFace (SnakeFoxu)</sys:String>
+    <sys:String x:Key="Str_SourceBoth">Ambas fuentes (SOEYI + HF)</sys:String>
+    <sys:String x:Key="Str_DownloadAndApply">⬇ Descargar y Aplicar</sys:String>
+    <sys:String x:Key="Str_ApplyNow">▶ Aplicar ahora</sys:String>
+    <sys:String x:Key="Str_DownloadingFmt">Descargando {0}%</sys:String>
+    <sys:String x:Key="Str_Retry">⬇ Reintentar</sys:String>
+    <sys:String x:Key="Str_LoadingCatalog">Cargando catálogo...</sys:String>
+    <sys:String x:Key="Str_Ready">Listo</sys:String>
+    <sys:String x:Key="Str_ThemesCountFmt">{0} · {1} temas</sys:String>
+
+    <sys:String x:Key="Str_FilterAllFmt">Todos ({0})</sys:String>
+    <sys:String x:Key="Str_FilterCompatFmt">🎯 Compatible ({0})</sys:String>
+    <sys:String x:Key="Str_FilterVertFmt">↕ Vertical ({0})</sys:String>
+    <sys:String x:Key="Str_FilterHorizFmt">↔ Horizontal ({0})</sys:String>
+    <sys:String x:Key="Str_FilterSquareFmt">▢ Cuadrado ({0})</sys:String>
+    <sys:String x:Key="Str_AllResolutions">Todas las res.</sys:String>
+
+    <sys:String x:Key="Str_BadgeExact">★ EXACTO</sys:String>
+    <sys:String x:Key="Str_OriVertical">VERTICAL</sys:String>
+    <sys:String x:Key="Str_OriHorizontal">HORIZONTAL</sys:String>
+    <sys:String x:Key="Str_OriSquare">CUADRADO</sys:String>
+    <sys:String x:Key="Str_OriVerticalFull">Vertical</sys:String>
+    <sys:String x:Key="Str_OriHorizontalFull">Horizontal</sys:String>
+    <sys:String x:Key="Str_OriSquareFull">Cuadrado</sys:String>
+
+    <sys:String x:Key="Str_TelTitle">TELEMETRÍA DE HARDWARE EN TIEMPO REAL</sys:String>
+    <sys:String x:Key="Str_MemNet">MEMORIA &amp; RED</sys:String>
+    <sys:String x:Key="Str_UsagePowerFmt">Uso: {0:F0}% | Potencia: {1:F1} W</sys:String>
+
+    <sys:String x:Key="Str_SysTitle">CONFIGURACIÓN DEL MOTOR</sys:String>
+    <sys:String x:Key="Str_FpsLabelFmt">FPS Animación: {0} FPS</sys:String>
+    <sys:String x:Key="Str_LanguageLabel">Idioma de la aplicación:</sys:String>
+    <sys:String x:Key="Str_LangAuto">Automático (Sistema)</sys:String>
+    <sys:String x:Key="Str_PauseFullscreen">Pausar animaciones en juegos pantalla completa (Modo Juego)</sys:String>
+    <sys:String x:Key="Str_MinimizeToTray">Minimizar a la bandeja del sistema al cerrar</sys:String>
+    <sys:String x:Key="Str_AutoStart">Iniciar con Windows en modo bandeja (--tray)</sys:String>
+    <sys:String x:Key="Str_ClearCache">🧹 Limpiar caché .sdac</sys:String>
+    <sys:String x:Key="Str_KillSoeyi">⚡ Detener SOEYI.exe</sys:String>
+
+    <sys:String x:Key="Str_ClickToZoom">Clic para ampliar</sys:String>
+    <sys:String x:Key="Str_LightboxHint">Clic en la imagen o Esc para cerrar</sys:String>
+    <sys:String x:Key="Str_TrayOpen">Abrir FoxuMarsDisplay</sys:String>
+    <sys:String x:Key="Str_TrayClearCache">Limpiar caché .sdac</sys:String>
+    <sys:String x:Key="Str_TrayExit">Salir</sys:String>
+</ResourceDictionary>

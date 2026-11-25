@@ -7,5 +7,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>FoxuMarsDisplay.Launcher</AssemblyName>
+    <Version>1.0.0</Version>
+    <Product>FoxuMarsDisplay</Product>
   </PropertyGroup>
 </Project>

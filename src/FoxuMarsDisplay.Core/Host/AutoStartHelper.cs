@@ -10,7 +10,8 @@ namespace FoxuMarsDisplay.Core.Host;
 /// </summary>
 public static class AutoStartHelper
 {
-    private const string TaskName = "FoxuMarsDisplay";
+    private const string TaskName = "FoxuMarsDisplayPowerBoot";
+    private const string LegacyTaskName = "FoxuMarsDisplay";
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string AppValueName = "FoxuMarsDisplay";
 
@@ -41,6 +42,7 @@ public static class AutoStartHelper
             string cmd = $"\"{path}\" --tray";
             if (RunSchtasks($"/Create /TN \"{TaskName}\" /TR \"\\\"{path}\\\" --tray\" /SC ONLOGON /RL HIGHEST /F") == 0)
             {
+                RunSchtasks($"/Delete /TN \"{LegacyTaskName}\" /F");
                 // Remove legacy HKCU Run entry if Task Scheduler succeeded
                 DeleteRunKey();
                 return;
@@ -56,6 +58,7 @@ public static class AutoStartHelper
         else
         {
             RunSchtasks($"/Delete /TN \"{TaskName}\" /F");
+            RunSchtasks($"/Delete /TN \"{LegacyTaskName}\" /F");
             DeleteRunKey();
         }
     }
