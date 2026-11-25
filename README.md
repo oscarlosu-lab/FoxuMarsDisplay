@@ -122,4 +122,4 @@ If this saved you from the stock software, consider supporting development:
 
 ## License & Disclaimer
 
-[MIT](LICENSE). Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX; all trademarks belong to their owners. Official themes are downloaded from their public source at the user's request.
+[LICENSE](LICENSE). Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX; all trademarks belong to their owners. Official themes are downloaded from their public source at the user's request.
