@@ -106,6 +106,12 @@ Trotzdem anwenden?</sys:String>
     <sys:String x:Key="Str_ClearCache">🧹 .sdac-Cache leeren</sys:String>
     <sys:String x:Key="Str_KillSoeyi">⚡ SOEYI.exe beenden</sys:String>
     <sys:String x:Key="Str_CheckUpdates">🔄 Nach Updates suchen</sys:String>
+    <sys:String x:Key="Str_NightBrightness">🌙 Automatische Nachthelligkeit</sys:String>
+    <sys:String x:Key="Str_NightHoursLabel">Nachtzeitraum:</sys:String>
+    <sys:String x:Key="Str_NightLevelFmt">Nachthelligkeit: {0}%</sys:String>
+    <sys:String x:Key="Str_LyricsOffsetFmt">Liedtext-Versatz: {0} ms</sys:String>
+    <sys:String x:Key="Str_HttpRemoteEnable">🌐 Lokale Web/REST-Fernsteuerung</sys:String>
+    <sys:String x:Key="Str_HttpRemoteOpen">Web öffnen</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Zum Vergrößern klicken</sys:String>
     <sys:String x:Key="Str_LightboxHint">Klicken oder Esc zum Schließen</sys:String>

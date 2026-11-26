@@ -15,7 +15,7 @@
 [![Languages](https://img.shields.io/badge/languages-5%20auto--detected-3EE08F)](#key-features)
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/oscarlosu)
 
-> **FoxuMarsDisplay v2.0.0 ("Unicorn Engine")** is a free for personal use, source-available, ultra-lightweight Windows engine that drives **6 USB display families** (**Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132**, **TURZX / Turing**, **ArtInChip**, **Thermalright / ChiZhu / MiraBox**) — with a built-in **cloud theme store (`327+` curated themes in `catalog_v2.json`)**, **native MP4 video backgrounds**, **WASAPI 16-band audio FFT**, **LRCLIB synced lyrics**, **integrated `FOXU // STUDIO` WYSIWYG Theme Editor**, **zero-UAC permanent install**, **~0.6 % CPU**, **~60 MB RAM** and **5 auto-detected languages**. No SOEYI software required.
+> **FoxuMarsDisplay v2.1.0** is a free for personal use, source-available, ultra-lightweight Windows engine that drives **Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132**, **TURZX / Turing (Serial & WinUSB)**, **ArtInChip**, **Thermalright / ChiZhu / MiraBox**, and an expanded USB display catalog — with a built-in **cloud theme store (`327+` curated themes in `catalog_v2.json`)**, **native MP4 video backgrounds**, **WASAPI 16-band audio FFT**, **LRCLIB synced lyrics with ms offset**, **automatic night brightness**, **local Web/REST remote control**, **integrated `FOXU // STUDIO` WYSIWYG Theme Editor with proportional canvas scaling**, **zero-UAC permanent install**, **~0.6 % CPU**, **~60 MB RAM** and **5 auto-detected languages**. No SOEYI software required.
 
 ---
 

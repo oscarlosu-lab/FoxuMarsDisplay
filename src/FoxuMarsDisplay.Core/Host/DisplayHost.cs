@@ -55,6 +55,7 @@ public sealed class DisplayHost : IDisposable
         public string? ActiveOverrideThemePath;
         public string? NormalThemePath;
         public bool BlackSent;
+        public int LastAppliedBrightness = -1;
         public readonly object SyncRoot = new();
 
         public ScreenSession(DisplayDeviceInfo device, ScreenProfile profile)
@@ -81,6 +82,7 @@ public sealed class DisplayHost : IDisposable
     private readonly string? _customCacheDir;
 
     private IpcPipeServer? _ipcServer;
+    private LocalHttpRemoteServer? _httpServer;
     private CancellationTokenSource? _cts;
     private Task? _renderLoopTask;
     private int _targetFps;
@@ -91,6 +93,7 @@ public sealed class DisplayHost : IDisposable
     public bool IsRunning => _cts is not null && !_cts.IsCancellationRequested;
     public bool IsFullscreenPaused => _isFullscreenPaused;
     public SensorSnapshot CurrentSensors => _sensors.Current;
+    public string HttpRemoteUrl => $"http://127.0.0.1:{Math.Clamp(Config.HttpRemotePort, 1024, 65535)}/";
 
     public event Action? StateChanged;
     public event Action? ShowWindowRequested;
@@ -107,6 +110,7 @@ public sealed class DisplayHost : IDisposable
         _configStore = configStore ?? new FoxuDisplayConfigStore();
         Config = config ?? _configStore.LoadOrImportSoeyi();
         _targetFps = Math.Clamp(Config.TargetFps, 1, 60);
+        _sensors.LyricsOffsetMs = Config.LyricsOffsetMs;
         _customCacheDir = customCacheDir;
 
         _backend.DeviceAttached += OnDeviceAttached;
@@ -134,6 +138,9 @@ public sealed class DisplayHost : IDisposable
             _ipcServer.Start();
         }
 
+        if (Config.HttpRemoteEnabled)
+            StartHttpRemoteInternal();
+
         _renderLoopTask = Task.Run(() => RenderLoopAsync(_cts.Token), _cts.Token);
     }
 
@@ -143,6 +150,8 @@ public sealed class DisplayHost : IDisposable
         try { _renderLoopTask?.Wait(1500); } catch { }
         _ipcServer?.Dispose();
         _ipcServer = null;
+        _httpServer?.Dispose();
+        _httpServer = null;
 
         foreach (var kv in _sessions)
             kv.Value.Dispose();
@@ -161,6 +170,92 @@ public sealed class DisplayHost : IDisposable
         _targetFps = Math.Clamp(fps, 1, 60);
         Config.TargetFps = _targetFps;
         SaveConfig();
+    }
+
+    public void SetLyricsOffsetMs(int offsetMs)
+    {
+        int clamped = Math.Clamp(offsetMs, -10_000, 10_000);
+        Config.LyricsOffsetMs = clamped;
+        _sensors.LyricsOffsetMs = clamped;
+        SaveConfig();
+    }
+
+    public bool SetHttpRemoteEnabled(bool enabled, int? port = null)
+    {
+        if (port.HasValue)
+            Config.HttpRemotePort = Math.Clamp(port.Value, 1024, 65535);
+        Config.HttpRemoteEnabled = enabled;
+        SaveConfig();
+
+        if (!IsRunning)
+            return true;
+
+        _httpServer?.Dispose();
+        _httpServer = null;
+        return !enabled || StartHttpRemoteInternal();
+    }
+
+    public void ApplyNightBrightnessScheduleNow(DateTime? nowOverride = null)
+    {
+        int hour = (nowOverride ?? DateTime.Now).Hour;
+        foreach (var session in _sessions.Values)
+        {
+            int effective = BrightnessSchedule.ComputeEffectiveBrightness(
+                session.Profile.Brightness,
+                Config.NightBrightnessEnabled,
+                Config.NightStartHour,
+                Config.NightEndHour,
+                Config.NightBrightnessPct,
+                hour);
+
+            if (session.LastAppliedBrightness == effective)
+                continue;
+
+            bool hwOk = !_dryRun && _backend.TrySetHardwareBrightness(session.Device.Handle, effective);
+            lock (session.SyncRoot)
+            {
+                session.LastAppliedBrightness = effective;
+                if (session.Renderer is not null)
+                    session.Renderer.Brightness = hwOk ? 100 : effective;
+                session.LastSendMs = 0;
+            }
+        }
+    }
+
+    private bool StartHttpRemoteInternal()
+    {
+        _httpServer = new LocalHttpRemoteServer(
+            Config.HttpRemotePort,
+            Config.HttpRemoteToken,
+            "2.1.0",
+            GetStatuses,
+            () => _sensors.Current,
+            HandleRemoteCommand);
+        return _httpServer.Start();
+    }
+
+    private bool HandleRemoteCommand(LocalHttpRemoteServer.RemoteCommand cmd)
+    {
+        return cmd.Action switch
+        {
+            "set_brightness" when !string.IsNullOrWhiteSpace(cmd.Serial) && cmd.IntValue.HasValue =>
+                SetBrightness(cmd.Serial, cmd.IntValue.Value),
+            "set_rotation" when !string.IsNullOrWhiteSpace(cmd.Serial) && cmd.IntValue.HasValue =>
+                SetRotation(cmd.Serial, cmd.IntValue.Value),
+            "set_enabled" when !string.IsNullOrWhiteSpace(cmd.Serial) && cmd.FlagValue.HasValue =>
+                SetScreenEnabled(cmd.Serial, cmd.FlagValue.Value),
+            "apply_theme" when !string.IsNullOrWhiteSpace(cmd.Serial) && !string.IsNullOrWhiteSpace(cmd.StringValue) =>
+                ApplyTheme(cmd.Serial, cmd.StringValue),
+            "set_fps" when cmd.IntValue.HasValue =>
+                RunOk(() => SetTargetFps(cmd.IntValue.Value)),
+            _ => false
+        };
+    }
+
+    private static bool RunOk(Action action)
+    {
+        action();
+        return true;
     }
 
     public void SaveConfig() => _configStore.Save(Config);
@@ -231,12 +326,20 @@ public sealed class DisplayHost : IDisposable
         if (session is null) return false;
 
         int clamped = Math.Clamp(brightness, 0, 100);
-        bool hwOk = !_dryRun && _backend.TrySetHardwareBrightness(session.Device.Handle, clamped);
+        int effective = BrightnessSchedule.ComputeEffectiveBrightness(
+            clamped,
+            Config.NightBrightnessEnabled,
+            Config.NightStartHour,
+            Config.NightEndHour,
+            Config.NightBrightnessPct,
+            DateTime.Now.Hour);
+        bool hwOk = !_dryRun && _backend.TrySetHardwareBrightness(session.Device.Handle, effective);
         lock (session.SyncRoot)
         {
             session.Profile.Brightness = clamped;
+            session.LastAppliedBrightness = effective;
             if (session.Renderer is not null)
-                session.Renderer.Brightness = hwOk ? 100 : clamped;
+                session.Renderer.Brightness = hwOk ? 100 : effective;
             session.LastSendMs = 0;
         }
         SaveConfig();
@@ -395,10 +498,17 @@ public sealed class DisplayHost : IDisposable
     private async Task RenderLoopAsync(CancellationToken ct)
     {
         long lastFullscreenCheckMs = 0;
+        long lastScheduleCheckMs = -30_000;
 
         while (!ct.IsCancellationRequested)
         {
             long tickStart = _clock.ElapsedMilliseconds;
+
+            if (tickStart - lastScheduleCheckMs >= 30_000)
+            {
+                lastScheduleCheckMs = tickStart;
+                ApplyNightBrightnessScheduleNow();
+            }
 
             if (Config.PauseOnFullscreen && tickStart - lastFullscreenCheckMs >= 1000)
             {

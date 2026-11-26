@@ -120,13 +120,35 @@ public partial class ThemeEditorWindow : Window
             return;
 
         _targetSerial = chosen.SerialNumber;
-        _canvasW = chosen.Width;
-        _canvasH = chosen.Height;
+        ApplyCanvasResolution(chosen.Width, chosen.Height);
+        TxtEditorStatus.Text = $"Destino seleccionado: {chosen.Label}";
+    }
+
+    private void ApplyCanvasResolution(float newW, float newH)
+    {
+        float oldW = _canvasW;
+        float oldH = _canvasH;
+        _canvasW = Math.Max(64f, newW);
+        _canvasH = Math.Max(64f, newH);
+
+        if (ChkScaleWidgets?.IsChecked == true && (MathF.Abs(oldW - _canvasW) > 0.5f || MathF.Abs(oldH - _canvasH) > 0.5f))
+        {
+            foreach (var w in _widgets)
+            {
+                bool square = w.Kind is "Radial" or "AlbumArt";
+                var scaled = ThemeCanvasScaler.ScaleRect(w.X, w.Y, w.Width, w.Height, w.FontSize, oldW, oldH, _canvasW, _canvasH, square);
+                w.X = scaled.X;
+                w.Y = scaled.Y;
+                w.Width = scaled.Width;
+                w.Height = scaled.Height;
+                w.FontSize = scaled.FontSize;
+            }
+        }
 
         _suppressUiEvents = true;
         try
         {
-            string resText = $"{chosen.Width}x{chosen.Height}";
+            string resText = $"{Math.Round(_canvasW)}x{Math.Round(_canvasH)}";
             for (int i = 0; i < CmbResolution.Items.Count; i++)
             {
                 if (CmbResolution.Items[i] is ComboBoxItem item &&
@@ -144,7 +166,6 @@ public partial class ThemeEditorWindow : Window
 
         ClampWidgetsToCanvas();
         RenderPreview();
-        TxtEditorStatus.Text = $"Destino seleccionado: {chosen.Label}";
     }
 
     private void ClampWidgetsToCanvas()
@@ -452,12 +473,7 @@ public partial class ThemeEditorWindow : Window
         {
             var p = res.Split('x');
             if (p.Length == 2 && float.TryParse(p[0], out float w) && float.TryParse(p[1], out float h))
-            {
-                _canvasW = w;
-                _canvasH = h;
-                ClampWidgetsToCanvas();
-                RenderPreview();
-            }
+                ApplyCanvasResolution(w, h);
         }
     }
 

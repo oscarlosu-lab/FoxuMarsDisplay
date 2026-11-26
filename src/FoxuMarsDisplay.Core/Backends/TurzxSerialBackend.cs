@@ -1,16 +1,20 @@
 using System.Collections.Concurrent;
-using System.IO.Ports;
+using System.IO;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using SkiaSharp;
 
 namespace FoxuMarsDisplay.Core.Backends;
 
 /// <summary>
 /// Clean-room USB Serial backend for Turing Smart Screen Rev A/B/C (1A86:5722, 1A86:CA21)
-/// and TURZX 5" USB Serial (1D6B:0106).
+/// and TURZX 5" USB Serial (1D6B:0106), using direct Win32 serial handles and tile-based
+/// differential updates for high frame rates.
 /// </summary>
 public sealed class TurzxSerialBackend : IDisplayBackend
 {
     public const uint HandleBase = 0x40000000u;
+    private const int DefaultDiffBudgetBytes = 32_768;
 
     private static readonly (ushort Vid, ushort Pid)[] SupportedIds =
     [
@@ -19,19 +23,133 @@ public sealed class TurzxSerialBackend : IDisplayBackend
         (0x1D6B, 0x0106)
     ];
 
+    private sealed class Win32SerialLink : IDisposable
+    {
+        private const int WriteChunkBytes = 16_384;
+        private SafeFileHandle? _handle;
+
+        public bool IsOpen => _handle is { IsInvalid: false, IsClosed: false };
+
+        public void Open(string portName)
+        {
+            Close();
+            var h = CreateFile(
+                @"\\.\" + portName,
+                0xC0000000u,
+                0,
+                IntPtr.Zero,
+                3,
+                0,
+                IntPtr.Zero);
+
+            if (h.IsInvalid)
+                throw new IOException($"Cannot open {portName} (Win32 {Marshal.GetLastWin32Error()})");
+
+            try
+            {
+                var dcb = new Dcb { DCBlength = (uint)Marshal.SizeOf<Dcb>() };
+                if (!GetCommState(h, ref dcb))
+                    throw new IOException($"GetCommState failed ({Marshal.GetLastWin32Error()})");
+
+                dcb.BaudRate = 115200;
+                dcb.Flags = 0x0001 | 0x0004 | 0x0010 | 0x2000;
+                dcb.ByteSize = 8;
+                dcb.Parity = 0;
+                dcb.StopBits = 0;
+
+                if (!SetCommState(h, ref dcb))
+                    throw new IOException($"SetCommState failed ({Marshal.GetLastWin32Error()})");
+
+                var timeouts = new CommTimeouts
+                {
+                    ReadIntervalTimeout = uint.MaxValue,
+                    WriteTotalTimeoutConstant = 2000
+                };
+                if (!SetCommTimeouts(h, ref timeouts))
+                    throw new IOException($"SetCommTimeouts failed ({Marshal.GetLastWin32Error()})");
+
+                PurgeComm(h, 0x0004 | 0x0008);
+            }
+            catch
+            {
+                h.Dispose();
+                throw;
+            }
+
+            _handle = h;
+        }
+
+        public unsafe void Write(ReadOnlySpan<byte> data)
+        {
+            if (!IsOpen || _handle is null)
+                throw new IOException("Serial link is closed.");
+
+            int offset = 0;
+            fixed (byte* ptr = data)
+            {
+                while (offset < data.Length)
+                {
+                    int chunk = Math.Min(WriteChunkBytes, data.Length - offset);
+                    if (!WriteFile(_handle, ptr + offset, (uint)chunk, out uint written, IntPtr.Zero) || written == 0)
+                        throw new IOException($"WriteFile failed ({Marshal.GetLastWin32Error()})");
+                    offset += (int)written;
+                }
+            }
+        }
+
+        public void Close()
+        {
+            _handle?.Dispose();
+            _handle = null;
+        }
+
+        public void Dispose() => Close();
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Dcb
+        {
+            public uint DCBlength, BaudRate, Flags;
+            public ushort wReserved, XonLim, XoffLim;
+            public byte ByteSize, Parity, StopBits;
+            public sbyte XonChar, XoffChar, ErrorChar, EofChar, EvtChar;
+            public ushort wReserved1;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CommTimeouts
+        {
+            public uint ReadIntervalTimeout, ReadTotalTimeoutMultiplier, ReadTotalTimeoutConstant, WriteTotalTimeoutMultiplier, WriteTotalTimeoutConstant;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr sec, uint disp, uint flags, IntPtr tmpl);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetCommState(SafeFileHandle h, ref Dcb dcb);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetCommState(SafeFileHandle h, ref Dcb dcb);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetCommTimeouts(SafeFileHandle h, ref CommTimeouts timeouts);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool PurgeComm(SafeFileHandle h, uint flags);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern unsafe bool WriteFile(SafeFileHandle h, byte* buf, uint count, out uint written, IntPtr overlapped);
+    }
+
     private sealed class SerialSession : IDisposable
     {
         public uint Handle;
         public string PortName = string.Empty;
-        public SerialPort Port = null!;
+        public Win32SerialLink Link = new();
         public DisplayDeviceInfo Info = null!;
+        public SerialTileDiffEngine? Diff;
         public readonly object SyncRoot = new();
 
-        public void Dispose()
-        {
-            try { if (Port.IsOpen) Port.Close(); } catch { }
-            try { Port.Dispose(); } catch { }
-        }
+        public void Dispose() => Link.Dispose();
     }
 
     private readonly ConcurrentDictionary<uint, SerialSession> _sessions = new();
@@ -59,29 +177,59 @@ public sealed class TurzxSerialBackend : IDisplayBackend
         return _sessions.Count > 0;
     }
 
-    public bool SetResolution(uint handle, int width, int height, int refresh = 60) =>
-        _sessions.ContainsKey(handle);
+    public bool SetResolution(uint handle, int width, int height, int refresh = 60)
+    {
+        if (!_sessions.TryGetValue(handle, out var session))
+            return false;
+
+        lock (session.SyncRoot)
+        {
+            session.Diff?.Invalidate();
+        }
+        return true;
+    }
 
     public int SendBgraFrame(uint handle, SKBitmap bgraBitmap)
     {
         if (!_started || !_sessions.TryGetValue(handle, out var session))
             return -1;
 
-        byte[] header = BuildRevACommand(197, 0, 0, bgraBitmap.Width - 1, bgraBitmap.Height - 1);
-        byte[] rgb565 = ConvertBgraToRgb565Le(bgraBitmap);
+        ushort[] rgb565 = SerialTileDiffEngine.ConvertBgraToRgb565Array(bgraBitmap);
 
         lock (session.SyncRoot)
         {
             try
             {
-                if (!session.Port.IsOpen)
-                    session.Port.Open();
-                session.Port.Write(header, 0, header.Length);
-                session.Port.Write(rgb565, 0, rgb565.Length);
+                if (!session.Link.IsOpen)
+                {
+                    session.Link.Open(session.PortName);
+                    session.Diff?.Invalidate();
+                }
+
+                if (session.Diff is null ||
+                    session.Diff.Width != bgraBitmap.Width ||
+                    session.Diff.Height != bgraBitmap.Height)
+                {
+                    session.Diff = new SerialTileDiffEngine(bgraBitmap.Width, bgraBitmap.Height);
+                }
+
+                var dirtyRects = session.Diff.ComputeDirtyRects(rgb565, DefaultDiffBudgetBytes, out _);
+                if (dirtyRects.Count == 0)
+                    return 0;
+
+                foreach (var rect in dirtyRects)
+                {
+                    byte[] cmd = BuildRevACommand(197, rect.X, rect.Y, rect.X + rect.Width - 1, rect.Y + rect.Height - 1);
+                    byte[] payload = SerialTileDiffEngine.ExtractRectRgb565Le(rgb565, bgraBitmap.Width, rect);
+                    session.Link.Write(cmd);
+                    session.Link.Write(payload);
+                }
                 return 0;
             }
             catch
             {
+                session.Link.Close();
+                session.Diff?.Invalidate();
                 return -3;
             }
         }
@@ -98,8 +246,8 @@ public sealed class TurzxSerialBackend : IDisplayBackend
         {
             try
             {
-                if (!session.Port.IsOpen) return false;
-                session.Port.Write(cmd, 0, cmd.Length);
+                if (!session.Link.IsOpen) return false;
+                session.Link.Write(cmd);
                 return true;
             }
             catch
@@ -161,14 +309,8 @@ public sealed class TurzxSerialBackend : IDisplayBackend
 
             try
             {
-                var port = new SerialPort(portName, 115200, Parity.None, 8, StopBits.One)
-                {
-                    ReadTimeout = 500,
-                    WriteTimeout = 2000,
-                    RtsEnable = true,
-                    DtrEnable = true
-                };
-                port.Open();
+                var link = new Win32SerialLink();
+                link.Open(portName);
 
                 uint handle = Interlocked.Increment(ref _nextHandle);
                 string serial = $"TURZX_{spec.Pid:X4}_{serialKey}";
@@ -177,7 +319,7 @@ public sealed class TurzxSerialBackend : IDisplayBackend
                 {
                     Handle = handle,
                     PortName = portName,
-                    Port = port,
+                    Link = link,
                     Info = info
                 };
                 if (_sessions.TryAdd(handle, session))
@@ -204,32 +346,14 @@ public sealed class TurzxSerialBackend : IDisplayBackend
 
     public static byte[] ConvertBgraToRgb565Le(SKBitmap bitmap)
     {
-        if (bitmap.ColorType != SKColorType.Bgra8888)
-            throw new ArgumentException("Bitmap must be Bgra8888", nameof(bitmap));
-
-        int w = bitmap.Width;
-        int h = bitmap.Height;
-        byte[] output = new byte[w * h * 2];
-
-        unsafe
+        ushort[] pixels = SerialTileDiffEngine.ConvertBgraToRgb565Array(bitmap);
+        byte[] output = new byte[pixels.Length * 2];
+        int outIdx = 0;
+        for (int i = 0; i < pixels.Length; i++)
         {
-            byte* srcBase = (byte*)bitmap.GetPixels().ToPointer();
-            int stride = bitmap.RowBytes;
-            int outIdx = 0;
-
-            for (int y = 0; y < h; y++)
-            {
-                byte* row = srcBase + y * stride;
-                for (int x = 0; x < w; x++)
-                {
-                    byte b = row[x * 4 + 0];
-                    byte g = row[x * 4 + 1];
-                    byte r = row[x * 4 + 2];
-                    ushort rgb565 = (ushort)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
-                    output[outIdx++] = (byte)(rgb565 & 0xFF);
-                    output[outIdx++] = (byte)(rgb565 >> 8);
-                }
-            }
+            ushort rgb565 = pixels[i];
+            output[outIdx++] = (byte)(rgb565 & 0xFF);
+            output[outIdx++] = (byte)(rgb565 >> 8);
         }
         return output;
     }

@@ -36,8 +36,12 @@
                         <ComboBoxItem Content="480x320" />
                         <ComboBoxItem Content="320x1480" />
                         <ComboBoxItem Content="462x1920" />
+                        <ComboBoxItem Content="480x1920" />
+                        <ComboBoxItem Content="720x1472" />
+                        <ComboBoxItem Content="800x480" />
                         <ComboBoxItem Content="1024x600" />
                     </ComboBox>
+                    <CheckBox x:Name="ChkScaleWidgets" Content="Escalar widgets al cambiar res." IsChecked="True" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,8" />
 
                     <Grid Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
@@ -47,7 +51,7 @@
                         <Button Content="🖼️ Fondo (IMG/MP4)" Height="30" Style="{StaticResource CyberButton}" Click="OnPickBackgroundClick" />
                         <Button Grid.Column="1" Content="✕" Width="32" Height="30" Margin="6,0,0,0" ToolTip="Quitar fondo" Style="{StaticResource CyberButton}" Click="OnClearBackgroundClick" />
                     </Grid>
-                    <Button Content="📂 Abrir Tema (.smtheme)" Height="28" Margin="0,0,0,10" Style="{StaticResource CyberButton}" Click="OnOpenSmthemeClick" />
+                    <Button Content="📂 Abrir Tema (.smtheme)" Height="32" Margin="0,0,0,10" Style="{StaticResource CyberButton}" Click="OnOpenSmthemeClick" />
 
                     <TextBlock Text="AÑADIR WIDGETS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource SolarGold}" Margin="0,0,0,6" />
                     <UniformGrid Columns="2" Margin="0,0,0,8">

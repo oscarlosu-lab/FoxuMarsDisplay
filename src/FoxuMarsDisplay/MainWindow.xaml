@@ -451,7 +451,35 @@
                                     </DockPanel>
                                     <CheckBox x:Name="ChkPauseFullscreen" Content="{DynamicResource Str_PauseFullscreen}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8" Click="OnSystemFlagsChanged" />
                                     <CheckBox x:Name="ChkMinimizeToTray" Content="{DynamicResource Str_MinimizeToTray}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8" Click="OnSystemFlagsChanged" />
-                                    <CheckBox x:Name="ChkAutoStart" Content="{DynamicResource Str_AutoStart}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,16" Click="OnAutoStartChanged" />
+                                    <CheckBox x:Name="ChkAutoStart" Content="{DynamicResource Str_AutoStart}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12" Click="OnAutoStartChanged" />
+
+                                    <Border Background="#120F1B" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <CheckBox x:Name="ChkNightBrightness" Content="{DynamicResource Str_NightBrightness}" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8" Click="OnNightScheduleChanged" />
+                                            <DockPanel Margin="0,0,0,6">
+                                                <TextBlock Text="{DynamicResource Str_NightHoursLabel}" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" FontSize="12" />
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <ComboBox x:Name="CmbNightStart" Width="76" SelectionChanged="OnNightScheduleComboChanged" />
+                                                    <TextBlock Text=" → " VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" />
+                                                    <ComboBox x:Name="CmbNightEnd" Width="76" SelectionChanged="OnNightScheduleComboChanged" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                            <DockPanel>
+                                                <TextBlock x:Name="TxtNightLevelLabel" Text="Brillo nocturno: 30%" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" FontSize="12" />
+                                                <Slider x:Name="SldNightBrightness" Minimum="5" Maximum="100" Width="220" HorizontalAlignment="Right" ValueChanged="OnNightBrightnessSliderChanged" />
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <DockPanel Margin="0,0,0,12">
+                                        <TextBlock x:Name="TxtLyricsOffsetLabel" Text="Desfase letras: 0 ms" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                        <Slider x:Name="SldLyricsOffset" Minimum="-5000" Maximum="5000" TickFrequency="100" IsSnapToTickEnabled="True" Width="260" HorizontalAlignment="Right" ValueChanged="OnLyricsOffsetChanged" />
+                                    </DockPanel>
+
+                                    <DockPanel Margin="0,0,0,14">
+                                        <CheckBox x:Name="ChkHttpRemote" Content="{DynamicResource Str_HttpRemoteEnable}" VerticalAlignment="Center" Foreground="{StaticResource TextPrimary}" Click="OnHttpRemoteToggled" />
+                                        <Button x:Name="BtnOpenHttpRemote" DockPanel.Dock="Right" Content="{DynamicResource Str_HttpRemoteOpen}" Style="{StaticResource CyberButton}" Padding="10,4" HorizontalAlignment="Right" Click="OnOpenHttpRemoteClick" />
+                                    </DockPanel>
 
                                     <WrapPanel>
                                         <Button Content="{DynamicResource Str_ClearCache}" Style="{StaticResource CyberButton}" Margin="0,0,10,8" Click="OnClearCacheClick" />

@@ -41,6 +41,8 @@ public sealed class SkiaThemeRenderer : IDisposable
     private SKBitmap? _animScratchBitmap;
     private SKBitmap? _albumArtBitmap;
     private ulong _lastAlbumArtHash;
+    private byte[]? _lastAmbientArtRef;
+    private SKColor? _lastAmbientColor;
 
     private readonly SKPaint _textPaint = new() { IsAntialias = true, SubpixelText = true };
     private readonly SKPaint _barPaint = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
@@ -563,6 +565,25 @@ public sealed class SkiaThemeRenderer : IDisposable
         float minScale = Math.Min(sx, sy);
 
         _logicalCanvas.Clear(SKColors.Black);
+
+        if (_theme.AlbumArts.Count > 0 && _theme.ImageLayers.Count == 0 && _animFrames.Count == 0 &&
+            sensors.AlbumArtBytes is { Length: > 16 } artBytes)
+        {
+            if (!ReferenceEquals(_lastAmbientArtRef, artBytes))
+            {
+                _lastAmbientArtRef = artBytes;
+                _lastAmbientColor = MediaArtAndLyricsProvider.ExtractDominantAccentColor(artBytes);
+            }
+            if (_lastAmbientColor is { } accent)
+            {
+                var darkAccent = new SKColor(accent.Red, accent.Green, accent.Blue, 115);
+                var center = new SKPoint(logW * 0.5f, logH * 0.42f);
+                float radius = MathF.Max(logW, logH) * 0.72f;
+                using var shader = SKShader.CreateRadialGradient(center, radius, [darkAccent, SKColors.Black], SKShaderTileMode.Clamp);
+                using var bgPaint = new SKPaint { Shader = shader, IsAntialias = true };
+                _logicalCanvas.DrawRect(0, 0, logW, logH, bgPaint);
+            }
+        }
 
         bool drewAnim = false;
         foreach (var layer in _theme.ImageLayers)

@@ -13,7 +13,12 @@ public enum DisplayProtocolFamily
     ThermalrightLy,
     ThermalrightHid,
     ChiZhuSomore,
-    MiraBox
+    MiraBox,
+    WeActSerial,
+    ThermaltakeHid,
+    NzxtKraken,
+    CorsairHid,
+    GigabyteAorus
 }
 
 public sealed record KnownUsbDisplaySpec(
@@ -46,14 +51,17 @@ public static class UsbDisplayCatalog
         // ArtInChip AicUsbDisplay
         new(0x33C3, 0x0E02, "ArtInChip AicUsbDisplay", DisplayProtocolFamily.ArtInChipAic, 480, 480),
 
-        // TURZX Win207 WinUSB
+        // TURZX Win207 / SLV3 WinUSB
         new(0x1CBE, 0x0021, "TURZX 2.1\" Round", DisplayProtocolFamily.TurzxWinUsb, 480, 480),
         new(0x1CBE, 0xB021, "TURZX 2.1\" Round SLC", DisplayProtocolFamily.TurzxWinUsb, 480, 480),
+        new(0x1CBE, 0x0028, "TURZX 2.8\" Round", DisplayProtocolFamily.TurzxWinUsb, 480, 480),
         new(0x1CBE, 0x0040, "TURZX 4.0\" Square", DisplayProtocolFamily.TurzxWinUsb, 720, 720),
         new(0x1CBE, 0x0045, "TURZX 4.5\"", DisplayProtocolFamily.TurzxWinUsb, 1024, 768),
         new(0x1CBE, 0x0046, "TURZX 4.6\" Strip", DisplayProtocolFamily.TurzxWinUsb, 320, 960),
         new(0x1CBE, 0x0050, "TURZX 5.2\"", DisplayProtocolFamily.TurzxWinUsb, 720, 1280),
         new(0x1CBE, 0x0055, "TURZX 5.0\"", DisplayProtocolFamily.TurzxWinUsb, 720, 1280),
+        new(0x1CBE, 0xA018, "USB Square 400x400 SLV3", DisplayProtocolFamily.TurzxWinUsb, 400, 400),
+        new(0x1CBE, 0xA019, "USB Square 400x400 SLV3 Alt", DisplayProtocolFamily.TurzxWinUsb, 400, 400),
         new(0x1CBE, 0xA062, "TURZX 6.2\" V1", DisplayProtocolFamily.TurzxWinUsb, 368, 960),
         new(0x1CBE, 0xB062, "TURZX 6.2\" V2", DisplayProtocolFamily.TurzxWinUsb, 448, 1280),
         new(0x1CBE, 0xC062, "TURZX 6.2\" V3", DisplayProtocolFamily.TurzxWinUsb, 480, 1280),
@@ -64,9 +72,19 @@ public static class UsbDisplayCatalog
         new(0x1CBE, 0x0070, "TURZX 7.0\"", DisplayProtocolFamily.TurzxWinUsb, 800, 1280),
         new(0x1CBE, 0x0080, "TURZX 8.0\"", DisplayProtocolFamily.TurzxWinUsb, 800, 1280),
         new(0x1CBE, 0x0088, "TURZX 8.8\" Bar", DisplayProtocolFamily.TurzxWinUsb, 480, 1920),
+        new(0x1CBE, 0xA088, "USB Bar 8.8\" SLV3", DisplayProtocolFamily.TurzxWinUsb, 480, 1920),
         new(0x1CBE, 0x0092, "TURZX 9.2\" Bar", DisplayProtocolFamily.TurzxWinUsb, 462, 1920),
         new(0x1CBE, 0xA092, "TURZX 9.2\" Bar Alt", DisplayProtocolFamily.TurzxWinUsb, 464, 1920),
         new(0x1CBE, 0x0123, "TURZX 3.5\" Win207", DisplayProtocolFamily.TurzxWinUsb, 480, 320),
+
+        // WeAct / Thermaltake / NZXT / Corsair / Gigabyte Registry
+        new(0x1A86, 0xFE0C, "WeAct Display FS", DisplayProtocolFamily.WeActSerial, 320, 480),
+        new(0x264A, 0x2347, "Thermaltake 6\" LCD", DisplayProtocolFamily.ThermaltakeHid, 1480, 720),
+        new(0x26CE, 0x0A10, "ASRock Phantom 360 LCD", DisplayProtocolFamily.ThermaltakeHid, 480, 480),
+        new(0x1E71, 0x3008, "NZXT Kraken LCD", DisplayProtocolFamily.NzxtKraken, 320, 320),
+        new(0x1E71, 0x300C, "NZXT Kraken Elite LCD", DisplayProtocolFamily.NzxtKraken, 640, 640),
+        new(0x1B1C, 0x0C39, "Corsair Elite LCD", DisplayProtocolFamily.CorsairHid, 480, 480),
+        new(0x048D, 0x5702, "Gigabyte AORUS Edge LCD", DisplayProtocolFamily.GigabyteAorus, 320, 172),
 
         // Turing / TURZX Serial
         new(0x1A86, 0x5722, "Turing Smart Screen 3.5\" Rev A/B", DisplayProtocolFamily.TuringSerial, 320, 480),

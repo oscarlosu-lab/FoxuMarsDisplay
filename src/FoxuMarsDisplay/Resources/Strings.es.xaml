@@ -106,6 +106,12 @@ Puede verse deformado o con franjas negras.
     <sys:String x:Key="Str_ClearCache">🧹 Limpiar caché .sdac</sys:String>
     <sys:String x:Key="Str_KillSoeyi">⚡ Detener SOEYI.exe</sys:String>
     <sys:String x:Key="Str_CheckUpdates">🔄 Buscar actualizaciones</sys:String>
+    <sys:String x:Key="Str_NightBrightness">🌙 Brillo nocturno automático</sys:String>
+    <sys:String x:Key="Str_NightHoursLabel">Horario nocturno:</sys:String>
+    <sys:String x:Key="Str_NightLevelFmt">Brillo nocturno: {0}%</sys:String>
+    <sys:String x:Key="Str_LyricsOffsetFmt">Desfase letras: {0} ms</sys:String>
+    <sys:String x:Key="Str_HttpRemoteEnable">🌐 Control remoto Web/REST local</sys:String>
+    <sys:String x:Key="Str_HttpRemoteOpen">Abrir Web</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Clic para ampliar</sys:String>
     <sys:String x:Key="Str_LightboxHint">Clic en la imagen o Esc para cerrar</sys:String>

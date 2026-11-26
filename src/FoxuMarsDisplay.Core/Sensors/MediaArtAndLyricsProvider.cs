@@ -1,16 +1,20 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using SkiaSharp;
 
 namespace FoxuMarsDisplay.Core.Sensors;
 
 /// <summary>
-/// Fetches and caches album artwork (iTunes Search) and synced LRC lyrics (LRCLIB)
-/// when the active track changes, with zero API keys and offline safety.
+/// Fetches and caches album artwork (iTunes Search with Deezer fallback) and synced LRC lyrics (LRCLIB)
+/// when the active track changes, with configurable timing offset, query cleanup, and accent extraction.
 /// </summary>
 public sealed class MediaArtAndLyricsProvider : IDisposable
 {
     private static readonly Regex LrcTagRegex = new(@"\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]", RegexOptions.Compiled);
+    private static readonly Regex TrackNoiseRegex = new(
+        @"\s*(?:\((?:official\s*(?:music\s*)?(?:video|audio|lyric\s*video)|lyrics?|visualizer|hd|4k)\)|\[(?:official\s*(?:music\s*)?(?:video|audio)|lyrics?|visualizer)\]|\s*[-|]\s*youtube(?:\s*music)?)\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(4) };
     private readonly CancellationTokenSource _cts = new();
@@ -18,9 +22,16 @@ public sealed class MediaArtAndLyricsProvider : IDisposable
     private string _activeTrackKey = string.Empty;
     private long _trackStartedMs;
     private int _inFlight;
+    private int _lyricsOffsetMs;
     private IReadOnlyList<(long TimeMs, string Text)> _parsedLyrics = [];
     private byte[]? _albumArtBytes;
     private bool _disposed;
+
+    public int LyricsOffsetMs
+    {
+        get => Volatile.Read(ref _lyricsOffsetMs);
+        set => Volatile.Write(ref _lyricsOffsetMs, Math.Clamp(value, -10_000, 10_000));
+    }
 
     public MediaArtAndLyricsProvider()
     {
@@ -52,15 +63,30 @@ public sealed class MediaArtAndLyricsProvider : IDisposable
         }
 
         albumArtBytes = _albumArtBytes;
-        long posMs = Math.Max(0, Environment.TickCount64 - _trackStartedMs);
+        long posMs = Math.Max(0, (Environment.TickCount64 - _trackStartedMs) + LyricsOffsetMs);
         currentLyricLine = GetLineAt(_parsedLyrics, posMs);
+    }
+
+    public static string CleanTrackQuery(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        string s = raw.Trim();
+        for (int i = 0; i < 3; i++)
+        {
+            string next = TrackNoiseRegex.Replace(s, string.Empty).Trim();
+            if (next.Length == s.Length) break;
+            s = next;
+        }
+        return s;
     }
 
     private async Task FetchTrackMetadataAsync(string artist, string songTitle, string trackKey, CancellationToken ct)
     {
+        string cleanArtist = CleanTrackQuery(artist);
+        string cleanTitle = CleanTrackQuery(songTitle);
         try
         {
-            string lrcUrl = $"https://lrclib.net/api/get?artist_name={Uri.EscapeDataString(artist)}&track_name={Uri.EscapeDataString(songTitle)}";
+            string lrcUrl = $"https://lrclib.net/api/get?artist_name={Uri.EscapeDataString(cleanArtist)}&track_name={Uri.EscapeDataString(cleanTitle)}";
             using (var resp = await _http.GetAsync(lrcUrl, ct).ConfigureAwait(false))
             {
                 if (resp.IsSuccessStatusCode)
@@ -86,7 +112,8 @@ public sealed class MediaArtAndLyricsProvider : IDisposable
                 }
             }
 
-            string query = string.IsNullOrWhiteSpace(artist) ? songTitle : $"{artist} {songTitle}";
+            string query = string.IsNullOrWhiteSpace(cleanArtist) ? cleanTitle : $"{cleanArtist} {cleanTitle}";
+            bool gotArt = false;
             string artUrl = $"https://itunes.apple.com/search?term={Uri.EscapeDataString(query)}&media=music&limit=1";
             using (var artResp = await _http.GetAsync(artUrl, ct).ConfigureAwait(false))
             {
@@ -104,6 +131,34 @@ public sealed class MediaArtAndLyricsProvider : IDisposable
                         if (!string.IsNullOrWhiteSpace(imgUrl))
                         {
                             byte[] bytes = await _http.GetByteArrayAsync(imgUrl, ct).ConfigureAwait(false);
+                            if (bytes.Length > 100 && string.Equals(_activeTrackKey, trackKey, StringComparison.OrdinalIgnoreCase))
+                            {
+                                _albumArtBytes = bytes;
+                                gotArt = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!gotArt)
+            {
+                string deezerUrl = $"https://api.deezer.com/search?q={Uri.EscapeDataString(query)}&limit=1";
+                using var dzResp = await _http.GetAsync(deezerUrl, ct).ConfigureAwait(false);
+                if (dzResp.IsSuccessStatusCode)
+                {
+                    var dzJson = await dzResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                    using var dzDoc = JsonDocument.Parse(dzJson);
+                    if (dzDoc.RootElement.TryGetProperty("data", out var dataEl) &&
+                        dataEl.ValueKind == JsonValueKind.Array &&
+                        dataEl.GetArrayLength() > 0 &&
+                        dataEl[0].TryGetProperty("album", out var albumEl))
+                    {
+                        string? coverUrl = albumEl.TryGetProperty("cover_medium", out var cm) ? cm.GetString()
+                            : albumEl.TryGetProperty("cover_big", out var cb) ? cb.GetString() : null;
+                        if (!string.IsNullOrWhiteSpace(coverUrl))
+                        {
+                            byte[] bytes = await _http.GetByteArrayAsync(coverUrl, ct).ConfigureAwait(false);
                             if (bytes.Length > 100 && string.Equals(_activeTrackKey, trackKey, StringComparison.OrdinalIgnoreCase))
                                 _albumArtBytes = bytes;
                         }
@@ -166,6 +221,61 @@ public sealed class MediaArtAndLyricsProvider : IDisposable
                 break;
         }
         return best;
+    }
+
+    public static SKColor? ExtractDominantAccentColor(byte[]? imageBytes)
+    {
+        if (imageBytes is null || imageBytes.Length < 16)
+            return null;
+
+        try
+        {
+            using var src = SKBitmap.Decode(imageBytes);
+            if (src is null || src.Width <= 0 || src.Height <= 0)
+                return null;
+
+            using var thumb = new SKBitmap(16, 16, SKColorType.Bgra8888, SKAlphaType.Premul);
+            using (var canvas = new SKCanvas(thumb))
+            using (var paint = new SKPaint { FilterQuality = SKFilterQuality.Low })
+            {
+                canvas.DrawBitmap(src, new SKRect(0, 0, 16, 16), paint);
+            }
+
+            long rSum = 0, gSum = 0, bSum = 0, weightSum = 0;
+            for (int y = 0; y < 16; y++)
+            {
+                for (int x = 0; x < 16; x++)
+                {
+                    var c = thumb.GetPixel(x, y);
+                    int maxC = Math.Max(c.Red, Math.Max(c.Green, c.Blue));
+                    int minC = Math.Min(c.Red, Math.Min(c.Green, c.Blue));
+                    int lum = (c.Red * 299 + c.Green * 587 + c.Blue * 114) / 1000;
+                    if (lum < 22 || lum > 240) continue;
+
+                    int sat = maxC - minC;
+                    if (sat < 18) continue;
+
+                    int w = 1 + sat / 16;
+                    rSum += (long)c.Red * w;
+                    gSum += (long)c.Green * w;
+                    bSum += (long)c.Blue * w;
+                    weightSum += w;
+                }
+            }
+
+            if (weightSum == 0)
+                return null;
+
+            return new SKColor(
+                (byte)Math.Clamp(rSum / weightSum, 0, 255),
+                (byte)Math.Clamp(gSum / weightSum, 0, 255),
+                (byte)Math.Clamp(bSum / weightSum, 0, 255),
+                255);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public void Dispose()

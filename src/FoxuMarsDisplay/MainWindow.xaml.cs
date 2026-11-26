@@ -416,6 +416,24 @@ public partial class MainWindow : Window
         ChkMinimizeToTray.IsChecked = _host.Config.MinimizeToTray;
         ChkAutoStart.IsChecked = AutoStartHelper.IsEnabled();
 
+        for (int h = 0; h < 24; h++)
+        {
+            string label = $"{h:00}:00";
+            CmbNightStart.Items.Add(new ComboBoxItem { Tag = h, Content = label });
+            CmbNightEnd.Items.Add(new ComboBoxItem { Tag = h, Content = label });
+        }
+        ChkNightBrightness.IsChecked = _host.Config.NightBrightnessEnabled;
+        CmbNightStart.SelectedIndex = Math.Clamp(_host.Config.NightStartHour, 0, 23);
+        CmbNightEnd.SelectedIndex = Math.Clamp(_host.Config.NightEndHour, 0, 23);
+        SldNightBrightness.Value = Math.Clamp(_host.Config.NightBrightnessPct, 5, 100);
+        TxtNightLevelLabel.Text = LocalizationService.Format("Str_NightLevelFmt", Math.Clamp(_host.Config.NightBrightnessPct, 5, 100));
+
+        SldLyricsOffset.Value = Math.Clamp(_host.Config.LyricsOffsetMs, -5000, 5000);
+        TxtLyricsOffsetLabel.Text = LocalizationService.Format("Str_LyricsOffsetFmt", _host.Config.LyricsOffsetMs);
+
+        ChkHttpRemote.IsChecked = _host.Config.HttpRemoteEnabled;
+        BtnOpenHttpRemote.IsEnabled = _host.Config.HttpRemoteEnabled;
+
         string lang = string.IsNullOrWhiteSpace(_host.Config.Language) ? "auto" : _host.Config.Language;
         foreach (ComboBoxItem item in CmbLanguage.Items)
         {
@@ -449,7 +467,8 @@ public partial class MainWindow : Window
         {
             panel.Children.Clear();
             emptyText.Visibility = _screenTargets.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            var pillStyle = (Style)FindResource("ScreenPillRadio");
+            var pillStyle = TryFindResource("ScreenPillRadio") as Style
+                ?? System.Windows.Application.Current?.TryFindResource("ScreenPillRadio") as Style;
 
             foreach (var screen in _screenTargets)
             {
@@ -458,11 +477,12 @@ public partial class MainWindow : Window
                     Content = $"🖥️ {screen.DisplayLabel}",
                     ToolTip = screen.ToolTipText,
                     GroupName = groupName,
-                    Style = pillStyle,
                     Tag = screen.SerialNumber,
                     IsChecked = selected is not null && screen.SerialNumber.Equals(selected.SerialNumber, StringComparison.OrdinalIgnoreCase),
                     Margin = new Thickness(0, 2, 8, 2)
                 };
+                if (pillStyle is not null)
+                    rb.Style = pillStyle;
                 rb.Checked += OnScreenPillChecked;
                 panel.Children.Add(rb);
             }
@@ -1108,6 +1128,8 @@ public partial class MainWindow : Window
             LocalizationService.ApplyLanguage(code);
 
             TxtFpsLabel.Text = LocalizationService.Format("Str_FpsLabelFmt", _host.Config.TargetFps);
+            TxtNightLevelLabel.Text = LocalizationService.Format("Str_NightLevelFmt", Math.Clamp(_host.Config.NightBrightnessPct, 5, 100));
+            TxtLyricsOffsetLabel.Text = LocalizationService.Format("Str_LyricsOffsetFmt", _host.Config.LyricsOffsetMs);
             _lastTargetSignature = string.Empty;
             RefreshUi();
             LoadGallery();
@@ -1131,6 +1153,60 @@ public partial class MainWindow : Window
         _host.Config.AutoStartWithWindows = enabled;
         AutoStartHelper.SetEnabled(enabled);
         _host.SaveConfig();
+    }
+
+    private void OnNightScheduleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        _host.Config.NightBrightnessEnabled = ChkNightBrightness.IsChecked == true;
+        _host.SaveConfig();
+        _host.ApplyNightBrightnessScheduleNow();
+    }
+
+    private void OnNightScheduleComboChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        if (CmbNightStart.SelectedIndex >= 0) _host.Config.NightStartHour = CmbNightStart.SelectedIndex;
+        if (CmbNightEnd.SelectedIndex >= 0) _host.Config.NightEndHour = CmbNightEnd.SelectedIndex;
+        _host.SaveConfig();
+        _host.ApplyNightBrightnessScheduleNow();
+    }
+
+    private void OnNightBrightnessSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        int pct = Math.Clamp((int)Math.Round(e.NewValue), 5, 100);
+        if (TxtNightLevelLabel != null)
+            TxtNightLevelLabel.Text = LocalizationService.Format("Str_NightLevelFmt", pct);
+        if (_isInitializing) return;
+        _host.Config.NightBrightnessPct = pct;
+        _host.SaveConfig();
+        _host.ApplyNightBrightnessScheduleNow();
+    }
+
+    private void OnLyricsOffsetChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        int ms = Math.Clamp((int)Math.Round(e.NewValue), -5000, 5000);
+        if (TxtLyricsOffsetLabel != null)
+            TxtLyricsOffsetLabel.Text = LocalizationService.Format("Str_LyricsOffsetFmt", ms);
+        if (_isInitializing) return;
+        _host.SetLyricsOffsetMs(ms);
+    }
+
+    private void OnHttpRemoteToggled(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        bool enabled = ChkHttpRemote.IsChecked == true;
+        bool ok = _host.SetHttpRemoteEnabled(enabled);
+        BtnOpenHttpRemote.IsEnabled = enabled && ok;
+    }
+
+    private void OnOpenHttpRemoteClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(_host.HttpRemoteUrl) { UseShellExecute = true });
+        }
+        catch { }
     }
 
     private void OnClearCacheClick(object sender, RoutedEventArgs e)

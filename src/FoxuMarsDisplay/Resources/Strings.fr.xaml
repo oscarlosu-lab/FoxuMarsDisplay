@@ -106,6 +106,12 @@ Appliquer quand même ?</sys:String>
     <sys:String x:Key="Str_ClearCache">🧹 Vider le cache .sdac</sys:String>
     <sys:String x:Key="Str_KillSoeyi">⚡ Arrêter SOEYI.exe</sys:String>
     <sys:String x:Key="Str_CheckUpdates">🔄 Rechercher des mises à jour</sys:String>
+    <sys:String x:Key="Str_NightBrightness">🌙 Luminosité nocturne automatique</sys:String>
+    <sys:String x:Key="Str_NightHoursLabel">Plage nocturne :</sys:String>
+    <sys:String x:Key="Str_NightLevelFmt">Luminosité nocturne : {0}%</sys:String>
+    <sys:String x:Key="Str_LyricsOffsetFmt">Décalage paroles : {0} ms</sys:String>
+    <sys:String x:Key="Str_HttpRemoteEnable">🌐 Contrôle à distance Web/REST local</sys:String>
+    <sys:String x:Key="Str_HttpRemoteOpen">Ouvrir Web</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Cliquer pour agrandir</sys:String>
     <sys:String x:Key="Str_LightboxHint">Cliquez sur l'image ou Échap pour fermer</sys:String>

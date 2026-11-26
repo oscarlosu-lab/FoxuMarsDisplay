@@ -38,6 +38,12 @@ public sealed class LightweightSensorProvider : IDisposable
 
     public SensorSnapshot Current => Volatile.Read(ref _current);
 
+    public int LyricsOffsetMs
+    {
+        get => _mediaArtLyrics.LyricsOffsetMs;
+        set => _mediaArtLyrics.LyricsOffsetMs = value;
+    }
+
     public void Start(int pollIntervalMs = 1000)
     {
         if (_disposed || _pollTask != null)

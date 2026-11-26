@@ -20,7 +20,7 @@ public sealed class CompositeDisplayBackend : IDisplayBackend
     {
         _backends = backends.Length > 0
             ? backends
-            : [new MsDisplayBackend(), new AicDisplayBackend(), new SerialCdcVmaxBackend(), new TurzxSerialBackend()];
+            : [new MsDisplayBackend(), new AicDisplayBackend(), new SerialCdcVmaxBackend(), new TurzxSerialBackend(), new TurzxWinUsbBackend()];
         foreach (var b in _backends)
         {
             b.DeviceAttached += d => DeviceAttached?.Invoke(d);

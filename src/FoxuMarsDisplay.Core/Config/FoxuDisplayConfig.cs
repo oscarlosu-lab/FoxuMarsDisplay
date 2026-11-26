@@ -11,6 +11,14 @@ public sealed class FoxuDisplayConfig
     public bool AutoStartWithWindows { get; set; } = false;
     public int NativeLogLevel { get; set; } = 0;
     public string Language { get; set; } = "auto";
+    public int LyricsOffsetMs { get; set; } = 0;
+    public bool NightBrightnessEnabled { get; set; } = false;
+    public int NightStartHour { get; set; } = 22;
+    public int NightEndHour { get; set; } = 7;
+    public int NightBrightnessPct { get; set; } = 30;
+    public bool HttpRemoteEnabled { get; set; } = false;
+    public int HttpRemotePort { get; set; } = 47821;
+    public string HttpRemoteToken { get; set; } = string.Empty;
     public List<string> ExtraThemeFolders { get; set; } = [];
     public List<ScreenProfile> Screens { get; set; } = [];
 }

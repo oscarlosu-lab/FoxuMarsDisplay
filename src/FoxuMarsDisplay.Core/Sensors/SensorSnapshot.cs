@@ -172,7 +172,7 @@ public sealed class SensorSnapshot
             "UPTIME" => FormatUptime(),
             "SONGTITLE" => string.IsNullOrWhiteSpace(SongTitle) ? "No Media" : SongTitle,
             "ARTIST" => string.IsNullOrWhiteSpace(Artist) ? string.Empty : Artist,
-            "LYRIC" or "SONGLYRIC" => !string.IsNullOrWhiteSpace(CurrentLyricLine)
+            "LYRIC" or "LYRICS" or "SONGLYRIC" or "SONGLYRICS" => !string.IsNullOrWhiteSpace(CurrentLyricLine)
                 ? CurrentLyricLine
                 : (!string.IsNullOrWhiteSpace(SongTitle) ? SongTitle : "No Media"),
             "WEATHER_DESCRIPTION" or "WEATHERINFO" or "TODAY" => HasWeather ? WeatherDescription : "--",

@@ -106,6 +106,12 @@ Apply anyway?</sys:String>
     <sys:String x:Key="Str_ClearCache">🧹 Clear .sdac Cache</sys:String>
     <sys:String x:Key="Str_KillSoeyi">⚡ Stop SOEYI.exe</sys:String>
     <sys:String x:Key="Str_CheckUpdates">🔄 Check for Updates</sys:String>
+    <sys:String x:Key="Str_NightBrightness">🌙 Automatic night brightness</sys:String>
+    <sys:String x:Key="Str_NightHoursLabel">Night schedule:</sys:String>
+    <sys:String x:Key="Str_NightLevelFmt">Night brightness: {0}%</sys:String>
+    <sys:String x:Key="Str_LyricsOffsetFmt">Lyrics offset: {0} ms</sys:String>
+    <sys:String x:Key="Str_HttpRemoteEnable">🌐 Local Web/REST remote control</sys:String>
+    <sys:String x:Key="Str_HttpRemoteOpen">Open Web</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Click to enlarge</sys:String>
     <sys:String x:Key="Str_LightboxHint">Click image or press Esc to close</sys:String>

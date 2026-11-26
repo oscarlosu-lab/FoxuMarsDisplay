@@ -111,6 +111,37 @@ public static class Ms9132Protocol
         }
         return output;
     }
+
+    public static (IReadOnlyList<byte[]> Chunks, bool NeedsZlp) ChunkBulkPayload(byte[] payload, int chunkSize = 65536)
+    {
+        if (chunkSize <= 0) throw new ArgumentOutOfRangeException(nameof(chunkSize));
+        var chunks = new List<byte[]>((payload.Length / chunkSize) + 1);
+        for (int offset = 0; offset < payload.Length; offset += chunkSize)
+        {
+            int len = Math.Min(chunkSize, payload.Length - offset);
+            byte[] slice = new byte[len];
+            Buffer.BlockCopy(payload, offset, slice, 0, len);
+            chunks.Add(slice);
+        }
+        bool needsZlp = payload.Length > 0 && (payload.Length % chunkSize) == 0;
+        return (chunks, needsZlp);
+    }
+}
+
+public static class VmaxCdc60Protocol
+{
+    public static byte[] Build60ByteFrameHeader(int width, int height, int jpegLength)
+    {
+        byte[] header = new byte[60];
+        header[0] = 0xAA;
+        header[1] = 0x55;
+        header[2] = 0x5A;
+        header[3] = 0xA5;
+        BitConverter.TryWriteBytes(header.AsSpan(4, 2), (ushort)Math.Clamp(width, 0, ushort.MaxValue));
+        BitConverter.TryWriteBytes(header.AsSpan(6, 2), (ushort)Math.Clamp(height, 0, ushort.MaxValue));
+        BitConverter.TryWriteBytes(header.AsSpan(8, 4), Math.Max(0, jpegLength));
+        return header;
+    }
 }
 
 public static class HlVmaxBulkProtocol

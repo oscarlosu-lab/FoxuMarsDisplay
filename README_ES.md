@@ -15,7 +15,7 @@
 [![Idiomas](https://img.shields.io/badge/idiomas-5%20autodetectados-3EE08F)](#características)
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/oscarlosu)
 
-> **FoxuMarsDisplay v2.0.0 ("Unicorn Engine")** es un motor gratuito para uso personal, source-available y ultra ligero para Windows que controla **6 familias de pantallas USB** (**Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132**, **TURZX / Turing**, **ArtInChip**, **Thermalright / ChiZhu / MiraBox**) — con **tienda de temas integrada (`327+` temas curados en `catalog_v2.json`)**, **vídeos `.mp4` nativos**, **espectro de audio WASAPI FFT de 16 bandas**, **letras sincronizadas LRCLIB**, **editor visual WYSIWYG `FOXU // STUDIO` integrado**, **instalación permanente sin UAC**, **~0,6 % de CPU**, **~60 MB de RAM** y **5 idiomas autodetectados**. No necesitas el software de SOEYI.
+> **FoxuMarsDisplay v2.1.0** es un motor gratuito para uso personal, source-available y ultra ligero para Windows que controla **Mars Gaming VMAX**, **SOEYI**, **MacroSilicon MS912C / MS9132**, **TURZX / Turing (Serie y WinUSB)**, **ArtInChip**, **Thermalright / ChiZhu / MiraBox** y un catálogo USB ampliado — con **tienda de temas integrada (`327+` temas curados en `catalog_v2.json`)**, **vídeos `.mp4` nativos**, **espectro de audio WASAPI FFT de 16 bandas**, **letras sincronizadas LRCLIB con ajuste en ms**, **brillo nocturno automático**, **control remoto Web/REST local**, **editor visual WYSIWYG `FOXU // STUDIO` con escalado proporcional**, **instalación permanente sin UAC**, **~0,6 % de CPU**, **~60 MB de RAM** y **5 idiomas autodetectados**. No necesitas el software de SOEYI.
 
 ---
 
