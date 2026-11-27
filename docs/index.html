@@ -19,7 +19,10 @@
 <style>
 :root{--bg:#0b0a0f;--card:#171421;--line:#2e273f;--ember:#ff6419;--crimson:#ff1f4b;--gold:#ffb820;--text:#f2eefa;--muted:#988fad}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;line-height:1.6}
-a{color:var(--gold)}header{padding:56px 20px 24px;text-align:center;background:radial-gradient(circle at 20% 0,#3a1708 0,transparent 55%),radial-gradient(circle at 90% 100%,#3a0a18 0,transparent 50%)}
+a{color:var(--gold)}header{position:relative;padding:56px 20px 24px;text-align:center;background:radial-gradient(circle at 20% 0,#3a1708 0,transparent 55%),radial-gradient(circle at 90% 100%,#3a0a18 0,transparent 50%)}
+.lang-switch{position:absolute;top:16px;right:20px;display:inline-flex;border:1px solid var(--line);border-radius:99px;background:var(--card);overflow:hidden}
+.lang-switch button{border:0;background:transparent;color:var(--muted);padding:6px 14px;font-weight:700;cursor:pointer;font-size:.85rem}
+.lang-switch button.active{background:linear-gradient(90deg,var(--crimson),var(--ember));color:#fff}
 h1{font-size:clamp(2rem,5vw,3.4rem);margin:0 0 8px}h1 span{color:var(--ember)}
 .lead{color:var(--muted);max-width:760px;margin:0 auto 24px;font-size:1.1rem}
 .btn{display:inline-block;padding:14px 28px;border-radius:10px;font-weight:700;text-decoration:none;color:#fff;background:linear-gradient(90deg,var(--crimson),var(--ember));margin:6px}
@@ -35,33 +38,123 @@ footer{text-align:center;color:var(--muted);padding:40px 20px}
 </head>
 <body>
 <header>
+<div class="lang-switch" role="group" aria-label="Language">
+  <button type="button" id="btn-en" class="active" onclick="setLang('en')">EN</button>
+  <button type="button" id="btn-es" onclick="setLang('es')">ES</button>
+</div>
 <img src="images/logo.png" alt="FoxuMarsDisplay Logo" width="84" height="84" style="margin-bottom:10px">
 <h1><span>FOXU</span> // MARS DISPLAY</h1>
-<p class="lead">The source-available SOEYI alternative (free for personal use) for <strong>Mars Gaming VMAX</strong>, <strong>MacroSilicon MS9132</strong> and AIC USB LCD screens — built-in theme store, <strong>FOXU // STUDIO</strong> editor, ~0.6% CPU, zero UAC.</p>
-<a class="btn" href="https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases/latest">Download Setup v2.1.1</a>
-<a class="btn alt" href="https://github.com/oscarlosu-lab/FoxuMarsDisplay">View on GitHub</a>
-<a class="btn alt" href="https://ko-fi.com/oscarlosu">Support on Ko-fi</a>
-<div class="pills"><span>~0.6% CPU</span><span>~60 MB RAM</span><span>328+ cloud themes</span><span>FOXU // STUDIO</span><span>Zero UAC</span><span>5 languages</span></div>
+<p class="lead" data-i18n="lead">The source-available SOEYI alternative (free for personal use) for <strong>Mars Gaming VMAX</strong>, <strong>MacroSilicon MS9132</strong> and AIC USB LCD screens — built-in theme store, <strong>FOXU // STUDIO</strong> editor, ~0.6% CPU, zero UAC.</p>
+<a class="btn" href="https://github.com/oscarlosu-lab/FoxuMarsDisplay/releases/latest" data-i18n="btn_download">Download Setup v2.1.1</a>
+<a class="btn alt" href="https://github.com/oscarlosu-lab/FoxuMarsDisplay" data-i18n="btn_github">View on GitHub</a>
+<a class="btn alt" href="https://ko-fi.com/oscarlosu" data-i18n="btn_kofi">Support on Ko-fi</a>
+<div class="pills">
+  <span>~0.6% CPU</span>
+  <span>~60 MB RAM</span>
+  <span data-i18n="pill_themes">328+ cloud themes</span>
+  <span>FOXU // STUDIO</span>
+  <span data-i18n="pill_uac">Zero UAC</span>
+  <span data-i18n="pill_langs">5 languages</span>
+</div>
 </header>
 <main>
-<h2>Screenshots</h2>
+<h2 data-i18n="h_shots">Screenshots</h2>
 <div class="grid">
-<figure><img src="images/screens-dashboard.png" alt="Dashboard with two live USB LCD screens" loading="lazy"><figcaption>Connected USB displays with live preview, brightness and rotation.</figcaption></figure>
-<figure><img src="images/cloud-store.jpg" alt="Cloud theme store with 233+ official themes" loading="lazy"><figcaption>Cloud theme store with orientation and resolution filters.</figcaption></figure>
-<figure><img src="images/unified-gallery.jpg" alt="Unified theme gallery" loading="lazy"><figcaption>Unified gallery: filter, zoom and apply in one click.</figcaption></figure>
-<figure><img src="images/telemetry.png" alt="Real-time hardware telemetry" loading="lazy"><figcaption>Real-time CPU, GPU, RAM and network telemetry.</figcaption></figure>
+<figure><img src="images/screens-dashboard.png" alt="Dashboard with two live USB LCD screens" loading="lazy"><figcaption data-i18n="cap1">Connected USB displays with live preview, brightness and rotation.</figcaption></figure>
+<figure><img src="images/cloud-store.jpg" alt="Cloud theme store with 233+ official themes" loading="lazy"><figcaption data-i18n="cap2">Cloud theme store with orientation and resolution filters.</figcaption></figure>
+<figure><img src="images/unified-gallery.jpg" alt="Unified theme gallery" loading="lazy"><figcaption data-i18n="cap3">Unified gallery: filter, zoom and apply in one click.</figcaption></figure>
+<figure><img src="images/telemetry.png" alt="Real-time hardware telemetry" loading="lazy"><figcaption data-i18n="cap4">Real-time CPU, GPU, RAM and network telemetry.</figcaption></figure>
 </div>
-<h2>FoxuMarsDisplay vs stock SOEYI</h2>
+<h2 data-i18n="h_cmp">FoxuMarsDisplay vs stock SOEYI</h2>
 <table>
-<tr><th></th><th>Stock SOEYI</th><th>FoxuMarsDisplay</th></tr>
-<tr><td>CPU (2 screens)</td><td>~6–12%</td><td>~0.6–0.9%</td></tr>
+<tr><th></th><th data-i18n="th_soeyi">Stock SOEYI</th><th>FoxuMarsDisplay</th></tr>
+<tr><td data-i18n="r_cpu">CPU (2 screens)</td><td>~6–12%</td><td>~0.6–0.9%</td></tr>
 <tr><td>RAM</td><td>~300–600 MB</td><td>~60 MB</td></tr>
-<tr><td>MS9132 8 s reboot</td><td>possible</td><td>Fixed (2 Hz keep-alive)</td></tr>
-<tr><td>UAC on every start</td><td>yes</td><td>No</td></tr>
-<tr><td>Theme store</td><td>no</td><td>233+ official + mirror</td></tr>
-<tr><td>Source-available</td><td>no</td><td>Proprietary v1.0</td></tr>
+<tr><td data-i18n="r_reboot">MS9132 8 s reboot</td><td data-i18n="v_possible">possible</td><td data-i18n="v_fixed">Fixed (2 Hz keep-alive)</td></tr>
+<tr><td data-i18n="r_uac">UAC on every start</td><td data-i18n="v_yes">yes</td><td data-i18n="v_no">No</td></tr>
+<tr><td data-i18n="r_store">Theme store</td><td data-i18n="v_no_lower">no</td><td data-i18n="v_store">233+ official + mirror</td></tr>
+<tr><td data-i18n="r_src">Source-available</td><td data-i18n="v_no_lower">no</td><td data-i18n="v_lic">Non-Commercial Source-Available</td></tr>
 </table>
 </main>
-<footer>FoxuMarsDisplay Proprietary License v1.0 — Free for personal use. Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX.</footer>
+<footer data-i18n="footer">FoxuMarsDisplay Non-Commercial Source-Available License — Free for personal use. Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX.</footer>
+<script>
+const I18N = {
+  en: {
+    lead: 'The source-available SOEYI alternative (free for personal use) for <strong>Mars Gaming VMAX</strong>, <strong>MacroSilicon MS9132</strong> and AIC USB LCD screens — built-in theme store, <strong>FOXU // STUDIO</strong> editor, ~0.6% CPU, zero UAC.',
+    btn_download: 'Download Setup v2.1.1',
+    btn_github: 'View on GitHub',
+    btn_kofi: 'Support on Ko-fi',
+    pill_themes: '328+ cloud themes',
+    pill_uac: 'Zero UAC',
+    pill_langs: '5 languages',
+    h_shots: 'Screenshots',
+    cap1: 'Connected USB displays with live preview, brightness and rotation.',
+    cap2: 'Cloud theme store with orientation and resolution filters.',
+    cap3: 'Unified gallery: filter, zoom and apply in one click.',
+    cap4: 'Real-time CPU, GPU, RAM and network telemetry.',
+    h_cmp: 'FoxuMarsDisplay vs stock SOEYI',
+    th_soeyi: 'Stock SOEYI',
+    r_cpu: 'CPU (2 screens)',
+    r_reboot: 'MS9132 8 s reboot',
+    v_possible: 'possible',
+    v_fixed: 'Fixed (2 Hz keep-alive)',
+    r_uac: 'UAC on every start',
+    v_yes: 'yes',
+    v_no: 'No',
+    r_store: 'Theme store',
+    v_no_lower: 'no',
+    v_store: '233+ official + mirror',
+    r_src: 'Source-available',
+    v_lic: 'Non-Commercial Source-Available',
+    footer: 'FoxuMarsDisplay Non-Commercial Source-Available License — Free for personal use. Not affiliated with Mars Gaming, SOEYI, MacroSilicon or TURZX.'
+  },
+  es: {
+    lead: 'La alternativa source-available a SOEYI (gratuita para uso personal) para pantallas USB LCD <strong>Mars Gaming VMAX</strong>, <strong>MacroSilicon MS9132</strong> y AIC — tienda de temas integrada, editor <strong>FOXU // STUDIO</strong>, ~0,6 % CPU y sin UAC.',
+    btn_download: 'Descargar Instalador v2.1.1',
+    btn_github: 'Ver en GitHub',
+    btn_kofi: 'Apoyar en Ko-fi',
+    pill_themes: '328+ temas en la nube',
+    pill_uac: 'Sin UAC',
+    pill_langs: '5 idiomas',
+    h_shots: 'Capturas de pantalla',
+    cap1: 'Pantallas USB conectadas con vista previa en vivo, brillo y rotación.',
+    cap2: 'Tienda de temas en la nube con filtros por orientación y resolución.',
+    cap3: 'Galería unificada: filtra, haz zoom y aplica en un clic.',
+    cap4: 'Telemetría en tiempo real de CPU, GPU, RAM y red.',
+    h_cmp: 'FoxuMarsDisplay frente a SOEYI oficial',
+    th_soeyi: 'SOEYI oficial',
+    r_cpu: 'CPU (2 pantallas)',
+    r_reboot: 'Reinicio MS9132 cada 8 s',
+    v_possible: 'posible',
+    v_fixed: 'Corregido (keep-alive 2 Hz)',
+    r_uac: 'UAC en cada inicio',
+    v_yes: 'sí',
+    v_no: 'No',
+    r_store: 'Tienda de temas',
+    v_no_lower: 'no',
+    v_store: '233+ oficiales + espejo',
+    r_src: 'Código disponible',
+    v_lic: 'Source-Available No Comercial',
+    footer: 'Licencia Non-Commercial Source-Available de FoxuMarsDisplay — Gratis para uso personal. Sin afiliación con Mars Gaming, SOEYI, MacroSilicon ni TURZX.'
+  }
+};
+function setLang(lang) {
+  const dict = I18N[lang] || I18N.en;
+  document.documentElement.lang = lang;
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[k] !== undefined) el.innerHTML = dict[k];
+  });
+  try { localStorage.setItem('fmd_lang', lang); } catch {}
+}
+(function() {
+  let saved = null;
+  try { saved = localStorage.getItem('fmd_lang'); } catch {}
+  const initial = saved || (navigator.language && navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en');
+  if (initial !== 'en') setLang(initial);
+})();
+</script>
 </body>
 </html>
