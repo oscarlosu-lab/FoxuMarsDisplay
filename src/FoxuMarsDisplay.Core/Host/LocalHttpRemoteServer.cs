@@ -46,7 +46,7 @@ public sealed class LocalHttpRemoteServer : IDisposable
     {
         _port = Math.Clamp(port, 1024, 65535);
         _token = token?.Trim() ?? string.Empty;
-        _appVersion = string.IsNullOrWhiteSpace(appVersion) ? "2.1.0" : appVersion;
+        _appVersion = string.IsNullOrWhiteSpace(appVersion) ? "2.1.1" : appVersion;
         _getScreens = getScreens;
         _getSensors = getSensors;
         _onCommand = onCommand;

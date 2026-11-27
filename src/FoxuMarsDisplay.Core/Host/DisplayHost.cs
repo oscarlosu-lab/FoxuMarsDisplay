@@ -250,7 +250,7 @@ public sealed class DisplayHost : IDisposable
         _httpServer = new LocalHttpRemoteServer(
             Config.HttpRemotePort,
             Config.HttpRemoteToken,
-            "2.1.0",
+            "2.1.1",
             GetStatuses,
             () => _sensors.Current,
             HandleRemoteCommand);

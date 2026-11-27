@@ -21,7 +21,7 @@ public sealed class InstallOptions
 public static class InstallerEngine
 {
     public const string AppDisplayName = "FoxuMarsDisplay";
-    public const string AppVersion = "2.1.0";
+    public const string AppVersion = "2.1.1";
     public const string Publisher = "FoxuLabs";
     public const string BootTaskName = "FoxuMarsDisplayPowerBoot";
     public const string LaunchTaskName = "FoxuMarsDisplayLaunch";

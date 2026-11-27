@@ -1,5 +1,11 @@
 # Changelog
 
+## [v2.1.1] — 2026-11-27 — Studio Rich-Text Editor, Color Palette & Manual Weather Location
+- **Manual Weather Location (Sistema Tab):** Added Open-Meteo Geocoding city search with dropdown results, automatic IP geolocation fallback, 5-language live status indicator, `config.json` persistence, and `WEATHER_CITY` sensor support.
+- **`FOXU // STUDIO` Rich-Text Editor:** Added virtualized font selector displaying each font in its own typeface (including theme-bundled fonts), dedicated font size controls (`−`, numeric input, `+`, `10–120` presets), Bold/Italic/Underline/Strikeout/Shadow toggles, Left/Center/Right alignment + 1-click Center on screen, and full `.smtheme` / `Setting.txt` / `theme.json` round-trip persistence.
+- **Color Palette Dropdown & Static Text Sensor:** Added 48-swatch color palette popup with Transparent quick button and R/G/B/Opacity sliders for primary and background colors, plus `(Ninguno — Texto fijo)` sensor option for static labels.
+- **Screen Card `Edit Theme` Action:** Added direct `✏️ Edit Theme` button next to `Download Themes` and `My Themes` on every connected screen card (`Download Themes — My Themes — Edit Theme — Local File`).
+
 ## [v2.1.0] — 2026-11-25 — Clean-Room Engine & Hardware Expansion
 - **Serial Tile Differential Engine (`SerialTileDiffEngine` + Win32 Handle):** Replaced `SerialPort` with direct Win32 serial handles and a 16×16 tile dirty-rectangle differ with byte-budget pacing for high-FPS updates over bandwidth-limited USB serial displays.
 - **Native WinUSB SLV3 Backend (`TurzxWinUsbBackend`):** Direct SetupAPI + WinUSB transport with DES-CBC 512-byte command framing (`VID_1CBE`) and constrained JPEG encoding, plus expanded `UsbDisplayCatalog` device registry (WeAct, Thermaltake HID, NZXT Kraken, Corsair Elite, Gigabyte AORUS).

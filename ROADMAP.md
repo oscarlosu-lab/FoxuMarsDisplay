@@ -27,6 +27,10 @@ Every feature or fix passes four mandatory gates before release:
 - Full `Setting.txt` & `foxu-theme-v1` JSON widget parity (`BorderLine`, `GridLine`, `RingProgressBar`, `AudioVisualizerControl`, `SongIcon`, `SonglyricsControl`).
 - Multi-protocol USB catalog & backends (MacroSilicon MS9132/MS912C, HL-VMAX/SOEYI CDC, ArtInChip, TURZX Serial, Thermalright/ChiZhu/MiraBox), WASAPI 16-band FFT, LRCLIB synced lyrics, `FOXU // STUDIO` WYSIWYG editor, auto game/idle profile switching, and GitHub Releases `UpdateChecker`.
 
+### ✅ v2.1.1 — Studio Rich-Text Editor, Color Palette & Manual Weather Location
+- **Manual Weather Location:** Open-Meteo Geocoding city search in Sistema tab with Auto (IP) fallback and `WEATHER_CITY` sensor token.
+- **Rich-Text `FOXU // STUDIO`:** Virtualized font picker with live typeface preview, dedicated font size controls, Bold/Italic/Underline/Strikeout/Shadow, Left/Center/Right alignment + 1-click canvas centering, 48-swatch RGBA color palette dropdown, `(Ninguno — Texto fijo)` sensor option, and direct `✏️ Edit Theme` button per screen card.
+
 ### ✅ v2.1.0 — Clean-Room Engine & Hardware Expansion
 - **Serial Tile Differential Engine (`SerialTileDiffEngine`):** 16×16 dirty-rectangle differ over direct Win32 serial handles with byte-budget pacing (`98.78%` bandwidth savings in 100-frame benchmark).
 - **Native WinUSB SLV3 Backend (`TurzxWinUsbBackend`):** Direct SetupAPI + WinUSB transport with DES-CBC 512-byte command framing and expanded USB display catalog.
