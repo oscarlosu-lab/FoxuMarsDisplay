@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FoxuMarsDisplay.Core.Host;
+using FoxuMarsDisplay.Core.Sensors;
 using FoxuMarsDisplay.Core.Themes;
 using FoxuMarsDisplay.Services;
 
@@ -283,6 +284,7 @@ public partial class MainWindow : Window
     private readonly DisplayHost _host;
     private readonly DispatcherTimer _uiTimer;
     private readonly ObservableCollection<ScreenItemVm> _screenItems = new();
+    private bool _suppressWeatherCombo;
     private readonly List<ScreenTargetItem> _screenTargets = new();
     private readonly List<GalleryItemVm> _allGalleryItems = new();
     private readonly CloudThemeService _cloudService = new();
@@ -433,6 +435,9 @@ public partial class MainWindow : Window
 
         ChkHttpRemote.IsChecked = _host.Config.HttpRemoteEnabled;
         BtnOpenHttpRemote.IsEnabled = _host.Config.HttpRemoteEnabled;
+
+        TxtWeatherSearch.Text = _host.Config.WeatherCity;
+        UpdateWeatherLocationStatus();
 
         string lang = string.IsNullOrWhiteSpace(_host.Config.Language) ? "auto" : _host.Config.Language;
         foreach (ComboBoxItem item in CmbLanguage.Items)
@@ -896,6 +901,7 @@ public partial class MainWindow : Window
             }
 
             TxtNoScreens.Visibility = statuses.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            UpdateWeatherLocationStatus();
         }
         finally
         {
@@ -1005,6 +1011,23 @@ public partial class MainWindow : Window
         SelectTargetScreen(sn);
         ChkGalleryOnlyCompatible.IsChecked = true;
         NavGallery.IsChecked = true;
+    }
+
+    private void OnEditThemeForScreenClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string sn) return;
+        SelectTargetScreen(sn);
+        var editor = new ThemeEditorWindow(_host, sn) { Owner = this };
+        var status = _host.GetStatuses().FirstOrDefault(s => s.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
+        if (status is not null &&
+            !string.IsNullOrWhiteSpace(status.ThemePath) &&
+            (File.Exists(status.ThemePath) || Directory.Exists(status.ThemePath)))
+        {
+            try { editor.LoadThemeFromFile(status.ThemePath); } catch { }
+        }
+        editor.ShowDialog();
+        RefreshUi();
+        LoadGallery();
     }
 
     private void OnGoToCloudStoreClick(object sender, RoutedEventArgs e)
@@ -1130,6 +1153,7 @@ public partial class MainWindow : Window
             TxtFpsLabel.Text = LocalizationService.Format("Str_FpsLabelFmt", _host.Config.TargetFps);
             TxtNightLevelLabel.Text = LocalizationService.Format("Str_NightLevelFmt", Math.Clamp(_host.Config.NightBrightnessPct, 5, 100));
             TxtLyricsOffsetLabel.Text = LocalizationService.Format("Str_LyricsOffsetFmt", _host.Config.LyricsOffsetMs);
+            UpdateWeatherLocationStatus();
             _lastTargetSignature = string.Empty;
             RefreshUi();
             LoadGallery();
@@ -1207,6 +1231,116 @@ public partial class MainWindow : Window
             Process.Start(new ProcessStartInfo(_host.HttpRemoteUrl) { UseShellExecute = true });
         }
         catch { }
+    }
+
+    private void UpdateWeatherLocationStatus()
+    {
+        if (TxtWeatherLocStatus == null) return;
+        var snap = _host.CurrentSensors;
+        string tempSuffix = snap.HasWeather ? $" · {Math.Round(snap.WeatherTempC):0}°C" : string.Empty;
+
+        if (_host.Config.WeatherLatitude.HasValue && _host.Config.WeatherLongitude.HasValue)
+        {
+            string city = string.IsNullOrWhiteSpace(_host.Config.WeatherCity)
+                ? LocalizationService.T("Str_WeatherNotDetected")
+                : _host.Config.WeatherCity;
+            TxtWeatherLocStatus.Text = LocalizationService.Format(
+                "Str_WeatherManualModeFmt",
+                city,
+                _host.Config.WeatherLatitude.Value,
+                _host.Config.WeatherLongitude.Value) + tempSuffix;
+        }
+        else
+        {
+            string detected = !string.IsNullOrWhiteSpace(snap.WeatherCity)
+                ? snap.WeatherCity
+                : LocalizationService.T("Str_WeatherNotDetected");
+            TxtWeatherLocStatus.Text = LocalizationService.Format("Str_WeatherAutoModeFmt", detected) + tempSuffix;
+        }
+    }
+
+    private void OnWeatherSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            OnWeatherSearchClick(sender, e);
+        }
+    }
+
+    private async void OnWeatherSearchClick(object sender, RoutedEventArgs e)
+    {
+        string query = (TxtWeatherSearch.Text ?? string.Empty).Trim();
+        if (query.Length < 2)
+        {
+            CmbWeatherResults.Visibility = Visibility.Collapsed;
+            UpdateWeatherLocationStatus();
+            return;
+        }
+
+        BtnWeatherSearch.IsEnabled = false;
+        TxtWeatherLocStatus.Text = LocalizationService.T("Str_WeatherSearching");
+        try
+        {
+            string lang = string.IsNullOrWhiteSpace(_host.Config.Language) ? "es" : _host.Config.Language;
+            var results = await WeatherAndNetProvider.SearchCitiesAsync(query, lang);
+
+            _suppressWeatherCombo = true;
+            try
+            {
+                CmbWeatherResults.ItemsSource = results;
+                CmbWeatherResults.SelectedIndex = -1;
+            }
+            finally
+            {
+                _suppressWeatherCombo = false;
+            }
+
+            if (results.Count == 0)
+            {
+                CmbWeatherResults.Visibility = Visibility.Collapsed;
+                TxtWeatherLocStatus.Text = LocalizationService.T("Str_WeatherNoResults");
+            }
+            else
+            {
+                CmbWeatherResults.Visibility = Visibility.Visible;
+                CmbWeatherResults.IsDropDownOpen = true;
+                UpdateWeatherLocationStatus();
+            }
+        }
+        finally
+        {
+            BtnWeatherSearch.IsEnabled = true;
+        }
+    }
+
+    private void OnWeatherResultSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressWeatherCombo) return;
+        if (CmbWeatherResults.SelectedItem is not WeatherLocationCandidate candidate) return;
+
+        _host.SetWeatherLocation(candidate.DisplayName, candidate.Latitude, candidate.Longitude);
+        TxtWeatherSearch.Text = candidate.DisplayName;
+        CmbWeatherResults.Visibility = Visibility.Collapsed;
+        UpdateWeatherLocationStatus();
+    }
+
+    private void OnWeatherAutoClick(object sender, RoutedEventArgs e)
+    {
+        _suppressWeatherCombo = true;
+        try
+        {
+            CmbWeatherResults.ItemsSource = null;
+            CmbWeatherResults.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            _suppressWeatherCombo = false;
+        }
+
+        TxtWeatherSearch.Text = string.Empty;
+        _host.SetWeatherLocation(null, null, null);
+        UpdateWeatherLocationStatus();
     }
 
     private void OnClearCacheClick(object sender, RoutedEventArgs e)

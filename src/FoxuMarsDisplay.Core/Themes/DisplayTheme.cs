@@ -80,6 +80,10 @@ public sealed class TextWidgetSpec
     public string? StaticContent { get; init; }
     public TextAlignMode Align { get; init; } = TextAlignMode.Left;
     public bool IsBold { get; init; }
+    public bool IsItalic { get; init; }
+    public bool IsUnderline { get; init; }
+    public bool IsStrikeout { get; init; }
+    public bool HasShadow { get; init; }
     public float BoxWidth { get; init; }
     public float BoxHeight { get; init; }
     public string Anchor { get; init; } = "la";

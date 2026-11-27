@@ -113,9 +113,15 @@ public static class ThemeExporter
             string widthPart = txt.BoxWidth > 0 ? FormattableString.Invariant($",IsShowWidth@True,width@{txt.BoxWidth:0.##}") : "";
             string unitPart = !string.IsNullOrEmpty(txt.Unit) ? $",unit@{txt.Unit}" : "";
             string fontPart = !string.IsNullOrEmpty(txt.FontFamily) ? $",FontFamily@{txt.FontFamily}" : "";
+            string styleParts =
+                (txt.IsBold ? ",FontWeight@Bold" : "") +
+                (txt.IsItalic ? ",FontStyle@Italic" : "") +
+                (txt.IsUnderline ? ",IsUnderline@True" : "") +
+                (txt.IsStrikeout ? ",IsStrikeout@True" : "") +
+                (txt.HasShadow ? ",HasShadow@True" : "");
 
             sb.AppendLine(FormattableString.Invariant(
-                $"Text:x@{txt.X:0.##},y@{txt.Y:0.##},z@{txt.ZIndex}{titlePart},FontSize@{txt.FontSize:0.##}{fontPart},Foreground@{FormatHex(txt.Color)},TextAlignment@{alignCode}{widthPart}{unitPart}{dataPart}{contentPart}"));
+                $"Text:x@{txt.X:0.##},y@{txt.Y:0.##},z@{txt.ZIndex}{titlePart},FontSize@{txt.FontSize:0.##}{fontPart}{styleParts},Foreground@{FormatHex(txt.Color)},TextAlignment@{alignCode}{widthPart}{unitPart}{dataPart}{contentPart}"));
         }
 
         return sb.ToString();
@@ -236,7 +242,13 @@ public static class ThemeExporter
                 prefix = txt.Prefix,
                 unit = txt.Unit,
                 text = txt.IsStaticText ? txt.StaticContent : null,
-                align = txt.Align.ToString().ToLowerInvariant()
+                align = txt.Align.ToString().ToLowerInvariant(),
+                boxWidth = txt.BoxWidth,
+                isBold = txt.IsBold,
+                isItalic = txt.IsItalic,
+                isUnderline = txt.IsUnderline,
+                isStrikeout = txt.IsStrikeout,
+                hasShadow = txt.HasShadow
             });
         }
 

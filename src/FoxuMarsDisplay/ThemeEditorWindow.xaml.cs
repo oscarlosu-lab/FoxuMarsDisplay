@@ -2,7 +2,9 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using FoxuMarsDisplay.Core.Host;
 using FoxuMarsDisplay.Core.Rendering;
@@ -24,6 +26,13 @@ public partial class ThemeEditorWindow : Window
         public float Width { get; set; } = 160f;
         public float Height { get; set; } = 26f;
         public float FontSize { get; set; } = 22f;
+        public string FontFamily { get; set; } = string.Empty;
+        public TextAlignMode Align { get; set; } = TextAlignMode.Left;
+        public bool IsBold { get; set; }
+        public bool IsItalic { get; set; }
+        public bool IsUnderline { get; set; }
+        public bool IsStrikeout { get; set; }
+        public bool HasShadow { get; set; }
         public string SensorKey { get; set; } = "CPUTemp";
         public string PrefixOrText { get; set; } = string.Empty;
         public string Unit { get; set; } = "°C";
@@ -41,9 +50,18 @@ public partial class ThemeEditorWindow : Window
         public override string ToString() => Label;
     }
 
+    private sealed record FontChoice(string FamilyKey, string DisplayName, FontFamily PreviewFont)
+    {
+        public override string ToString() => DisplayName;
+    }
+
+    private static readonly FontFamily UiFallbackFont = new("Segoe UI");
+
     private readonly DisplayHost? _host;
     private string? _targetSerial;
     private readonly List<EditableWidget> _widgets = [];
+    private readonly List<string> _loadedFontFiles = [];
+    private readonly List<FontChoice> _fontChoices = [];
     private string? _backgroundPath;
     private SKBitmap? _cachedBgBitmap;
     private string? _cachedBgSourcePath;
@@ -51,16 +69,29 @@ public partial class ThemeEditorWindow : Window
     private float _canvasW = 360f;
     private float _canvasH = 960f;
     private bool _suppressUiEvents;
+    private bool _isEditingBackColor;
     private bool _isDragging;
     private Point _dragStart;
     private float _origX;
     private float _origY;
+
+    private static readonly string[] PaletteHexColors =
+    [
+        "#00000000", "#FFFFFFFF", "#FFD8D8E6", "#FF988FAD", "#FF524B66", "#FF261F33", "#FF14111D", "#FF000000",
+        "#FFFF1F4B", "#FFFF4757", "#FFFF6B81", "#FFE84393", "#FFB33771", "#FF8B0018", "#FF4A0010", "#FF240008",
+        "#FFFF6419", "#FFFF7F50", "#FFFF9F1A", "#FFFFB820", "#FFFFD32A", "#FFCC5500", "#FF803300", "#FF3A1C12",
+        "#FF22E58B", "#FF2ED573", "#FF7BED9F", "#FF1ABC9C", "#FF00D2D3", "#FF0A7E5C", "#FF074F3A", "#FF0D281E",
+        "#FF00E5FF", "#FF18DCFF", "#FF38BDF8", "#FF1E90FF", "#FF3742FA", "#FF0C4A6E", "#FF102A43", "#FF081426",
+        "#FFB57BFF", "#FF9B59B6", "#FF7158E2", "#FF5F27CD", "#FFC8261F", "#B415121F", "#C80D0B14", "#DC0B0A0F"
+    ];
 
     public ThemeEditorWindow(DisplayHost? host = null, string? targetSerial = null)
     {
         _host = host;
         _targetSerial = targetSerial;
         InitializeComponent();
+        PopulateFontChoices();
+        BuildColorPaletteSwatches();
 
         // Seed starter widgets so user has an immediate live HUD to customize
         _widgets.Add(new EditableWidget { Kind = "Card", X = 16, Y = 24, ZIndex = 1, Width = 328, Height = 96, Color = new SKColor(22, 20, 32, 200), IsStatic = true });
@@ -264,6 +295,8 @@ public partial class ThemeEditorWindow : Window
             CanvasWidth = _canvasW,
             CanvasHeight = _canvasH
         };
+        foreach (var fontFile in _loadedFontFiles)
+            theme.FontFiles.Add(fontFile);
 
         string? bgForTheme = forLivePreview ? EnsureCachedBackgroundPreviewPath() : _backgroundPath;
         if (!string.IsNullOrWhiteSpace(bgForTheme) && File.Exists(bgForTheme))
@@ -288,11 +321,26 @@ public partial class ThemeEditorWindow : Window
                     theme.TextWidgets.Add(new TextWidgetSpec
                     {
                         X = w.X, Y = w.Y, ZIndex = w.ZIndex, FontSize = w.FontSize,
+                        FontFamily = w.FontFamily,
                         Color = w.Color, SensorKey = w.IsStatic ? string.Empty : w.SensorKey,
                         Prefix = w.IsStatic ? string.Empty : w.PrefixOrText,
                         Unit = w.IsStatic ? string.Empty : w.Unit,
                         IsStaticText = w.IsStatic,
-                        StaticContent = w.IsStatic ? w.PrefixOrText : null
+                        StaticContent = w.IsStatic ? w.PrefixOrText : null,
+                        Align = w.Align,
+                        IsBold = w.IsBold,
+                        IsItalic = w.IsItalic,
+                        IsUnderline = w.IsUnderline,
+                        IsStrikeout = w.IsStrikeout,
+                        HasShadow = w.HasShadow,
+                        BoxWidth = w.Width,
+                        BoxHeight = Math.Max(26f, w.FontSize * 1.3f),
+                        Anchor = w.Align switch
+                        {
+                            TextAlignMode.Center => "ma",
+                            TextAlignMode.Right => "ra",
+                            _ => "la"
+                        }
                     });
                     break;
                 case "Card":
@@ -356,6 +404,9 @@ public partial class ThemeEditorWindow : Window
                 CpuTemp = 54, CpuUsage = 42, GpuTemp = 61, GpuUsage = 68,
                 MemoryUsagePct = 58, MemoryUsedGb = 18.4, DiskCUsagePct = 55,
                 NetDownKbps = 1250, PingMs = 14, HasWeather = true, WeatherDescription = "Clear",
+                WeatherTempC = 19, WeatherFeelsLikeC = 18, WeatherHumidityPct = 62,
+                WeatherHighC = 23, WeatherLowC = 11,
+                WeatherCity = !string.IsNullOrWhiteSpace(_host?.CurrentSensors.WeatherCity) ? _host.CurrentSensors.WeatherCity : "Oviedo",
                 AudioPeak = 0.7f, SongTitle = "Cyber Synth", Artist = "Foxu",
                 AiClaudePct = 85, AiCodexPct = 72, AiGeminiPct = 94, Now = DateTime.Now
             };
@@ -421,36 +472,294 @@ public partial class ThemeEditorWindow : Window
         TxtPropY.Text = w.Y.ToString("0", CultureInfo.InvariantCulture);
         TxtPropW.Text = w.Width.ToString("0", CultureInfo.InvariantCulture);
         TxtPropH.Text = (w.Kind == "Text" ? w.FontSize : w.Height).ToString("0", CultureInfo.InvariantCulture);
-        SelectSensorItem(w.SensorKey);
+        SelectSensorItem(w.SensorKey, w.IsStatic);
         TxtPropText.Text = w.PrefixOrText;
         TxtPropUnit.Text = w.Unit;
         TxtPropColor.Text = $"#{w.Color.Alpha:X2}{w.Color.Red:X2}{w.Color.Green:X2}{w.Color.Blue:X2}";
         TxtPropBackColor.Text = $"#{w.BackColor.Alpha:X2}{w.BackColor.Red:X2}{w.BackColor.Green:X2}{w.BackColor.Blue:X2}";
+        UpdateColorSwatch(SwatchPropColor, w.Color);
+        UpdateColorSwatch(SwatchPropBackColor, w.BackColor);
+
+        bool isText = w.Kind == "Text";
+        TxtPropH.IsEnabled = !isText;
+        TxtPropH.Text = (isText ? MathF.Round(Math.Max(26f, w.FontSize * 1.3f)) : w.Height).ToString("0", CultureInfo.InvariantCulture);
+
+        PnlTextFormatting.Visibility = isText ? Visibility.Visible : Visibility.Collapsed;
+        BtnCenterWidgetCanvas.Visibility = isText ? Visibility.Collapsed : Visibility.Visible;
+        if (isText)
+        {
+            SelectFontItem(w.FontFamily);
+            TxtPropFontSize.Text = w.FontSize.ToString("0", CultureInfo.InvariantCulture);
+            SelectFontSizePreset(w.FontSize);
+            TglBold.IsChecked = w.IsBold;
+            TglItalic.IsChecked = w.IsItalic;
+            TglUnderline.IsChecked = w.IsUnderline;
+            TglStrikeout.IsChecked = w.IsStrikeout;
+            TglShadow.IsChecked = w.HasShadow;
+            UpdateAlignButtons(w.Align);
+        }
         _suppressUiEvents = false;
     }
 
-    private void SelectSensorItem(string sensorKey)
+    private void SelectSensorItem(string sensorKey, bool isStatic = false)
     {
         if (CmbPropSensor == null) return;
-        if (string.IsNullOrWhiteSpace(sensorKey))
+        if (isStatic || string.IsNullOrWhiteSpace(sensorKey))
         {
-            CmbPropSensor.SelectedIndex = -1;
+            CmbPropSensor.SelectedIndex = CmbPropSensor.Items.Count > 0 ? 0 : -1;
             return;
         }
 
         for (int i = 0; i < CmbPropSensor.Items.Count; i++)
         {
-            if (CmbPropSensor.Items[i] is ComboBoxItem item &&
-                string.Equals(item.Content?.ToString(), sensorKey, StringComparison.OrdinalIgnoreCase))
+            if (CmbPropSensor.Items[i] is ComboBoxItem item)
             {
-                CmbPropSensor.SelectedIndex = i;
+                string itemKey = item.Tag as string ?? item.Content?.ToString() ?? string.Empty;
+                if (!string.IsNullOrEmpty(itemKey) &&
+                    string.Equals(itemKey, sensorKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    CmbPropSensor.SelectedIndex = i;
+                    return;
+                }
+            }
+        }
+
+        var custom = new ComboBoxItem { Tag = sensorKey, Content = sensorKey };
+        CmbPropSensor.Items.Add(custom);
+        CmbPropSensor.SelectedItem = custom;
+    }
+
+    private static bool IsSymbolFontName(string name)
+    {
+        string[] symbolTokens =
+        [
+            "Wingdings", "Webdings", "Symbol", "Marlett", "MDL2",
+            "Fluent Icons", "MT Extra", "Bookshelf Symbol", "HoloLens", "Segoe UI Emoji"
+        ];
+        foreach (string token in symbolTokens)
+        {
+            if (name.Contains(token, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static FontFamily TryLoadBundledWpfFont(string fontFilePath)
+    {
+        try
+        {
+            if (File.Exists(fontFilePath))
+            {
+                var fams = System.Windows.Media.Fonts.GetFontFamilies(fontFilePath);
+                var first = fams.FirstOrDefault();
+                if (first != null) return first;
+            }
+        }
+        catch { }
+        return UiFallbackFont;
+    }
+
+    private void PopulateFontChoices()
+    {
+        if (CmbPropFont == null) return;
+        string? currentTag = (CmbPropFont.SelectedItem as FontChoice)?.FamilyKey;
+
+        _suppressUiEvents = true;
+        try
+        {
+            _fontChoices.Clear();
+            _fontChoices.Add(new FontChoice(string.Empty, "(Predeterminada)", UiFallbackFont));
+
+            var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var fontFile in _loadedFontFiles)
+            {
+                string shortName = Path.GetFileNameWithoutExtension(fontFile);
+                if (!string.IsNullOrWhiteSpace(shortName) && added.Add(shortName))
+                    _fontChoices.Add(new FontChoice(shortName, $"★ {shortName}", TryLoadBundledWpfFont(fontFile)));
+            }
+
+            var installed = new Dictionary<string, FontFamily>(StringComparer.OrdinalIgnoreCase);
+            foreach (var f in System.Windows.Media.Fonts.SystemFontFamilies)
+            {
+                if (!string.IsNullOrWhiteSpace(f.Source))
+                    installed.TryAdd(f.Source, f);
+            }
+
+            string[] preferred =
+            [
+                "Segoe UI", "Bahnschrift", "Consolas", "Cascadia Code",
+                "Arial", "Arial Black", "Calibri", "Cambria", "Courier New",
+                "Franklin Gothic Medium", "Georgia", "Impact", "Tahoma",
+                "Times New Roman", "Trebuchet MS", "Verdana"
+            ];
+
+            foreach (string p in preferred)
+            {
+                if (installed.TryGetValue(p, out var famObj) && added.Add(p))
+                    _fontChoices.Add(new FontChoice(p, p, IsSymbolFontName(p) ? UiFallbackFont : famObj));
+            }
+
+            foreach (var kv in installed.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                if (added.Add(kv.Key))
+                    _fontChoices.Add(new FontChoice(kv.Key, kv.Key, IsSymbolFontName(kv.Key) ? UiFallbackFont : kv.Value));
+            }
+
+            CmbPropFont.ItemsSource = null;
+            CmbPropFont.ItemsSource = _fontChoices;
+
+            if (!string.IsNullOrEmpty(currentTag))
+                SelectFontItem(currentTag);
+            else
+                CmbPropFont.SelectedIndex = 0;
+        }
+        finally
+        {
+            _suppressUiEvents = false;
+        }
+    }
+
+    private void SelectFontItem(string? family)
+    {
+        if (CmbPropFont == null) return;
+        string target = (family ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(target))
+        {
+            CmbPropFont.SelectedIndex = 0;
+            return;
+        }
+
+        for (int i = 0; i < _fontChoices.Count; i++)
+        {
+            if (string.Equals(_fontChoices[i].FamilyKey, target, StringComparison.OrdinalIgnoreCase))
+            {
+                CmbPropFont.SelectedIndex = i;
                 return;
             }
         }
 
-        var custom = new ComboBoxItem { Content = sensorKey };
-        CmbPropSensor.Items.Add(custom);
-        CmbPropSensor.SelectedItem = custom;
+        var custom = new FontChoice(target, target, UiFallbackFont);
+        _fontChoices.Add(custom);
+        CmbPropFont.ItemsSource = null;
+        CmbPropFont.ItemsSource = _fontChoices;
+        CmbPropFont.SelectedItem = custom;
+    }
+
+    private void UpdateAlignButtons(TextAlignMode align)
+    {
+        TglAlignLeft.IsChecked = align == TextAlignMode.Left;
+        TglAlignCenter.IsChecked = align == TextAlignMode.Center;
+        TglAlignRight.IsChecked = align == TextAlignMode.Right;
+    }
+
+    private static void UpdateColorSwatch(Border swatch, SKColor color)
+    {
+        if (swatch == null) return;
+        swatch.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(color.Alpha, color.Red, color.Green, color.Blue));
+    }
+
+    private void BuildColorPaletteSwatches()
+    {
+        if (ColorPaletteGrid == null) return;
+        ColorPaletteGrid.Children.Clear();
+
+        foreach (string hex in PaletteHexColors)
+        {
+            var sk = UnifiedThemeLoader.ParseColor(hex, SKColors.White);
+            var btn = new Button
+            {
+                Width = 26,
+                Height = 22,
+                Margin = new Thickness(2),
+                Padding = new Thickness(0),
+                Cursor = Cursors.Hand,
+                ToolTip = hex == "#00000000" ? "Transparente (#00000000)" : hex,
+                Background = sk.Alpha == 0
+                    ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x18, 0x15, 0x22))
+                    : new SolidColorBrush(System.Windows.Media.Color.FromArgb(sk.Alpha, sk.Red, sk.Green, sk.Blue)),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x4C, 0x42, 0x66)),
+                BorderThickness = new Thickness(1),
+                Content = sk.Alpha == 0
+                    ? new TextBlock
+                    {
+                        Text = "∅",
+                        Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0x64, 0x19)),
+                        FontSize = 11,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                    : null
+            };
+            btn.Click += (_, _) => ApplyPickedColor(sk);
+            ColorPaletteGrid.Children.Add(btn);
+        }
+    }
+
+    private void OpenColorPopup(bool isBackColor, ToggleButton anchor)
+    {
+        if (LstLayers.SelectedIndex < 0 || LstLayers.SelectedIndex >= _widgets.Count)
+        {
+            anchor.IsChecked = false;
+            return;
+        }
+
+        _isEditingBackColor = isBackColor;
+        var w = _widgets[LstLayers.SelectedIndex];
+        SKColor cur = isBackColor ? w.BackColor : w.Color;
+        TxtColorPopupTitle.Text = isBackColor ? "Color de Fondo" : "Color Principal";
+
+        _suppressUiEvents = true;
+        try
+        {
+            SldColorR.Value = cur.Red;
+            SldColorG.Value = cur.Green;
+            SldColorB.Value = cur.Blue;
+            SldColorA.Value = cur.Alpha;
+            TxtColorR.Text = cur.Red.ToString(CultureInfo.InvariantCulture);
+            TxtColorG.Text = cur.Green.ToString(CultureInfo.InvariantCulture);
+            TxtColorB.Text = cur.Blue.ToString(CultureInfo.InvariantCulture);
+            TxtColorA.Text = cur.Alpha.ToString(CultureInfo.InvariantCulture);
+        }
+        finally
+        {
+            _suppressUiEvents = false;
+        }
+
+        ColorPickerPopup.PlacementTarget = anchor;
+        ColorPickerPopup.IsOpen = true;
+    }
+
+    private void ApplyPickedColor(SKColor color)
+    {
+        string hex = $"#{color.Alpha:X2}{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
+        _suppressUiEvents = true;
+        try
+        {
+            if (_isEditingBackColor)
+            {
+                TxtPropBackColor.Text = hex;
+                UpdateColorSwatch(SwatchPropBackColor, color);
+            }
+            else
+            {
+                TxtPropColor.Text = hex;
+                UpdateColorSwatch(SwatchPropColor, color);
+            }
+            SldColorR.Value = color.Red;
+            SldColorG.Value = color.Green;
+            SldColorB.Value = color.Blue;
+            SldColorA.Value = color.Alpha;
+            TxtColorR.Text = color.Red.ToString(CultureInfo.InvariantCulture);
+            TxtColorG.Text = color.Green.ToString(CultureInfo.InvariantCulture);
+            TxtColorB.Text = color.Blue.ToString(CultureInfo.InvariantCulture);
+            TxtColorA.Text = color.Alpha.ToString(CultureInfo.InvariantCulture);
+        }
+        finally
+        {
+            _suppressUiEvents = false;
+        }
+
+        CommitCurrentProps();
     }
 
     private void OnLayerSelected(object sender, SelectionChangedEventArgs e)
@@ -547,6 +856,10 @@ public partial class ThemeEditorWindow : Window
                 }
             }
 
+            _loadedFontFiles.Clear();
+            _loadedFontFiles.AddRange(loaded.FontFiles);
+            PopulateFontChoices();
+
             _widgets.Clear();
             foreach (var b in loaded.BarWidgets)
             {
@@ -609,6 +922,13 @@ public partial class ThemeEditorWindow : Window
                     X = t.X, Y = t.Y, ZIndex = t.ZIndex,
                     Width = t.BoxWidth > 0 ? t.BoxWidth : 160f,
                     FontSize = t.FontSize,
+                    FontFamily = t.FontFamily,
+                    Align = t.Align,
+                    IsBold = t.IsBold,
+                    IsItalic = t.IsItalic,
+                    IsUnderline = t.IsUnderline,
+                    IsStrikeout = t.IsStrikeout,
+                    HasShadow = t.HasShadow,
                     SensorKey = t.SensorKey,
                     PrefixOrText = t.IsStaticText ? (t.StaticContent ?? string.Empty) : t.Prefix,
                     Unit = t.Unit,
@@ -688,21 +1008,208 @@ public partial class ThemeEditorWindow : Window
             w.Y = Math.Clamp(y, 0f, Math.Max(0f, _canvasH - 12f));
         if (float.TryParse(TxtPropW.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out float width) && width > 4)
             w.Width = width;
-        if (float.TryParse(TxtPropH.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out float height) && height > 4)
+        if (w.Kind != "Text" &&
+            float.TryParse(TxtPropH.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out float height) &&
+            height > 4)
         {
-            if (w.Kind == "Text") w.FontSize = height;
-            else w.Height = height;
+            w.Height = height;
         }
-        if (CmbPropSensor.SelectedItem is ComboBoxItem selItem && selItem.Content is string sensorName)
-            w.SensorKey = sensorName.Trim();
+        if (CmbPropSensor.SelectedItem is ComboBoxItem selItem)
+        {
+            string sensorName = (selItem.Tag as string ?? selItem.Content?.ToString() ?? string.Empty).Trim();
+            if (w.Kind == "Text")
+            {
+                if (string.IsNullOrEmpty(sensorName))
+                {
+                    w.SensorKey = string.Empty;
+                    w.IsStatic = true;
+                }
+                else
+                {
+                    w.SensorKey = sensorName;
+                    w.IsStatic = false;
+                }
+            }
+            else if (!string.IsNullOrEmpty(sensorName))
+            {
+                w.SensorKey = sensorName;
+            }
+        }
         w.PrefixOrText = TxtPropText.Text ?? string.Empty;
         w.Unit = TxtPropUnit.Text ?? string.Empty;
         w.Color = UnifiedThemeLoader.ParseColor(TxtPropColor.Text, w.Color);
         w.BackColor = UnifiedThemeLoader.ParseColor(TxtPropBackColor.Text, w.BackColor);
+        UpdateColorSwatch(SwatchPropColor, w.Color);
+        UpdateColorSwatch(SwatchPropBackColor, w.BackColor);
+
+        if (w.Kind == "Text")
+        {
+            w.FontFamily = (CmbPropFont.SelectedItem as FontChoice)?.FamilyKey ?? string.Empty;
+            if (float.TryParse(TxtPropFontSize.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out float fs) && fs >= 6f)
+            {
+                w.FontSize = Math.Clamp(fs, 6f, 240f);
+                _suppressUiEvents = true;
+                try
+                {
+                    TxtPropH.Text = MathF.Round(Math.Max(26f, w.FontSize * 1.3f)).ToString("0", CultureInfo.InvariantCulture);
+                    SelectFontSizePreset(w.FontSize);
+                }
+                finally
+                {
+                    _suppressUiEvents = false;
+                }
+            }
+            w.IsBold = TglBold.IsChecked == true;
+            w.IsItalic = TglItalic.IsChecked == true;
+            w.IsUnderline = TglUnderline.IsChecked == true;
+            w.IsStrikeout = TglStrikeout.IsChecked == true;
+            w.HasShadow = TglShadow.IsChecked == true;
+        }
 
         int idx = LstLayers.SelectedIndex;
         RefreshLayerList(idx);
         RenderPreview();
+    }
+
+    private void SelectFontSizePreset(float fontSize)
+    {
+        if (CmbPropFontSize == null) return;
+        string target = MathF.Round(fontSize).ToString("0", CultureInfo.InvariantCulture);
+        for (int i = 0; i < CmbPropFontSize.Items.Count; i++)
+        {
+            if (CmbPropFontSize.Items[i] is ComboBoxItem item &&
+                string.Equals(item.Content?.ToString(), target, StringComparison.Ordinal))
+            {
+                CmbPropFontSize.SelectedIndex = i;
+                return;
+            }
+        }
+        CmbPropFontSize.SelectedIndex = -1;
+    }
+
+    private void OnFontSizeDecClick(object sender, RoutedEventArgs e) => AdjustSelectedFontSize(-2f);
+    private void OnFontSizeIncClick(object sender, RoutedEventArgs e) => AdjustSelectedFontSize(2f);
+
+    private void AdjustSelectedFontSize(float baseDelta)
+    {
+        if (LstLayers.SelectedIndex < 0 || LstLayers.SelectedIndex >= _widgets.Count)
+            return;
+        var w = _widgets[LstLayers.SelectedIndex];
+        if (w.Kind != "Text") return;
+
+        float mult = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift ? 3f
+            : (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control ? 0.5f : 1f;
+        float next = Math.Clamp(w.FontSize + baseDelta * mult, 6f, 240f);
+
+        _suppressUiEvents = true;
+        try
+        {
+            TxtPropFontSize.Text = next.ToString("0", CultureInfo.InvariantCulture);
+            SelectFontSizePreset(next);
+        }
+        finally
+        {
+            _suppressUiEvents = false;
+        }
+        CommitCurrentProps();
+    }
+
+    private void OnFontSizePresetChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressUiEvents || CmbPropFontSize.SelectedItem is not ComboBoxItem item)
+            return;
+        if (float.TryParse(item.Content?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float fs))
+        {
+            _suppressUiEvents = true;
+            try
+            {
+                TxtPropFontSize.Text = fs.ToString("0", CultureInfo.InvariantCulture);
+            }
+            finally
+            {
+                _suppressUiEvents = false;
+            }
+            CommitCurrentProps();
+        }
+    }
+
+    private void OnAlignLeftClick(object sender, RoutedEventArgs e) => SetTextAlignment(TextAlignMode.Left);
+    private void OnAlignCenterClick(object sender, RoutedEventArgs e) => SetTextAlignment(TextAlignMode.Center);
+    private void OnAlignRightClick(object sender, RoutedEventArgs e) => SetTextAlignment(TextAlignMode.Right);
+
+    private void SetTextAlignment(TextAlignMode align)
+    {
+        if (_suppressUiEvents || LstLayers.SelectedIndex < 0 || LstLayers.SelectedIndex >= _widgets.Count)
+            return;
+        var w = _widgets[LstLayers.SelectedIndex];
+        w.Align = align;
+        _suppressUiEvents = true;
+        UpdateAlignButtons(align);
+        _suppressUiEvents = false;
+        CommitCurrentProps();
+    }
+
+    private void OnCenterOnCanvasClick(object sender, RoutedEventArgs e)
+    {
+        if (LstLayers.SelectedIndex < 0 || LstLayers.SelectedIndex >= _widgets.Count)
+            return;
+        var w = _widgets[LstLayers.SelectedIndex];
+        if (w.Kind == "Text")
+        {
+            w.X = 0f;
+            w.Width = _canvasW;
+            w.Align = TextAlignMode.Center;
+        }
+        else
+        {
+            w.X = MathF.Round(Math.Max(0f, (_canvasW - w.Width) * 0.5f));
+        }
+
+        LoadSelectedWidgetProps();
+        RefreshLayerList(LstLayers.SelectedIndex);
+        RenderPreview();
+        TxtEditorStatus.Text = "Widget centrado en la pantalla.";
+    }
+
+    private void OnOpenColorPaletteClick(object sender, RoutedEventArgs e)
+    {
+        BtnBackColorDropDown.IsChecked = false;
+        OpenColorPopup(isBackColor: false, BtnColorDropDown);
+    }
+
+    private void OnOpenBackColorPaletteClick(object sender, RoutedEventArgs e)
+    {
+        BtnColorDropDown.IsChecked = false;
+        OpenColorPopup(isBackColor: true, BtnBackColorDropDown);
+    }
+
+    private void OnColorPopupClosed(object? sender, EventArgs e)
+    {
+        BtnColorDropDown.IsChecked = false;
+        BtnBackColorDropDown.IsChecked = false;
+    }
+
+    private void OnPickTransparentColorClick(object sender, RoutedEventArgs e) =>
+        ApplyPickedColor(new SKColor(0, 0, 0, 0));
+
+    private void OnColorSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_suppressUiEvents) return;
+        byte r = (byte)Math.Clamp((int)Math.Round(SldColorR.Value), 0, 255);
+        byte g = (byte)Math.Clamp((int)Math.Round(SldColorG.Value), 0, 255);
+        byte b = (byte)Math.Clamp((int)Math.Round(SldColorB.Value), 0, 255);
+        byte a = (byte)Math.Clamp((int)Math.Round(SldColorA.Value), 0, 255);
+        ApplyPickedColor(new SKColor(r, g, b, a));
+    }
+
+    private void OnColorHexTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressUiEvents || LstLayers.SelectedIndex < 0 || LstLayers.SelectedIndex >= _widgets.Count)
+            return;
+        if (sender == TxtPropColor)
+            UpdateColorSwatch(SwatchPropColor, UnifiedThemeLoader.ParseColor(TxtPropColor.Text, _widgets[LstLayers.SelectedIndex].Color));
+        else if (sender == TxtPropBackColor)
+            UpdateColorSwatch(SwatchPropBackColor, UnifiedThemeLoader.ParseColor(TxtPropBackColor.Text, _widgets[LstLayers.SelectedIndex].BackColor));
     }
 
     private void OnAutoContrastClick(object sender, RoutedEventArgs e)
@@ -850,12 +1357,20 @@ public partial class ThemeEditorWindow : Window
                 Width = src.Width,
                 Height = src.Height,
                 FontSize = src.FontSize,
+                FontFamily = src.FontFamily,
+                Align = src.Align,
+                IsBold = src.IsBold,
+                IsItalic = src.IsItalic,
+                IsUnderline = src.IsUnderline,
+                IsStrikeout = src.IsStrikeout,
+                HasShadow = src.HasShadow,
                 SensorKey = src.SensorKey,
                 PrefixOrText = src.PrefixOrText,
                 Unit = src.Unit,
                 Color = src.Color,
                 BackColor = src.BackColor,
-                IsStatic = src.IsStatic
+                IsStatic = src.IsStatic,
+                ShowText = src.ShowText
             });
             TxtEditorStatus.Text = "Widget duplicado (Ctrl+D).";
             e.Handled = true;

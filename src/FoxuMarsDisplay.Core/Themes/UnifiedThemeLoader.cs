@@ -510,12 +510,27 @@ public static class UnifiedThemeLoader
                 case "text":
                     string? content = item.TryGetProperty("text", out var txtEl) && txtEl.ValueKind == JsonValueKind.String ? txtEl.GetString() : null;
                     bool isStatic = string.IsNullOrWhiteSpace(sensor) && !string.IsNullOrWhiteSpace(content);
+                    var alignMode = item.TryGetProperty("align", out var alEl) && alEl.ValueKind == JsonValueKind.String ? ParseAlign(alEl.GetString()) : TextAlignMode.Left;
+                    float boxWJson = item.TryGetProperty("boxWidth", out var bwEl) && bwEl.TryGetSingle(out var bwv)
+                        ? bwv
+                        : (alignMode != TextAlignMode.Left && item.TryGetProperty("width", out var jwEl) && jwEl.TryGetSingle(out var jwv) ? jwv : 0f);
+                    float fsJson = item.TryGetProperty("fontSize", out var fsEl) && fsEl.TryGetSingle(out var fsv) ? fsv : 22f;
+                    bool jBold = (item.TryGetProperty("isBold", out var jbEl) && jbEl.ValueKind == JsonValueKind.True) ||
+                                 (item.TryGetProperty("bold", out var jb2El) && jb2El.ValueKind == JsonValueKind.True);
+                    bool jItalic = (item.TryGetProperty("isItalic", out var jiEl) && jiEl.ValueKind == JsonValueKind.True) ||
+                                   (item.TryGetProperty("italic", out var ji2El) && ji2El.ValueKind == JsonValueKind.True);
+                    bool jUnderline = (item.TryGetProperty("isUnderline", out var juEl) && juEl.ValueKind == JsonValueKind.True) ||
+                                      (item.TryGetProperty("underline", out var ju2El) && ju2El.ValueKind == JsonValueKind.True);
+                    bool jStrikeout = (item.TryGetProperty("isStrikeout", out var jsEl) && jsEl.ValueKind == JsonValueKind.True) ||
+                                      (item.TryGetProperty("strikeout", out var js2El) && js2El.ValueKind == JsonValueKind.True);
+                    bool jShadow = (item.TryGetProperty("hasShadow", out var jshEl) && jshEl.ValueKind == JsonValueKind.True) ||
+                                   (item.TryGetProperty("shadow", out var jsh2El) && jsh2El.ValueKind == JsonValueKind.True);
                     texts.Add(new TextWidgetSpec
                     {
                         X = x,
                         Y = y,
                         ZIndex = z,
-                        FontSize = item.TryGetProperty("fontSize", out var fsEl) && fsEl.TryGetSingle(out var fsv) ? fsv : 22f,
+                        FontSize = fsJson,
                         FontFamily = item.TryGetProperty("fontFamily", out var ffEl) && ffEl.ValueKind == JsonValueKind.String ? (ffEl.GetString() ?? "") : "",
                         Color = ParseColor(colorHex, SKColors.White),
                         SensorKey = sensor,
@@ -523,7 +538,20 @@ public static class UnifiedThemeLoader
                         Unit = item.TryGetProperty("unit", out var uEl) && uEl.ValueKind == JsonValueKind.String ? (uEl.GetString() ?? "") : "",
                         IsStaticText = isStatic,
                         StaticContent = content,
-                        Align = item.TryGetProperty("align", out var alEl) && alEl.ValueKind == JsonValueKind.String ? ParseAlign(alEl.GetString()) : TextAlignMode.Left
+                        Align = alignMode,
+                        IsBold = jBold,
+                        IsItalic = jItalic,
+                        IsUnderline = jUnderline,
+                        IsStrikeout = jStrikeout,
+                        HasShadow = jShadow,
+                        BoxWidth = boxWJson,
+                        BoxHeight = boxWJson > 0f ? fsJson * 1.3f : 0f,
+                        Anchor = alignMode switch
+                        {
+                            TextAlignMode.Center => "ma",
+                            TextAlignMode.Right => "ra",
+                            _ => "la"
+                        }
                     });
                     break;
 
@@ -694,6 +722,19 @@ public static class UnifiedThemeLoader
                     _ => "la"
                 };
 
+                bool isBold = GetBool(p, "IsBold") || GetBool(p, "Bold") ||
+                              GetStr(p, "FontWeight").Equals("Bold", StringComparison.OrdinalIgnoreCase) ||
+                              GetStr(p, "FontWeight").Equals("700", StringComparison.OrdinalIgnoreCase);
+                bool isItalic = GetBool(p, "IsItalic") || GetBool(p, "Italic") ||
+                                GetStr(p, "FontStyle").Equals("Italic", StringComparison.OrdinalIgnoreCase) ||
+                                GetStr(p, "FontStyle").Equals("Oblique", StringComparison.OrdinalIgnoreCase);
+                string deco = GetStr(p, "TextDecorations");
+                bool isUnderline = GetBool(p, "IsUnderline") || GetBool(p, "Underline") ||
+                                   deco.Contains("Underline", StringComparison.OrdinalIgnoreCase);
+                bool isStrikeout = GetBool(p, "IsStrikeout") || GetBool(p, "Strikeout") ||
+                                   deco.Contains("Strikethrough", StringComparison.OrdinalIgnoreCase);
+                bool hasShadow = GetBool(p, "HasShadow") || GetBool(p, "Shadow");
+
                 texts.Add(new TextWidgetSpec
                 {
                     X = GetFloat(p, "x"),
@@ -709,6 +750,11 @@ public static class UnifiedThemeLoader
                     IsStaticText = isStatic,
                     StaticContent = content,
                     Align = align,
+                    IsBold = isBold,
+                    IsItalic = isItalic,
+                    IsUnderline = isUnderline,
+                    IsStrikeout = isStrikeout,
+                    HasShadow = hasShadow,
                     BoxWidth = boxW,
                     BoxHeight = boxH,
                     Anchor = anchor

@@ -61,6 +61,7 @@ Apply to this display?</sys:String>
     <sys:String x:Key="Str_ScreenClassPanel">Panel</sys:String>
     <sys:String x:Key="Str_BtnDownloadForScreen">☁️ Download Themes</sys:String>
     <sys:String x:Key="Str_BtnMyThemesForScreen">🎨 My Themes</sys:String>
+    <sys:String x:Key="Str_BtnEditThemeForScreen">✏️ Edit Theme</sys:String>
     <sys:String x:Key="Str_BtnPickLocalFile">📁 Local File...</sys:String>
     <sys:String x:Key="Str_NoScreenBanner">Connect a USB display to automatically filter by compatibility.</sys:String>
     <sys:String x:Key="Str_EmptyGalleryCompat">You don't have any downloaded themes compatible with this display yet.</sys:String>
@@ -112,6 +113,14 @@ Apply anyway?</sys:String>
     <sys:String x:Key="Str_LyricsOffsetFmt">Lyrics offset: {0} ms</sys:String>
     <sys:String x:Key="Str_HttpRemoteEnable">🌐 Local Web/REST remote control</sys:String>
     <sys:String x:Key="Str_HttpRemoteOpen">Open Web</sys:String>
+    <sys:String x:Key="Str_WeatherLocTitle">🌤️ Weather Location</sys:String>
+    <sys:String x:Key="Str_WeatherSearchBtn">🔍 Search</sys:String>
+    <sys:String x:Key="Str_WeatherAutoBtn">Auto (IP)</sys:String>
+    <sys:String x:Key="Str_WeatherSearching">Searching cities...</sys:String>
+    <sys:String x:Key="Str_WeatherNoResults">No cities found. Try another name.</sys:String>
+    <sys:String x:Key="Str_WeatherAutoModeFmt">Automatic (IP): {0}</sys:String>
+    <sys:String x:Key="Str_WeatherManualModeFmt">Manual: {0} ({1:F2}, {2:F2})</sys:String>
+    <sys:String x:Key="Str_WeatherNotDetected">detecting...</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Click to enlarge</sys:String>
     <sys:String x:Key="Str_LightboxHint">Click image or press Esc to close</sys:String>

@@ -2,12 +2,46 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="FOXU // STUDIO — Editor Visual de Temas"
-        Width="1120" Height="720" MinWidth="920" MinHeight="600"
+        Width="1160" Height="740" MinWidth="960" MinHeight="620"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource BgObsidian}"
         Foreground="{StaticResource TextPrimary}"
         FontFamily="Segoe UI"
         PreviewKeyDown="OnEditorPreviewKeyDown">
+    <Window.Resources>
+        <Style x:Key="EditorToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Background" Value="#15121F" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderHairline}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5"
+                                Padding="4,2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource FoxuEmber}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#3A1C12" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource FoxuEmber}" />
+                                <Setter Property="Foreground" Value="{StaticResource SolarGold}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -16,7 +50,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="230" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="270" />
+            <ColumnDefinition Width="310" />
         </Grid.ColumnDefinitions>
 
         <!-- LEFT: Theme Setup, Add Widgets & Layers -->
@@ -123,6 +157,7 @@
 
                     <TextBlock Text="Sensor" FontSize="11" Foreground="{StaticResource TextMuted}" />
                     <ComboBox x:Name="CmbPropSensor" Margin="0,2,0,8" SelectionChanged="OnPropEdited">
+                        <ComboBoxItem Tag="" Content="(Ninguno — Texto fijo)" />
                         <ComboBoxItem Content="CPUTemp" />
                         <ComboBoxItem Content="CpuUsage" />
                         <ComboBoxItem Content="GPUTemp" />
@@ -136,6 +171,10 @@
                         <ComboBoxItem Content="Ping" />
                         <ComboBoxItem Content="WeatherInfo" />
                         <ComboBoxItem Content="WEATHER_TEMP" />
+                        <ComboBoxItem Content="WEATHER_CITY" />
+                        <ComboBoxItem Content="WEATHER_HUMIDITY" />
+                        <ComboBoxItem Content="HEIGHTWEATHER" />
+                        <ComboBoxItem Content="NIGHTWEATHER" />
                         <ComboBoxItem Content="SongTitle" />
                         <ComboBoxItem Content="Artist" />
                         <ComboBoxItem Content="SongLyric" />
@@ -147,6 +186,88 @@
                         <ComboBoxItem Content="Uptime" />
                     </ComboBox>
 
+                    <Border x:Name="PnlTextFormatting" Background="#120F1B" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="ESTILO DE TEXTO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SolarGold}" Margin="0,0,0,5" />
+                            <TextBlock Text="Fuente" FontSize="11" Foreground="{StaticResource TextMuted}" />
+                            <ComboBox x:Name="CmbPropFont" Margin="0,2,0,6" MaxDropDownHeight="300"
+                                      VirtualizingStackPanel.IsVirtualizing="True"
+                                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                      ScrollViewer.CanContentScroll="True"
+                                      SelectionChanged="OnPropEdited">
+                                <ComboBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ComboBox.ItemsPanel>
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontFamily="{Binding PreviewFont}"
+                                                   FontSize="13"
+                                                   Height="20"
+                                                   LineHeight="20"
+                                                   LineStackingStrategy="BlockLineHeight"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="52" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Tamaño" FontSize="11" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <Button x:Name="BtnFontSizeDec" Grid.Column="1" Content="−" Width="26" Height="26" Padding="0" Margin="0,0,3,0" ToolTip="Reducir tamaño (-2 px)" Style="{StaticResource CyberButton}" Click="OnFontSizeDecClick" />
+                                <TextBox x:Name="TxtPropFontSize" Grid.Column="2" Padding="4,3" HorizontalContentAlignment="Center" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+                                <Button x:Name="BtnFontSizeInc" Grid.Column="3" Content="+" Width="26" Height="26" Padding="0" Margin="3,0,5,0" ToolTip="Aumentar tamaño (+2 px)" Style="{StaticResource CyberButton}" Click="OnFontSizeIncClick" />
+                                <ComboBox x:Name="CmbPropFontSize" Grid.Column="4" Height="26" Padding="6,2" ToolTip="Tamaños predefinidos" SelectionChanged="OnFontSizePresetChanged">
+                                    <ComboBoxItem Content="10" />
+                                    <ComboBoxItem Content="12" />
+                                    <ComboBoxItem Content="14" />
+                                    <ComboBoxItem Content="16" />
+                                    <ComboBoxItem Content="18" />
+                                    <ComboBoxItem Content="20" />
+                                    <ComboBoxItem Content="22" />
+                                    <ComboBoxItem Content="24" />
+                                    <ComboBoxItem Content="28" />
+                                    <ComboBoxItem Content="32" />
+                                    <ComboBoxItem Content="36" />
+                                    <ComboBoxItem Content="42" />
+                                    <ComboBoxItem Content="48" />
+                                    <ComboBoxItem Content="56" />
+                                    <ComboBoxItem Content="64" />
+                                    <ComboBoxItem Content="72" />
+                                    <ComboBoxItem Content="96" />
+                                    <ComboBoxItem Content="120" />
+                                </ComboBox>
+                            </Grid>
+                            <UniformGrid Columns="5" Margin="0,0,0,6">
+                                <ToggleButton x:Name="TglBold" Content="B" FontWeight="Bold" Margin="0,0,3,0" ToolTip="Negrita" Style="{StaticResource EditorToggleStyle}" Click="OnPropEdited" />
+                                <ToggleButton x:Name="TglItalic" Content="I" FontStyle="Italic" Margin="0,0,3,0" ToolTip="Cursiva" Style="{StaticResource EditorToggleStyle}" Click="OnPropEdited" />
+                                <ToggleButton x:Name="TglUnderline" Margin="0,0,3,0" ToolTip="Subrayado" Style="{StaticResource EditorToggleStyle}" Click="OnPropEdited">
+                                    <TextBlock Text="U" TextDecorations="Underline" />
+                                </ToggleButton>
+                                <ToggleButton x:Name="TglStrikeout" Margin="0,0,3,0" ToolTip="Tachado" Style="{StaticResource EditorToggleStyle}" Click="OnPropEdited">
+                                    <TextBlock Text="S" TextDecorations="Strikethrough" />
+                                </ToggleButton>
+                                <ToggleButton x:Name="TglShadow" Content="Sombra" FontSize="10" ToolTip="Sombra para mayor contraste" Style="{StaticResource EditorToggleStyle}" Click="OnPropEdited" />
+                            </UniformGrid>
+                            <UniformGrid Columns="4">
+                                <ToggleButton x:Name="TglAlignLeft" Content="⫷" Margin="0,0,3,0" ToolTip="Alinear a la izquierda" Style="{StaticResource EditorToggleStyle}" Click="OnAlignLeftClick" />
+                                <ToggleButton x:Name="TglAlignCenter" Content="☰" Margin="0,0,3,0" ToolTip="Centrar texto" Style="{StaticResource EditorToggleStyle}" Click="OnAlignCenterClick" />
+                                <ToggleButton x:Name="TglAlignRight" Content="⫸" Margin="0,0,3,0" ToolTip="Alinear a la derecha" Style="{StaticResource EditorToggleStyle}" Click="OnAlignRightClick" />
+                                <Button x:Name="BtnCenterTextCanvas" Content="↔" Height="28" Padding="4,0" ToolTip="Centrar en todo el ancho de la pantalla" Style="{StaticResource CyberButton}" Click="OnCenterOnCanvasClick" />
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Button x:Name="BtnCenterWidgetCanvas" Content="↔ Centrar horizontalmente" Height="26" Margin="0,0,0,8" Visibility="Collapsed" Style="{StaticResource CyberButton}" Click="OnCenterOnCanvasClick" />
+
                     <TextBlock Text="Prefijo / Texto Fijo" FontSize="11" Foreground="{StaticResource TextMuted}" />
                     <TextBox x:Name="TxtPropText" Margin="0,2,0,8" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
 
@@ -156,15 +277,86 @@
                     <TextBlock Text="Color Principal (#AARRGGBB)" FontSize="11" Foreground="{StaticResource TextMuted}" />
                     <Grid Margin="0,2,0,8">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox x:Name="TxtPropColor" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
-                        <Button Grid.Column="1" Content="Auto-Contraste" Margin="6,0,0,0" Height="26" Padding="8,0" Style="{StaticResource CyberButton}" Click="OnAutoContrastClick" />
+                        <ToggleButton x:Name="BtnColorDropDown" Height="26" Margin="0,0,5,0" ToolTip="Abrir paleta de colores" Style="{StaticResource EditorToggleStyle}" Click="OnOpenColorPaletteClick">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="SwatchPropColor" Width="16" Height="16" CornerRadius="3" BorderBrush="#4C4266" BorderThickness="1" Background="#FFFFFFFF" Margin="0,0,4,0" />
+                                <TextBlock Text="▾" Foreground="#FF6419" FontSize="10" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <TextBox x:Name="TxtPropColor" Grid.Column="1" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" TextChanged="OnColorHexTextChanged" />
+                        <Button Grid.Column="2" Content="Auto" Margin="5,0,0,0" Height="26" Padding="8,0" ToolTip="Auto-Contraste WCAG" Style="{StaticResource CyberButton}" Click="OnAutoContrastClick" />
                     </Grid>
 
                     <TextBlock Text="Color Fondo (#AARRGGBB)" FontSize="11" Foreground="{StaticResource TextMuted}" />
-                    <TextBox x:Name="TxtPropBackColor" Margin="0,2,0,12" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" />
+                    <Grid Margin="0,2,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="BtnBackColorDropDown" Height="26" Margin="0,0,5,0" ToolTip="Abrir paleta de color de fondo" Style="{StaticResource EditorToggleStyle}" Click="OnOpenBackColorPaletteClick">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="SwatchPropBackColor" Width="16" Height="16" CornerRadius="3" BorderBrush="#4C4266" BorderThickness="1" Background="#C8261F33" Margin="0,0,4,0" />
+                                <TextBlock Text="▾" Foreground="#FF6419" FontSize="10" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <TextBox x:Name="TxtPropBackColor" Grid.Column="1" Padding="5,3" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" LostFocus="OnPropEdited" TextChanged="OnColorHexTextChanged" />
+                    </Grid>
+
+                    <Popup x:Name="ColorPickerPopup" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" Closed="OnColorPopupClosed">
+                        <Border Background="#171421" BorderBrush="#FF6419" BorderThickness="1" CornerRadius="8" Padding="10" Width="264">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock x:Name="TxtColorPopupTitle" Text="Paleta de Color" FontSize="11" FontWeight="Bold" Foreground="{StaticResource SolarGold}" VerticalAlignment="Center" />
+                                    <Button DockPanel.Dock="Right" Content="Transparente" Height="22" Padding="8,0" FontSize="10" HorizontalAlignment="Right" Style="{StaticResource CyberButton}" Click="OnPickTransparentColorClick" />
+                                </DockPanel>
+                                <UniformGrid x:Name="ColorPaletteGrid" Columns="8" Margin="0,0,0,8" />
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="52" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="32" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Rojo" FontSize="10" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" />
+                                    <Slider x:Name="SldColorR" Grid.Column="1" Minimum="0" Maximum="255" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="OnColorSliderChanged" />
+                                    <TextBlock x:Name="TxtColorR" Grid.Column="2" Text="255" FontSize="10" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="52" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="32" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Verde" FontSize="10" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" />
+                                    <Slider x:Name="SldColorG" Grid.Column="1" Minimum="0" Maximum="255" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="OnColorSliderChanged" />
+                                    <TextBlock x:Name="TxtColorG" Grid.Column="2" Text="255" FontSize="10" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="52" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="32" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Azul" FontSize="10" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" />
+                                    <Slider x:Name="SldColorB" Grid.Column="1" Minimum="0" Maximum="255" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="OnColorSliderChanged" />
+                                    <TextBlock x:Name="TxtColorB" Grid.Column="2" Text="255" FontSize="10" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="52" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="32" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Opacidad" FontSize="10" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" />
+                                    <Slider x:Name="SldColorA" Grid.Column="1" Minimum="0" Maximum="255" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="OnColorSliderChanged" />
+                                    <TextBlock x:Name="TxtColorA" Grid.Column="2" Text="255" FontSize="10" FontFamily="Consolas" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
 
                     <Button Content="Actualizar Vista" Height="30" Style="{StaticResource CyberButton}" Click="OnRefreshPreviewClick" />
                 </StackPanel>

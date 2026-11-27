@@ -165,11 +165,12 @@
                                                         </ComboBox>
                                                     </Grid>
 
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <Button Content="{DynamicResource Str_BtnDownloadForScreen}" Style="{StaticResource AccentButton}" Tag="{Binding SerialNumber}" Click="OnOpenCloudForScreenClick" Margin="0,0,8,0" />
-                                                        <Button Content="{DynamicResource Str_BtnMyThemesForScreen}" Style="{StaticResource CyberButton}" Tag="{Binding SerialNumber}" Click="OnOpenGalleryForScreenClick" Margin="0,0,8,0" />
-                                                        <Button Content="{DynamicResource Str_BtnPickLocalFile}" Style="{StaticResource CyberButton}" Tag="{Binding SerialNumber}" Click="OnPickThemeForScreenClick" />
-                                                    </StackPanel>
+                                                    <WrapPanel>
+                                                        <Button Content="{DynamicResource Str_BtnDownloadForScreen}" Style="{StaticResource AccentButton}" Tag="{Binding SerialNumber}" Click="OnOpenCloudForScreenClick" Margin="0,0,8,4" />
+                                                        <Button Content="{DynamicResource Str_BtnMyThemesForScreen}" Style="{StaticResource CyberButton}" Tag="{Binding SerialNumber}" Click="OnOpenGalleryForScreenClick" Margin="0,0,8,4" />
+                                                        <Button Content="{DynamicResource Str_BtnEditThemeForScreen}" Style="{StaticResource CyberButton}" Tag="{Binding SerialNumber}" Click="OnEditThemeForScreenClick" Margin="0,0,8,4" />
+                                                        <Button Content="{DynamicResource Str_BtnPickLocalFile}" Style="{StaticResource CyberButton}" Tag="{Binding SerialNumber}" Click="OnPickThemeForScreenClick" Margin="0,0,0,4" />
+                                                    </WrapPanel>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
@@ -468,6 +469,24 @@
                                                 <TextBlock x:Name="TxtNightLevelLabel" Text="Brillo nocturno: 30%" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" FontSize="12" />
                                                 <Slider x:Name="SldNightBrightness" Minimum="5" Maximum="100" Width="220" HorizontalAlignment="Right" ValueChanged="OnNightBrightnessSliderChanged" />
                                             </DockPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Background="#120F1B" BorderBrush="{StaticResource BorderHairline}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource Str_WeatherLocTitle}" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="TxtWeatherSearch" Padding="8,5" Background="#15121F" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource BorderHairline}" KeyDown="OnWeatherSearchKeyDown" />
+                                                <Button x:Name="BtnWeatherSearch" Grid.Column="1" Content="{DynamicResource Str_WeatherSearchBtn}" Style="{StaticResource CyberButton}" Padding="10,4" Margin="6,0,0,0" Click="OnWeatherSearchClick" />
+                                                <Button x:Name="BtnWeatherAuto" Grid.Column="2" Content="{DynamicResource Str_WeatherAutoBtn}" Style="{StaticResource CyberButton}" Padding="10,4" Margin="6,0,0,0" Click="OnWeatherAutoClick" />
+                                            </Grid>
+                                            <ComboBox x:Name="CmbWeatherResults" Visibility="Collapsed" Margin="0,6,0,0" SelectionChanged="OnWeatherResultSelected" />
+                                            <TextBlock x:Name="TxtWeatherLocStatus" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,6,0,0" TextWrapping="Wrap" />
                                         </StackPanel>
                                     </Border>
 

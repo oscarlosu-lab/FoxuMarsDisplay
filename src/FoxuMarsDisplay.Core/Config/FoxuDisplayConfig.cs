@@ -19,6 +19,9 @@ public sealed class FoxuDisplayConfig
     public bool HttpRemoteEnabled { get; set; } = false;
     public int HttpRemotePort { get; set; } = 47821;
     public string HttpRemoteToken { get; set; } = string.Empty;
+    public string WeatherCity { get; set; } = string.Empty;
+    public double? WeatherLatitude { get; set; }
+    public double? WeatherLongitude { get; set; }
     public List<string> ExtraThemeFolders { get; set; } = [];
     public List<ScreenProfile> Screens { get; set; } = [];
 }

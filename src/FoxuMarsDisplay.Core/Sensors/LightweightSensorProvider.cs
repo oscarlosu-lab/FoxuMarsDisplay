@@ -44,6 +44,9 @@ public sealed class LightweightSensorProvider : IDisposable
         set => _mediaArtLyrics.LyricsOffsetMs = value;
     }
 
+    public void SetWeatherLocation(string? city, double? latitude, double? longitude) =>
+        _weatherAndNet.ConfigureLocation(city, latitude, longitude);
+
     public void Start(int pollIntervalMs = 1000)
     {
         if (_disposed || _pollTask != null)

@@ -176,6 +176,7 @@ public sealed class SensorSnapshot
                 ? CurrentLyricLine
                 : (!string.IsNullOrWhiteSpace(SongTitle) ? SongTitle : "No Media"),
             "WEATHER_DESCRIPTION" or "WEATHERINFO" or "TODAY" => HasWeather ? WeatherDescription : "--",
+            "WEATHER_CITY" or "WEATHERCITY" or "CITY" => !string.IsNullOrWhiteSpace(WeatherCity) ? WeatherCity : "--",
             "NIGHTWEATHER" => HasWeather ? $"{Math.Round(WeatherLowC)}°C" : "--",
             "HEIGHTWEATHER" => HasWeather ? $"{Math.Round(WeatherHighC)}°C" : "--",
             "TEMPERATURE_FELT" or "WEATHER_FEELS_LIKE" => HasWeather ? $"{Math.Round(WeatherFeelsLikeC)}{(string.IsNullOrEmpty(suffix) ? "°C" : suffix)}" : "--",

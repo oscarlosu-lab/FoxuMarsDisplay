@@ -314,8 +314,9 @@
                                         Margin="0,2,0,0"
                                         MinWidth="{TemplateBinding ActualWidth}"
                                         MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                                    <ScrollViewer SnapsToDevicePixels="True">
-                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    <ScrollViewer SnapsToDevicePixels="True" CanContentScroll="True">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
                                     </ScrollViewer>
                                 </Border>
                             </Popup>

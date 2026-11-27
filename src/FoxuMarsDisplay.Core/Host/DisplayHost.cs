@@ -111,6 +111,7 @@ public sealed class DisplayHost : IDisposable
         Config = config ?? _configStore.LoadOrImportSoeyi();
         _targetFps = Math.Clamp(Config.TargetFps, 1, 60);
         _sensors.LyricsOffsetMs = Config.LyricsOffsetMs;
+        _sensors.SetWeatherLocation(Config.WeatherCity, Config.WeatherLatitude, Config.WeatherLongitude);
         _customCacheDir = customCacheDir;
 
         _backend.DeviceAttached += OnDeviceAttached;
@@ -177,6 +178,28 @@ public sealed class DisplayHost : IDisposable
         int clamped = Math.Clamp(offsetMs, -10_000, 10_000);
         Config.LyricsOffsetMs = clamped;
         _sensors.LyricsOffsetMs = clamped;
+        SaveConfig();
+    }
+
+    public void SetWeatherLocation(string? city, double? latitude, double? longitude)
+    {
+        if (latitude.HasValue && longitude.HasValue &&
+            double.IsFinite(latitude.Value) && double.IsFinite(longitude.Value) &&
+            latitude.Value is >= -90.0 and <= 90.0 &&
+            longitude.Value is >= -180.0 and <= 180.0)
+        {
+            Config.WeatherCity = (city ?? string.Empty).Trim();
+            Config.WeatherLatitude = Math.Round(latitude.Value, 6);
+            Config.WeatherLongitude = Math.Round(longitude.Value, 6);
+        }
+        else
+        {
+            Config.WeatherCity = string.Empty;
+            Config.WeatherLatitude = null;
+            Config.WeatherLongitude = null;
+        }
+
+        _sensors.SetWeatherLocation(Config.WeatherCity, Config.WeatherLatitude, Config.WeatherLongitude);
         SaveConfig();
     }
 

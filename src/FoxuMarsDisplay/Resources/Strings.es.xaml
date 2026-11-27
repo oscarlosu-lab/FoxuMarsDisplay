@@ -61,6 +61,7 @@ FoxuMarsDisplay lo reescalará automáticamente.
     <sys:String x:Key="Str_ScreenClassPanel">Panel</sys:String>
     <sys:String x:Key="Str_BtnDownloadForScreen">☁️ Descargar temas</sys:String>
     <sys:String x:Key="Str_BtnMyThemesForScreen">🎨 Mis temas</sys:String>
+    <sys:String x:Key="Str_BtnEditThemeForScreen">✏️ Editar tema</sys:String>
     <sys:String x:Key="Str_BtnPickLocalFile">📁 Archivo...</sys:String>
     <sys:String x:Key="Str_NoScreenBanner">Conecta una pantalla USB para filtrar automáticamente por compatibilidad.</sys:String>
     <sys:String x:Key="Str_EmptyGalleryCompat">No tienes temas descargados compatibles con esta pantalla todavía.</sys:String>
@@ -112,6 +113,14 @@ Puede verse deformado o con franjas negras.
     <sys:String x:Key="Str_LyricsOffsetFmt">Desfase letras: {0} ms</sys:String>
     <sys:String x:Key="Str_HttpRemoteEnable">🌐 Control remoto Web/REST local</sys:String>
     <sys:String x:Key="Str_HttpRemoteOpen">Abrir Web</sys:String>
+    <sys:String x:Key="Str_WeatherLocTitle">🌤️ Ubicación meteorológica (Weather)</sys:String>
+    <sys:String x:Key="Str_WeatherSearchBtn">🔍 Buscar</sys:String>
+    <sys:String x:Key="Str_WeatherAutoBtn">Auto (IP)</sys:String>
+    <sys:String x:Key="Str_WeatherSearching">Buscando ciudades...</sys:String>
+    <sys:String x:Key="Str_WeatherNoResults">No se encontraron ciudades. Prueba otro nombre.</sys:String>
+    <sys:String x:Key="Str_WeatherAutoModeFmt">Automático (IP): {0}</sys:String>
+    <sys:String x:Key="Str_WeatherManualModeFmt">Manual: {0} ({1:F2}, {2:F2})</sys:String>
+    <sys:String x:Key="Str_WeatherNotDetected">detectando...</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Clic para ampliar</sys:String>
     <sys:String x:Key="Str_LightboxHint">Clic en la imagen o Esc para cerrar</sys:String>

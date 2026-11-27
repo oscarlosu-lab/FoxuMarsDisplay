@@ -61,6 +61,7 @@ Aplicar nesta tela?</sys:String>
     <sys:String x:Key="Str_ScreenClassPanel">Painel</sys:String>
     <sys:String x:Key="Str_BtnDownloadForScreen">☁️ Baixar Temas</sys:String>
     <sys:String x:Key="Str_BtnMyThemesForScreen">🎨 Meus Temas</sys:String>
+    <sys:String x:Key="Str_BtnEditThemeForScreen">✏️ Editar Tema</sys:String>
     <sys:String x:Key="Str_BtnPickLocalFile">📁 Arquivo...</sys:String>
     <sys:String x:Key="Str_NoScreenBanner">Conecte uma tela USB para filtrar automaticamente por compatibilidade.</sys:String>
     <sys:String x:Key="Str_EmptyGalleryCompat">Você ainda não tem temas baixados compatíveis com esta tela.</sys:String>
@@ -112,6 +113,14 @@ Aplicar mesmo assim?</sys:String>
     <sys:String x:Key="Str_LyricsOffsetFmt">Atraso da letra: {0} ms</sys:String>
     <sys:String x:Key="Str_HttpRemoteEnable">🌐 Controle remoto Web/REST local</sys:String>
     <sys:String x:Key="Str_HttpRemoteOpen">Abrir Web</sys:String>
+    <sys:String x:Key="Str_WeatherLocTitle">🌤️ Localização meteorológica (Weather)</sys:String>
+    <sys:String x:Key="Str_WeatherSearchBtn">🔍 Buscar</sys:String>
+    <sys:String x:Key="Str_WeatherAutoBtn">Auto (IP)</sys:String>
+    <sys:String x:Key="Str_WeatherSearching">Buscando cidades...</sys:String>
+    <sys:String x:Key="Str_WeatherNoResults">Nenhuma cidade encontrada. Tente outro nome.</sys:String>
+    <sys:String x:Key="Str_WeatherAutoModeFmt">Automático (IP): {0}</sys:String>
+    <sys:String x:Key="Str_WeatherManualModeFmt">Manual: {0} ({1:F2}, {2:F2})</sys:String>
+    <sys:String x:Key="Str_WeatherNotDetected">detectando...</sys:String>
 
     <sys:String x:Key="Str_ClickToZoom">Clique para ampliar</sys:String>
     <sys:String x:Key="Str_LightboxHint">Clique na imagem ou Esc para fechar</sys:String>

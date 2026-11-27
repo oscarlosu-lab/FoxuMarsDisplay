@@ -34,6 +34,7 @@ public sealed class SkiaThemeRenderer : IDisposable
     private SKCanvas _logicalCanvas;
 
     private readonly Dictionary<string, SKTypeface> _fonts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, SKTypeface> _systemTypefaceCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SKBitmap> _staticImages = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, SKBitmap> _statusIconBitmaps = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<CachedAnimFrame> _animFrames = [];
@@ -869,7 +870,10 @@ public sealed class SkiaThemeRenderer : IDisposable
                     ? sensors.FormatValue(txt.SensorKey, txt.Unit)
                     : txt.Prefix + sensors.FormatValue(txt.SensorKey, txt.Unit));
 
-            _textPaint.Typeface = ResolveTypeface(txt.FontFamily, txt.IsBold);
+            var tf = ResolveTypeface(txt.FontFamily, txt.IsBold, txt.IsItalic);
+            _textPaint.Typeface = tf;
+            _textPaint.FakeBoldText = txt.IsBold && !tf.IsBold;
+            _textPaint.TextSkewX = txt.IsItalic && !tf.IsItalic ? -0.22f : 0f;
             _textPaint.TextSize = Math.Max(6f, txt.FontSize * minScale);
             byte alpha = (byte)Math.Clamp(Math.Round(txt.Color.Alpha * txt.Opacity), 0, 255);
             _textPaint.Color = txt.Color.WithAlpha(alpha);
@@ -887,7 +891,11 @@ public sealed class SkiaThemeRenderer : IDisposable
                 float right = ox + (txt.X + txt.BoxWidth) * sx;
                 float bottom = oy + (txt.Y + txt.BoxHeight) * sy;
 
-                (tx, _textPaint.TextAlign) = ah switch
+                char effH = ah != 'l'
+                    ? ah
+                    : (txt.Align == TextAlignMode.Center ? 'm' : txt.Align == TextAlignMode.Right ? 'r' : 'l');
+
+                (tx, _textPaint.TextAlign) = effH switch
                 {
                     'm' => ((left + right) * 0.5f, SKTextAlign.Center),
                     'r' => (right, SKTextAlign.Right),
@@ -925,8 +933,42 @@ public sealed class SkiaThemeRenderer : IDisposable
                 };
             }
 
+            if (txt.HasShadow)
+            {
+                float shadowOff = Math.Max(1.5f, _textPaint.TextSize * 0.06f);
+                _textPaint.Color = new SKColor(0, 0, 0, (byte)Math.Clamp(alpha * 0.75f, 0, 255));
+                _logicalCanvas.DrawText(value, tx + shadowOff, ty + shadowOff, _textPaint);
+                _textPaint.Color = txt.Color.WithAlpha(alpha);
+            }
+
             _logicalCanvas.DrawText(value, tx, ty, _textPaint);
+
+            if (txt.IsUnderline || txt.IsStrikeout)
+            {
+                float textW = _textPaint.MeasureText(value);
+                if (textW > 0)
+                {
+                    float x0 = _textPaint.TextAlign == SKTextAlign.Center
+                        ? tx - textW * 0.5f
+                        : _textPaint.TextAlign == SKTextAlign.Right ? tx - textW : tx;
+                    _barStrokePaint.Color = txt.Color.WithAlpha(alpha);
+                    _barStrokePaint.StrokeWidth = Math.Max(1.2f, _textPaint.TextSize * 0.065f);
+
+                    if (txt.IsUnderline)
+                    {
+                        float ulY = ty + Math.Max(1.5f, _textPaint.TextSize * 0.12f);
+                        _logicalCanvas.DrawLine(x0, ulY, x0 + textW, ulY, _barStrokePaint);
+                    }
+                    if (txt.IsStrikeout)
+                    {
+                        float stY = ty + _textPaint.FontMetrics.Ascent * 0.34f;
+                        _logicalCanvas.DrawLine(x0, stY, x0 + textW, stY, _barStrokePaint);
+                    }
+                }
+            }
         }
+        _textPaint.FakeBoldText = false;
+        _textPaint.TextSkewX = 0f;
 
         UpdateBrightnessFilter();
         _blitPaint.ColorFilter = _brightnessFilter;
@@ -1097,49 +1139,72 @@ public sealed class SkiaThemeRenderer : IDisposable
         return h * 1099511628211UL;
     }
 
-    private SKTypeface ResolveTypeface(string family, bool isBold = false)
+    private SKTypeface ResolveTypeface(string family, bool isBold = false, bool isItalic = false)
     {
-        if (!string.IsNullOrEmpty(family))
+        string trimmed = (family ?? string.Empty).Trim();
+        if (!string.IsNullOrEmpty(trimmed))
         {
-            if (_fonts.TryGetValue(family, out var tfExact))
+            if (_fonts.TryGetValue(trimmed, out var tfExact))
                 return tfExact;
 
-            string shortName = Path.GetFileNameWithoutExtension(family.Replace('\\', '/'));
+            string shortName = Path.GetFileNameWithoutExtension(trimmed.Replace('\\', '/'));
             if (!string.IsNullOrEmpty(shortName) && _fonts.TryGetValue(shortName, out var tfShort))
                 return tfShort;
 
             foreach (var kv in _fonts)
             {
                 if ((!string.IsNullOrEmpty(shortName) && kv.Key.Contains(shortName, StringComparison.OrdinalIgnoreCase)) ||
-                    kv.Key.Contains(family, StringComparison.OrdinalIgnoreCase))
+                    kv.Key.Contains(trimmed, StringComparison.OrdinalIgnoreCase))
                     return kv.Value;
             }
         }
-
-        if (_fonts.Count > 0)
+        else if (_fonts.Count > 0)
+        {
             return _fonts.Values.First();
+        }
 
         bool bold = isBold ||
-                    family.Contains("Bold", StringComparison.OrdinalIgnoreCase) ||
-                    family.Contains("Black", StringComparison.OrdinalIgnoreCase);
+                    trimmed.Contains("Bold", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.Contains("Black", StringComparison.OrdinalIgnoreCase);
+        bool italic = isItalic ||
+                      trimmed.Contains("Italic", StringComparison.OrdinalIgnoreCase) ||
+                      trimmed.Contains("Oblique", StringComparison.OrdinalIgnoreCase);
 
-        if (family.Contains("racespace", StringComparison.OrdinalIgnoreCase) ||
-            family.Contains("geforce", StringComparison.OrdinalIgnoreCase) ||
-            family.Contains("digital", StringComparison.OrdinalIgnoreCase))
+        string cacheKey = $"{trimmed}|{(bold ? 1 : 0)}|{(italic ? 1 : 0)}";
+        if (_systemTypefaceCache.TryGetValue(cacheKey, out var cachedTf))
+            return cachedTf;
+
+        var style = new SKFontStyle(
+            bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
+            SKFontStyleWidth.Normal,
+            italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
+
+        SKTypeface resolved;
+        if (trimmed.Contains("racespace", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Contains("geforce", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Contains("digital", StringComparison.OrdinalIgnoreCase))
         {
-            return SKTypeface.FromFamilyName("Bahnschrift", bold ? SKFontStyle.Bold : SKFontStyle.Normal)
-                   ?? SKTypeface.Default;
+            resolved = SKTypeface.FromFamilyName("Bahnschrift", style) ?? SKTypeface.Default;
+        }
+        else if (trimmed.Contains("mono", StringComparison.OrdinalIgnoreCase))
+        {
+            resolved = SKTypeface.FromFamilyName("Consolas", style) ?? SKTypeface.Default;
+        }
+        else if (!string.IsNullOrEmpty(trimmed))
+        {
+            resolved = SKTypeface.FromFamilyName(trimmed, style)
+                       ?? SKTypeface.FromFamilyName(null, style)
+                       ?? SKTypeface.Default;
+        }
+        else
+        {
+            resolved = (bold || italic)
+                ? (SKTypeface.FromFamilyName(null, style) ?? SKTypeface.Default)
+                : SKTypeface.Default;
         }
 
-        if (family.Contains("mono", StringComparison.OrdinalIgnoreCase))
-        {
-            return SKTypeface.FromFamilyName("Consolas", bold ? SKFontStyle.Bold : SKFontStyle.Normal)
-                   ?? SKTypeface.Default;
-        }
-
-        return bold
-            ? SKTypeface.FromFamilyName(null, SKFontStyle.Bold) ?? SKTypeface.Default
-            : SKTypeface.Default;
+        _systemTypefaceCache[cacheKey] = resolved;
+        return resolved;
     }
 
     private void UpdateBrightnessFilter()
@@ -1193,6 +1258,13 @@ public sealed class SkiaThemeRenderer : IDisposable
 
         foreach (var tf in _fonts.Values.Distinct()) tf.Dispose();
         _fonts.Clear();
+
+        foreach (var tf in _systemTypefaceCache.Values.Distinct())
+        {
+            if (!ReferenceEquals(tf, SKTypeface.Default))
+                tf.Dispose();
+        }
+        _systemTypefaceCache.Clear();
 
         _animFrames.Clear();
     }
